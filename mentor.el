@@ -113,12 +113,15 @@ functions"
 
 
 ;; Main view
+
 (defun mentor-update ()
   "Update mentor view"
   (interactive)
+  (message "Updating torrent list...")
   (mentor-update-torrent-list)
   (erase-buffer)
-  (mentor-insert-torrents))
+  (mentor-insert-torrents)
+  (message "Updating torrent list... DONE"))
 
 (defun mentor-insert-torrents ()
   (maphash
