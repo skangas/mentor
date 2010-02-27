@@ -60,8 +60,8 @@
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs"
   (kill-all-local-variables)
-  (setq major-mode 'rtorrent-control-mode
-        mode-name "rtorrent"
+  (setq major-mode 'mentor-mode
+        mode-name "mentor"
         truncate-lines t)
   (use-local-map mentor-mode-map)
   (run-mode-hooks 'mentor-mode-hook))
@@ -160,8 +160,10 @@ functions"
 
 (defun mentor-toggle-object ()
   (interactive)
-  (message "TODO"))
-  ;;(get-text-property 'torrent-id))
+  (let ((id (get-text-property (point) 'torrent-id)))
+    (when id
+      (let ((torrent (mentor-get-torrent id)))
+        (message (mentor-get-field "connection_current" torrent))))))
 
 
 ;; Torrent actions
@@ -202,6 +204,9 @@ functions"
          (setq torrent (assq-delete-all id torrent))
          (puthash id torrent mentor-torrent-hash)))
      torrents)))
+
+(defun mentor-get-torrent (id)
+  (gethash id mentor-torrent-hash))
 
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
