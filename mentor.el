@@ -141,7 +141,7 @@ functions"
 (defun mentor-insert-torrent (id torrent)
   ;; TODO allow for different format lists
   (insert
-   (propertize (concat (mentor-get-field "name" torrent)  "\n")
+   (propertize (concat (mentor-get-field "name" torrent) "\n")
                'torrent-id id
                'collapsed t)))
 
@@ -185,7 +185,7 @@ functions"
 (defun mentor-update-torrent-list ()
   "Update torrent information list"
   (when (not mentor-torrent-hash)
-    (setq mentor-torrent-hash (make-hash-table)))
+    (setq mentor-torrent-hash (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
          (tor-list (mentor-command-multi (mapcar
                                           (lambda (x) (concat x "="))
