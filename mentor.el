@@ -28,6 +28,9 @@
 
 (require 'xml-rpc)
 
+
+;;; configuration
+
 (defgroup mentor nil
   "Controlling rtorrent from Emacs."
   :prefix "mentor-"
@@ -39,6 +42,8 @@
   :type 'string)
 
 
+;;; major mode
+
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
@@ -73,11 +78,10 @@
   ;; TODO
   nil)
 
-
-(defun mentor-kill-torrent ()
-  (message "TODO"))
 
 
+;;; Run XML-RPC calls
+
 (defun mentor-command (&rest args)
   "Run command as an XML-RPC call via SCGI."
   ;; (when (not (listp args))
@@ -114,6 +118,11 @@ functions"
 
 ;; Main view
 
+(defun mentor-sort ()
+  ;; TODO sort lines according to various criteria
+  (interactive)
+  (sort-lines))
+
 (defun mentor-update ()
   "Update mentor view"
   (interactive)
@@ -139,17 +148,31 @@ functions"
 (defun mentor-torrent-at-point ()
   (get-text-property 'torrent-id))
 
-;; (defun mentor-toggle-object ()
-;;   (get-text-property 'torrent-id
+(defun mentor-next ()
+  ;; TODO move to next torrent
+  (interactive)
+  (next-line))
 
- ;; (let ((buf (get-buffer-create "*mentor-process*")))
- ;;    (save-excursion
- ;;      (set-buffer buf)
- ;;      (setq buffer-read-only t)
- ;;      (let ((inhibit-read-only t))
- ;;        (erase-buffer)
- ;;        (message cmd)
- ;;        (
+(defun mentor-prev ()
+  ;; TODO move to next torrent
+  (interactive)
+  (next-line))
+
+(defun mentor-toggle-object ()
+  (interactive)
+  (message "TODO"))
+  ;;(get-text-property 'torrent-id))
+
+
+;; Torrent actions
+
+(defun mentor-kill-torrent ()
+  (interactive)
+  (message "TODO"))
+
+(defun mentor-stop-torrent ()
+  (interactive)
+  (message "TODO"))
 
 
 ;;; Torrents
