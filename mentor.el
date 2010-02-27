@@ -85,13 +85,13 @@
   (xml-rpc-xml-to-response
    (with-temp-buffer
      (apply 'call-process
-            "/home/skangas/.emacs.d/lisp-personal/xmlrpc2scgi.py"
+            "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
             nil t nil (apply 'append `(,mentor-scgi-url) args))
      ;; (xml-rpc-value-to-xml-list
      (xml-rpc-request-process-buffer (current-buffer)))))
 
 (defun mentor-command-multi (&rest args)
-  (mentor-command (append '("d.multicall" "default") args)))
+  (mentor-command (apply 'append '("d.multicall" "default") args)))
 
 ;; Needed to work around buggy expressions in rtorrent
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
