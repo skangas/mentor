@@ -112,27 +112,32 @@ functions"
     retval))
 
 
+;; Main view
 (defun mentor-update ()
+  "Update mentor view"
   (interactive)
   (mentor-update-torrent-list)
   (erase-buffer)
   (mentor-insert-torrents))
 
 (defun mentor-insert-torrents ()
-  (let ((torrents mentor-torrent-list))
-    (while torrents
-      (mentor-insert-torrent (car torrents))
-      (setq torrents (cdr torrents)))))
+  (maphash
+   (lambda (id torrent)
+     (mentor-insert-torrent id torrent))
+   mentor-torrent-hash))
 
-(defun mentor-insert-torrent (torrent)
-  ;; TODO allow for different formats
+(defun mentor-insert-torrent (id torrent)
+  ;; TODO allow for different format lists
   (insert
-   (propertize (concat (mentor-get-field "d.get_name" torrent)  "\n")
-               'torrent-id (mentor-get-field "d.local_id" torrent)
+   (propertize (concat (mentor-get-field "name" torrent)  "\n")
+               'torrent-id id
                'collapsed t)))
 
-(defun mentor-get-field (field torrent)
-  (cdr (assoc field torrent)))
+(defun mentor-torrent-at-point ()
+  (get-text-property 'torrent-id))
+
+;; (defun mentor-toggle-object ()
+;;   (get-text-property 'torrent-id
 
  ;; (let ((buf (get-buffer-create "*mentor-process*")))
  ;;    (save-excursion
@@ -144,29 +149,36 @@ functions"
  ;;        (
 
 
+;;; Torrents
 
-;; (defun mentor-toggle-object ()
-;;   (get-text-property 'torrent-id
-
-(defun mentor-get-torrent-list ()
-  (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
-         (tor-list (mentor-command-multi (mapcar (lambda (x) (concat x "="))
-                                                   methods)))
-         (attributes (mapcar (lambda (name)
-                               (replace-regexp-in-string "^d\\.\\(get_\\)" "" name))
-                             methods)))
-    (mapcar (lambda (torrent)
-              (mentor-join-lists attributes torrent))
-            tor-list)))
-
-(defvar mentor-torrent-list nil)
-(make-variable-buffer-local 'mentor-torrent-list)
+(defvar mentor-torrent-hash nil)
+(make-variable-buffer-local 'mentor-torrent-hash)
 
 (defun mentor-update-torrent-list ()
-  (setq mentor-torrent-list (mentor-get-torrent-list)))
+  "Update torrent information list"
+  (when (not mentor-torrent-hash)
+    (setq mentor-torrent-hash (make-hash-table)))
+  (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
+         (tor-list (mentor-command-multi (mapcar
+                                          (lambda (x) (concat x "="))
+                                          methods)))
+         (attributes (mapcar
+                      (lambda (name)
+                        (replace-regexp-in-string "^d\\.\\(get_\\)" "" name))
+                      methods))
+         (torrents (mapcar
+                    (lambda (torrent)
+                      (mentor-join-lists attributes torrent))
+                    tor-list)))
+    (mapc
+     (lambda (torrent)
+       (let ((id (mentor-get-field "local_id" torrent)))
+         (setq torrent (assq-delete-all id torrent))
+         (puthash id torrent mentor-torrent-hash)))
+     torrents)))
 
-(defun mentor-torrent-at-point ()
-  (get-text-property 'torrent-id))
+(defun mentor-get-field (field torrent)
+  (cdr (assoc field torrent)))
 
 
 ;;; Utility functions
