@@ -141,7 +141,8 @@ functions"
 (defun mentor-sort ()
   ;; TODO sort lines according to various criteria
   (interactive)
-  (sort-lines nil (point-min) (point-max)))
+  (let ((sort-fold-case t))
+    (sort-lines nil (point-min) (point-max))))
 
 (defun mentor-update ()
   "Update mentor view"
