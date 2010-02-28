@@ -67,6 +67,7 @@
     (define-key map (kbd "TAB") 'mentor-toggle-object)
     (define-key map (kbd "d") 'mentor-stop-torrent)
     (define-key map (kbd "k") 'mentor-kill-torrent)
+    (define-key map (kbd "K") 'mentor-kill-torrent-and-remove-data)
     (define-key map (kbd "n") 'mentor-next)
     (define-key map (kbd "p") 'mentor-prev)
     (define-key map (kbd "s") 'mentor-sort)
@@ -157,7 +158,10 @@ functions"
    mentor-torrent-hash))
 
 (defvar mentor-format-collapsed-torrent '("%s %s" "state" "name"))
-(setq mentor-format-collapsed-torrent '("[%4s] %s" mentor-torrent-progress "name"))
+(setq mentor-format-collapsed-torrent '("%s %-70s [%4s]"
+                                        mentor-torrent-status
+                                        mentor-torrent-name
+                                        mentor-torrent-progress))
 ;;   "The format of a collapsed torrent, as a list.
 
 ;; The first string in the listhas the same syntax as format.
@@ -247,7 +251,7 @@ functions"
                                           methods)))
          (attributes (mapcar
                       (lambda (name)
-                        (replace-regexp-in-string "^d\\.\\(get_\\)" "" name))
+                        (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
                       methods))
          (torrents (mapcar
                     (lambda (torrent)
@@ -269,6 +273,9 @@ functions"
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
 
+(defun mentor-torrent-name (torrent)
+  (mentor-get-field "name" torrent))
+
 (defun mentor-torrent-progress (torrent)
   (let* ((done (abs (mentor-get-field "bytes_done" torrent)))
          (total (abs (mentor-get-field "size_bytes" torrent)))
@@ -276,6 +283,15 @@ functions"
     (if (>= percent 100)
         "DONE"
       (format "%2d%s" percent "%"))))
+
+(defun mentor-torrent-status (torrent)
+  (let* ((active (mentor-get-field "is_active" torrent))
+         (closed (mentor-get-field "is_closed" torrent))
+         (open (mentor-get-field "is_open" torrent)))
+    (cond ((and active (= active 1)) " ")
+          ((and closed (= closed 1)) "C")
+          ((and open (= open 1)) "O")
+          (t "?"))))
 
 
 ;;; Utility functions
