@@ -3,6 +3,7 @@
 ;; Copyright (C) 2010, Stefan Kangas
 
 ;; Maintainer: Stefan Kangas
+;; Version: 0.0.1
 ;; Keywords: bittorrent, rtorrent
 
 ;; This file is NOT part of GNU Emacs.
@@ -22,7 +23,21 @@
 
 ;;; Commentary:
 
+;; This code plugs the bittorrent client rtorrent into Emacs.  It is
+;; accomplished using XML-RPC, and a Python script plugging the requests over
+;; SCGI in order not to need a webserver locally.  The current goal is to
+;; provide enough features in order to never have to touch the standard ncurses
+;; interface ever again.
+
+;; TODO:
+;; Implement SCGI in Emacs Lisp
+;; Support for XML-RPC over HTTP
+
+;; Bug reports, comments, and suggestions are welcome!
+
 ;;; Change Log:
+
+;; 0.1.0 First public release
 
 ;;; Code:
 
