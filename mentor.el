@@ -33,6 +33,8 @@
 ;; Implement SCGI in Emacs Lisp
 ;; Support for XML-RPC over HTTP
 ;; Support for categories
+;; Only update incomplete torrents
+;; Highlight current torrent
 
 ;; Bug reports, comments, and suggestions are welcome!
 
@@ -63,14 +65,15 @@
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "M-g") 'mentor-update-at-point)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "s") 'mentor-stop-torrent)
     (define-key map (kbd "k") 'mentor-kill-torrent)
     (define-key map (kbd "K") 'mentor-kill-torrent-and-remove-data)
     (define-key map (kbd "n") 'mentor-next)
     (define-key map (kbd "p") 'mentor-prev)
-    (define-key map (kbd "s") 'mentor-sort)
+    (define-key map (kbd "S") 'mentor-sort)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     map))
 
@@ -209,7 +212,8 @@ functions"
     (while (and (equal from (mentor-torrent-at-point))
                 (not (save-excursion (end-of-line)
                                      (= (point) (point-max)))))
-      (next-line))))
+      (next-line)
+      (beginning-of-line))))
 
 (defun mentor-prev ()
   (interactive)
@@ -217,7 +221,8 @@ functions"
     (while (and (equal from (mentor-torrent-at-point))
                 (not (save-excursion (end-of-line)
                                      (= (point) (point-max)))))
-      (previous-line))))
+      (previous-line)
+      (beginning-of-line))))
 
 (defun mentor-toggle-object ()
   (interactive)
@@ -231,11 +236,23 @@ functions"
 
 (defun mentor-kill-torrent ()
   (interactive)
-  (message "TODO"))
+  (let ((id (mentor-torrent-at-point)))
+    (message "TODO")))
 
 (defun mentor-stop-torrent ()
   (interactive)
-  (message "TODO"))
+  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
+    (mentor-command "d.stop" (mentor-get-field "hash" tor))))
+
+(defun mentor-start-torrent ()
+  (interactive)
+  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
+    (mentor-command "d.start" (mentor-get-field "hash" tor))))
+
+(defun mentor-pause-torrent ()
+  (interactive)
+  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
+    (mentor-command "d.pause" (mentor-get-field "hash" tor))))
 
 
 ;;; Torrents
