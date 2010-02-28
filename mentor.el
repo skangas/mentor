@@ -32,6 +32,7 @@
 ;; TODO:
 ;; Implement SCGI in Emacs Lisp
 ;; Support for XML-RPC over HTTP
+;; Support for categories
 
 ;; Bug reports, comments, and suggestions are welcome!
 
@@ -138,7 +139,7 @@ functions"
 (defun mentor-sort ()
   ;; TODO sort lines according to various criteria
   (interactive)
-  (sort-lines))
+  (sort-lines nil (point-min) (point-max)))
 
 (defun mentor-update ()
   "Update mentor view"
