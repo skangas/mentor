@@ -73,7 +73,9 @@
     map))
 
 (defun mentor-mode ()
-  "Major mode for controlling rtorrent from emacs"
+  "Major mode for controlling rtorrent from emacs
+
+\\{mentor-mode-map}"
   (kill-all-local-variables)
   (setq major-mode 'mentor-mode
         mode-name "mentor"
@@ -153,12 +155,43 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrent-hash))
 
+(defvar mentor-format-collapsed-torrent '("%s %s" "state" "name"))
+(setq mentor-format-collapsed-torrent '("[%4s] %s" mentor-torrent-progress "name"))
+;;   "The format of a collapsed torrent, as a list.
+
+;; The first string in the listhas the same syntax as format.
+
+;; The rest of the list is interpreted literally unless they are strings padded with % \
+;; on either side.  If so, they are taken as info fields to be processed for every torrent.")
+
 (defun mentor-insert-torrent (id torrent)
-  ;; TODO allow for different format lists
   (insert
-   (propertize (concat (mentor-get-field "name" torrent) "\n")
+   (concat
+   (propertize (mentor-process-format-string
+                mentor-format-collapsed-torrent
+                torrent)
                'torrent-id id
-               'collapsed t)))
+               'collapsed t)
+   "\n")))
+
+(defun mentor-process-format-string (format-list torrent)
+  (let ((re mentor-regexp-information-fields))
+    (apply 'format
+           (car format-list)
+           (mapcar (lambda (cur)
+                     (cond ((functionp cur)
+                            (funcall cur torrent))
+                           ((stringp cur)
+                            (if (string-match re cur)
+                                (or (mentor-get-field
+                                     (substring cur
+                                                (+ (match-beginning 0) 0)
+                                                (- (match-end 0) 0))
+                                     torrent)
+                                    "")
+                              cur))
+                           (t "")))
+                   (cdr format-list)))))
 
 (defun mentor-torrent-at-point ()
   (get-text-property 'torrent-id))
@@ -218,13 +251,24 @@ functions"
        (let ((id (mentor-get-field "local_id" torrent)))
          (setq torrent (assq-delete-all id torrent))
          (puthash id torrent mentor-torrent-hash)))
-     torrents)))
+     torrents)
+    (when (not mentor-regexp-information-fields)
+      (setq mentor-regexp-information-fields
+            (regexp-opt attributes 'words)))))
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrent-hash))
 
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
+
+(defun mentor-torrent-progress (torrent)
+  (let* ((done (abs (mentor-get-field "bytes_done" torrent)))
+         (total (abs (mentor-get-field "size_bytes" torrent)))
+         (percent (* 100 (/ done total))))
+    (if (>= percent 100)
+        "DONE"
+      (format "%2d%s" percent "%"))))
 
 
 ;;; Utility functions
