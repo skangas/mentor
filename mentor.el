@@ -195,17 +195,23 @@ functions"
                    (cdr format-list)))))
 
 (defun mentor-torrent-at-point ()
-  (get-text-property 'torrent-id))
+  (get-text-property (point) 'torrent-id))
 
 (defun mentor-next ()
-  ;; TODO move to next torrent
   (interactive)
-  (next-line))
+  (let ((from (mentor-torrent-at-point)))
+    (while (and (equal from (mentor-torrent-at-point))
+                (not (save-excursion (end-of-line)
+                                     (= (point) (point-max)))))
+      (next-line))))
 
 (defun mentor-prev ()
-  ;; TODO move to next torrent
   (interactive)
-  (next-line))
+  (let ((from (mentor-torrent-at-point)))
+    (while (and (equal from (mentor-torrent-at-point))
+                (not (save-excursion (end-of-line)
+                                     (= (point) (point-max)))))
+      (previous-line))))
 
 (defun mentor-toggle-object ()
   (interactive)
