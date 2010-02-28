@@ -101,20 +101,21 @@
 
 ;;; Run XML-RPC calls
 
+
 (defun mentor-command (&rest args)
   "Run command as an XML-RPC call via SCGI."
-  ;; (when (not (listp args))
-  ;;   (setq args (list args)))
+  (when (not (listp args))
+    (setq args (list args)))
   (xml-rpc-xml-to-response
    (with-temp-buffer
      (apply 'call-process
             "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
-            nil t nil (apply 'append `(,mentor-scgi-url) args))
+            nil t nil (append `(,mentor-scgi-url) args))
      ;; (xml-rpc-value-to-xml-list
      (xml-rpc-request-process-buffer (current-buffer)))))
 
 (defun mentor-command-multi (&rest args)
-  (mentor-command (apply 'append '("d.multicall" "default") args)))
+  (apply 'mentor-command (apply 'append '("d.multicall" "default") args)))
 
 ;; Needed to work around buggy expressions in rtorrent
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
@@ -124,7 +125,7 @@
 Returns a list of all available commands.  First argument is \
 interpreted as a regexp, and if specified only returns matching \
 functions"
-  (let ((methods (mentor-command '("system.listMethods")))
+  (let ((methods (mentor-command "system.listMethods"))
         (retval '()))
     (when regexp
       (mapc (lambda (cur)
