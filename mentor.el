@@ -67,6 +67,9 @@
     (suppress-keymap map t)
     (define-key map (kbd "M-g") 'mentor-update-at-point)
     (define-key map (kbd "g") 'mentor-update)
+    (define-key map (kbd "G") 'mentor-reload)
+    (define-key map (kbd "DEL") 'mentor-toggle-object) ;; what to do?
+    (define-key map (kbd "RET") 'mentor-toggle-object)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
     (define-key map (kbd "s") 'mentor-stop-torrent)
     (define-key map (kbd "k") 'mentor-kill-torrent)
@@ -77,6 +80,8 @@
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     map))
 
+(defvar mentor-mode-hook nil)
+
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
 
@@ -84,7 +89,9 @@
   (kill-all-local-variables)
   (setq major-mode 'mentor-mode
         mode-name "mentor"
+        buffer-read-only t
         truncate-lines t)
+  (set (make-local-variable 'line-move-visual) nil)
   (use-local-map mentor-mode-map)
   (run-mode-hooks 'mentor-mode-hook))
 
@@ -103,7 +110,6 @@
 
 
 ;;; Run XML-RPC calls
-
 
 (defun mentor-command (&rest args)
   "Run command as an XML-RPC call via SCGI."
@@ -206,23 +212,27 @@ functions"
 (defun mentor-torrent-at-point ()
   (get-text-property (point) 'torrent-id))
 
+(defmacro while-same-torrent (&rest body)
+  `(let ((id (mentor-torrent-at-point)))
+     (while (equal id (mentor-torrent-at-point))
+       ,@body)))
+
 (defun mentor-next ()
   (interactive)
-  (let ((from (mentor-torrent-at-point)))
-    (while (and (equal from (mentor-torrent-at-point))
-                (not (save-excursion (end-of-line)
-                                     (= (point) (point-max)))))
-      (next-line)
-      (beginning-of-line))))
+  (while-same-torrent
+   (next-line)
+   (beginning-of-line)))
 
 (defun mentor-prev ()
   (interactive)
-  (let ((from (mentor-torrent-at-point)))
-    (while (and (equal from (mentor-torrent-at-point))
-                (not (save-excursion (end-of-line)
-                                     (= (point) (point-max)))))
-      (previous-line)
-      (beginning-of-line))))
+  (while-same-torrent
+   (previous-line)
+   (beginning-of-line)))
+
+(defun mentor-goto-torrent-end ()
+  (interactive)
+  (while-same-torrent
+   (forward-char)))
 
 (defun mentor-toggle-object ()
   (interactive)
