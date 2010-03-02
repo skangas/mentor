@@ -165,14 +165,15 @@ functions"
 (defun mentor-update-all ()
   "Update torrent list mentor view completely"
   (interactive)
-  (mentor-update-torrent-list)
-  (let ((inhibit-read-only t))
-    (erase-buffer)
-    (insert (concat "mentor-" mentor-version " - rTorrent "
-                    (mentor-command "system.client_version") "/"
-                    (mentor-command "system.library_version")
-                    " (" (mentor-command "get_name") ")\n\n"))
-    (mentor-insert-torrents)))
+  (save-excursion
+    (mentor-update-torrent-list)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (concat "mentor-" mentor-version " - rTorrent "
+                      (mentor-command "system.client_version") "/"
+                      (mentor-command "system.library_version")
+                      " (" (mentor-command "get_name") ")\n\n"))
+      (mentor-insert-torrents))))
 
 (defun mentor-insert-torrents ()
   (maphash
@@ -231,7 +232,8 @@ functions"
           (inhibit-read-only t))
       (sort-subr nil
                  (lambda () (ignore-errors (mentor-next)))
-                 (lambda () (ignore-errors (mentor-goto-torrent-end)))))))
+                 (lambda () (ignore-errors (mentor-goto-torrent-end)))
+                 (lambda () (mentor-get-field-at-point "name"))))))
 
 (defun mentor-id-at-point ()
   (get-text-property (point) 'torrent-id))
@@ -241,6 +243,9 @@ functions"
 
 (defun mentor-get-field-at-point (field)
   (mentor-get-field field (mentor-torrent-at-point)))
+
+(defun mentor-get-hash-at-point ()
+  (mentor-get-field-at-point "hash"))
 
 (defun mentor-command-at-point (command)
   (mentor-command command (mentor-get-field-at-point "hash")))
@@ -282,23 +287,44 @@ functions"
 
 ;; Torrent actions
 
+(defmacro mentor-use-torrent (&rest body)
+  `(let ((torrent (or torrent
+                      (mentor-torrent-at-point))))
+     ,@body))
+
 (defun mentor-kill-torrent ()
+  (interactive)
+  (let ((torrent (mentor-torrent-at-point))
+        (files (mentor-torrent-file-list torrent)))
+    ;; (mentor-stop-torrent)
+    ;; (mentor-kill-torrent)
+    (mapc
+     (lambda (file)
+       (message file))
+     files)))
+
+(defun mentor-kill-torrent-and-remove-data ()
   (interactive)
   (let ((id (mentor-id-at-point)))
     (mentor-stop-torrent)
     (message "TODO")))
 
-(defun mentor-stop-torrent ()
+(defmacro mentor-command-at-torrent-or-point (torrent command)
+  `(if ,torrent
+       (mentor-command ,command (mentor-get-field "hash" torrent))
+     (mentor-command-at-point command)))
+
+(defun mentor-stop-torrent (&optional torrent)
   (interactive)
-  (mentor-command-at-point "d.stop"))
+  (montor-command-at-torrent-or-point torrent "d.stop"))
 
 (defun mentor-start-torrent ()
   (interactive)
-  (mentor-command-at-point "d.start"))
+  (montor-command-at-torrent-or-point torrent "d.start"))
 
 (defun mentor-pause-torrent ()
   (interactive)
-  (mentor-command-at-point "d.pause"))
+   (montor-command-at-torrent-or-point torrent "d.pause"))
 
 
 ;;; Torrents
@@ -340,10 +366,6 @@ functions"
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
 
-(defun mentor-torrent-is-done-p (torrent)
-  (= (mentor-get-field "bytes_done" torrent)
-     (mentor-get-field "size_bytes" torrent)))
-
 (defun mentor-torrent-name (torrent)
   (mentor-get-field "name" torrent))
 
@@ -363,6 +385,29 @@ functions"
           ((and closed (= closed 1)) "C")
           ((and open (= open 1)) "O")
           (t "?"))))
+
+(defun mentor-torrent-get-file-list (torrent)
+  (mentor-command "f.multicall" (mentor-get-field "hash" torrent) "" "f.get_path="))
+
+(defun mentor-torrent-get-target-directory (&optional torrent)
+  (mentor-use-torrent
+   (mentor-get-field "directory" torrent)))
+
+(defun mentor-torrent-is-done-p (&optional torrent)
+  (interactive)
+  (mentor-use-torrent
+   (= (mentor-get-field "bytes_done" torrent)
+      (mentor-get-field "size_bytes" torrent))))
+
+(defun mentor-torrent-is-multi-file-p (&optional torrent)
+  (interactive)
+  (mentor-use-torrent
+   (= 1 (mentor-get-field "is_multi_file" torrent))))
+
+(defun mentor-torrent-is-open-p (&optional torrent)
+  (interactive)
+  (mentor-use-torrent
+   (= 1 (mentor-get-field "is_open" torrent))))
 
 
 ;;; Utility functions
