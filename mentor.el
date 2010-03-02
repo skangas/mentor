@@ -183,12 +183,12 @@ functions"
 (defun mentor-insert-torrent (id torrent)
   (insert
    (concat
-   (propertize (mentor-process-format-string
-                mentor-format-collapsed-torrent
-                torrent)
-               'torrent-id id
-               'collapsed t)
-   "\n")))
+    (propertize (mentor-process-format-string
+                 mentor-format-collapsed-torrent
+                 torrent)
+                'torrent-id id
+                'collapsed t)
+    "\n")))
 
 (defun mentor-process-format-string (format-list torrent)
   (let ((re mentor-regexp-information-fields))
@@ -209,30 +209,56 @@ functions"
                            (t "")))
                    (cdr format-list)))))
 
-(defun mentor-torrent-at-point ()
+(defun mentor-sort ()
+  ;; TODO sort lines according to various criteria
+  (interactive)
+  (goto-char (point-min))
+  (mentor-next)
+  (save-excursion
+    (let ((sort-fold-case t)
+          (inhibit-read-only t))
+      (sort-subr nil
+                 (lambda () (ignore-errors (mentor-next)))
+                 (lambda () (ignore-errors (mentor-goto-torrent-end)))))))
+
+(defun mentor-id-at-point ()
   (get-text-property (point) 'torrent-id))
 
-(defmacro while-same-torrent (&rest body)
-  `(let ((id (mentor-torrent-at-point)))
-     (while (equal id (mentor-torrent-at-point))
+(defun mentor-torrent-at-point ()
+  (mentor-get-torrent (mentor-id-at-point)))
+
+(defun mentor-get-field-at-point (field)
+  (mentor-get-field field (mentor-torrent-at-point)))
+
+(defun mentor-command-at-point (command)
+  (mentor-command command (mentor-get-field-at-point "hash")))
+
+(defmacro while-same-torrent (skip-blanks &rest body)
+  `(let ((id (mentor-id-at-point)))
+     (while (and (or (and ,skip-blanks
+                          (not (mentor-id-at-point)))
+                     (equal id (mentor-id-at-point))))
        ,@body)))
 
 (defun mentor-next ()
   (interactive)
-  (while-same-torrent
-   (next-line)
-   (beginning-of-line)))
+  (while-same-torrent t (forward-char))
+  (beginning-of-line))
 
 (defun mentor-prev ()
   (interactive)
-  (while-same-torrent
-   (previous-line)
-   (beginning-of-line)))
+  (while-same-torrent t (backward-char))
+  (beginning-of-line))
+
+(defun mentor-goto-torrent-beginning ()
+  (interactive)
+  (while-same-torrent nil
+                      (backward-char)))
 
 (defun mentor-goto-torrent-end ()
   (interactive)
-  (while-same-torrent
-   (forward-char)))
+  (while-same-torrent nil
+                      (forward-char)))
 
 (defun mentor-toggle-object ()
   (interactive)
@@ -246,23 +272,21 @@ functions"
 
 (defun mentor-kill-torrent ()
   (interactive)
-  (let ((id (mentor-torrent-at-point)))
+  (let ((id (mentor-id-at-point)))
+    (mentor-stop-torrent)
     (message "TODO")))
 
 (defun mentor-stop-torrent ()
   (interactive)
-  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
-    (mentor-command "d.stop" (mentor-get-field "hash" tor))))
+  (mentor-command-at-point "d.stop"))
 
 (defun mentor-start-torrent ()
   (interactive)
-  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
-    (mentor-command "d.start" (mentor-get-field "hash" tor))))
+  (mentor-command-at-point "d.start"))
 
 (defun mentor-pause-torrent ()
   (interactive)
-  (let ((tor (mentor-get-torrent (mentor-torrent-at-point))))
-    (mentor-command "d.pause" (mentor-get-field "hash" tor))))
+  (mentor-command-at-point "d.pause"))
 
 
 ;;; Torrents
@@ -272,6 +296,7 @@ functions"
 
 (defun mentor-update-torrent-list ()
   "Update torrent information list"
+  (message "Updating torrent list...")
   (when (not mentor-torrent-hash)
     (setq mentor-torrent-hash (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
@@ -294,7 +319,8 @@ functions"
      torrents)
     (when (not mentor-regexp-information-fields)
       (setq mentor-regexp-information-fields
-            (regexp-opt attributes 'words)))))
+            (regexp-opt attributes 'words))))
+    (message "Updating torrent list... DONE"))
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrent-hash))
