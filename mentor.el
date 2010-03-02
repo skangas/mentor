@@ -46,6 +46,8 @@
 
 (require 'xml-rpc)
 
+(defvar mentor-version "0.0.1")
+
 
 ;;; configuration
 
@@ -71,7 +73,8 @@
     (define-key map (kbd "DEL") 'mentor-toggle-object) ;; what to do?
     (define-key map (kbd "RET") 'mentor-toggle-object)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "s") 'mentor-stop-torrent)
+    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "s") 'mentor-start-torrent)
     (define-key map (kbd "k") 'mentor-kill-torrent)
     (define-key map (kbd "K") 'mentor-kill-torrent-and-remove-data)
     (define-key map (kbd "n") 'mentor-next)
@@ -101,7 +104,7 @@
       (message "Unable to connect")
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
-           (mentor-update))))
+           (mentor-update-all))))
 
 (defun mentor-not-connectable-p ()
   ;; TODO
@@ -145,22 +148,31 @@ functions"
     retval))
 
 
-;; Main view
+;;; Main view
 
-(defun mentor-sort ()
-  ;; TODO sort lines according to various criteria
-  (interactive)
-  (let ((sort-fold-case t))
-    (sort-lines nil (point-min) (point-max))))
+;; (defun mentor-update-torrent-at-point ()
+;;   (let ((id (mentor-id-at-point)))
 
 (defun mentor-update ()
-  "Update mentor view"
+  "Update torrents"
   (interactive)
-  (message "Updating torrent list...")
+  (beginning-of-buffer)
   (mentor-update-torrent-list)
-  (erase-buffer)
-  (mentor-insert-torrents)
-  (message "Updating torrent list... DONE"))
+  (while (mentor-next)
+    (when (not (mentor-torrent-is-done-p))
+      (mentor-update-torrent-at-point))))
+
+(defun mentor-update-all ()
+  "Update torrent list mentor view completely"
+  (interactive)
+  (mentor-update-torrent-list)
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (concat "mentor-" mentor-version " - rTorrent "
+                    (mentor-command "system.client_version") "/"
+                    (mentor-command "system.library_version")
+                    " (" (mentor-command "get_name") ")\n\n"))
+    (mentor-insert-torrents)))
 
 (defun mentor-insert-torrents ()
   (maphash
@@ -169,10 +181,10 @@ functions"
    mentor-torrent-hash))
 
 (defvar mentor-format-collapsed-torrent '("%s %s" "state" "name"))
-(setq mentor-format-collapsed-torrent '("%s %-70s [%4s]"
+(setq mentor-format-collapsed-torrent '("%.3s | %s | %-70s"
+                                        mentor-torrent-progress
                                         mentor-torrent-status
-                                        mentor-torrent-name
-                                        mentor-torrent-progress))
+                                        mentor-torrent-name))
 ;;   "The format of a collapsed torrent, as a list.
 
 ;; The first string in the listhas the same syntax as format.
@@ -328,6 +340,10 @@ functions"
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
 
+(defun mentor-torrent-is-done-p (torrent)
+  (= (mentor-get-field "bytes_done" torrent)
+     (mentor-get-field "size_bytes" torrent)))
+
 (defun mentor-torrent-name (torrent)
   (mentor-get-field "name" torrent))
 
@@ -336,7 +352,7 @@ functions"
          (total (abs (mentor-get-field "size_bytes" torrent)))
          (percent (* 100 (/ done total))))
     (if (>= percent 100)
-        "DONE"
+        "    "
       (format "%2d%s" percent "%"))))
 
 (defun mentor-torrent-status (torrent)
