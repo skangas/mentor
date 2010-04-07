@@ -35,6 +35,7 @@
 ;; Support for categories
 ;; Only update incomplete torrents
 ;; Highlight current torrent
+;; Filters
 
 ;; Bug reports, comments, and suggestions are welcome!
 
@@ -179,13 +180,13 @@ functions"
   (maphash
    (lambda (id torrent)
      (mentor-insert-torrent id torrent))
-   mentor-torrent-hash))
+   mentor-torrents))
 
 (defvar mentor-format-collapsed-torrent '("%s %s" "state" "name"))
 (setq mentor-format-collapsed-torrent '("%.3s | %s | %-70s"
-                                        mentor-torrent-progress
-                                        mentor-torrent-status
-                                        mentor-torrent-name))
+                                        mentor-get-progress
+                                        mentor-get-status
+                                        mentor-get-name))
 ;;   "The format of a collapsed torrent, as a list.
 
 ;; The first string in the listhas the same syntax as format.
@@ -285,7 +286,7 @@ functions"
         (message (mentor-get-field "connection_current" torrent))))))
 
 
-;; Torrent actions
+;;; Torrent actions
 
 (defmacro mentor-use-torrent (&rest body)
   `(let ((torrent (or torrent
@@ -329,14 +330,15 @@ functions"
 
 ;;; Torrents
 
-(defvar mentor-torrent-hash nil)
-(make-variable-buffer-local 'mentor-torrent-hash)
+(defvar mentor-torrents nil
+  "Hash table containing all torrents")
+(make-variable-buffer-local 'mentor-torrents)
 
 (defun mentor-update-torrent-list ()
   "Update torrent information list"
   (message "Updating torrent list...")
-  (when (not mentor-torrent-hash)
-    (setq mentor-torrent-hash (make-hash-table :test 'equal)))
+  (when (not mentor-torrents)
+    (setq mentor-torrents (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
          (tor-list (mentor-command-multi (mapcar
                                           (lambda (x) (concat x "="))
@@ -353,7 +355,7 @@ functions"
      (lambda (torrent)
        (let ((id (mentor-get-field "local_id" torrent)))
          (setq torrent (assq-delete-all id torrent))
-         (puthash id torrent mentor-torrent-hash)))
+         (puthash id torrent mentor-torrents)))
      torrents)
     (when (not mentor-regexp-information-fields)
       (setq mentor-regexp-information-fields
@@ -361,15 +363,15 @@ functions"
     (message "Updating torrent list... DONE"))
 
 (defun mentor-get-torrent (id)
-  (gethash id mentor-torrent-hash))
+  (gethash id mentor-torrents))
 
 (defun mentor-get-field (field torrent)
   (cdr (assoc field torrent)))
 
-(defun mentor-torrent-name (torrent)
+(defun mentor-get-name (torrent)
   (mentor-get-field "name" torrent))
 
-(defun mentor-torrent-progress (torrent)
+(defun mentor-get-progress (torrent)
   (let* ((done (abs (mentor-get-field "bytes_done" torrent)))
          (total (abs (mentor-get-field "size_bytes" torrent)))
          (percent (* 100 (/ done total))))
@@ -377,7 +379,7 @@ functions"
         "    "
       (format "%2d%s" percent "%"))))
 
-(defun mentor-torrent-status (torrent)
+(defun mentor-get-status (torrent)
   (let* ((active (mentor-get-field "is_active" torrent))
          (closed (mentor-get-field "is_closed" torrent))
          (open (mentor-get-field "is_open" torrent)))
@@ -386,10 +388,10 @@ functions"
           ((and open (= open 1)) "O")
           (t "?"))))
 
-(defun mentor-torrent-get-file-list (torrent)
+(defun mentor-get-file-list (torrent)
   (mentor-command "f.multicall" (mentor-get-field "hash" torrent) "" "f.get_path="))
 
-(defun mentor-torrent-get-target-directory (&optional torrent)
+(defun mentor-get-target-directory (&optional torrent)
   (mentor-use-torrent
    (mentor-get-field "directory" torrent)))
 
