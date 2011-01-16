@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2010, Stefan Kangas
 
-;; Maintainer: Stefan Kangas
+;; Author: Stefan Kangas
 ;; Version: 0.0.1
 ;; Keywords: bittorrent, rtorrent
 
@@ -30,12 +30,13 @@
 ;; interface ever again.
 
 ;; TODO:
-;; Implement SCGI in Emacs Lisp
+;; Implement SCGI in Emacs Lisp (later)
 ;; Support for XML-RPC over HTTP
 ;; Support for categories
-;; Only update incomplete torrents
+;; Optimization: Update info only for incomplete torrents
 ;; Highlight current torrent
 ;; Filters
+;; Marking torrents
 
 ;; Bug reports, comments, and suggestions are welcome!
 
@@ -57,6 +58,16 @@
   :prefix "mentor-"
   :group 'tools)
 
+(defcustom mentor-auto-update-default nil
+  "If non-nil, enable auto update for all newly created mentor buffers."
+  :type 'boolean
+  :group 'mentor)
+
+(defcustom mentor-auto-update-interval 5
+  "Time interval in seconds for auto updating mentor buffers."
+  :type 'integer
+  :group 'mentor)
+
 (defcustom mentor-scgi-url "scgi://localhost:5000"
   "The scgi URL, as specified in rtorrent config var scgi_port"
   :group 'mentor
@@ -68,23 +79,37 @@
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "C-r") 'isearch-backward)
+    (define-key map (kbd "C-s") 'isearch-forward)
     (define-key map (kbd "M-g") 'mentor-update-at-point)
     (define-key map (kbd "g") 'mentor-update)
-    (define-key map (kbd "G") 'mentor-reload)
+    (define-key map (kbd "G") 'mentor-update-all)
     (define-key map (kbd "DEL") 'mentor-toggle-object) ;; what to do?
     (define-key map (kbd "RET") 'mentor-toggle-object)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "d") 'mentor-stop-torrent)
-    (define-key map (kbd "s") 'mentor-start-torrent)
+    (define-key map (kbd "D") 'mentor-stop-torrent)
+    (define-key map (kbd "R") 'mentor-rehash-torrent)
+    (define-key map (kbd "S") 'mentor-start-torrent)
     (define-key map (kbd "k") 'mentor-kill-torrent)
     (define-key map (kbd "K") 'mentor-kill-torrent-and-remove-data)
     (define-key map (kbd "n") 'mentor-next)
     (define-key map (kbd "p") 'mentor-prev)
-    (define-key map (kbd "S") 'mentor-sort)
+    (define-key map (kbd "M") 'mentor-move-torrent)
+    (define-key map (kbd "m") 'mentor-mark-torrent)
+    (define-key map (kbd "s d") 'mentor-sort-by-download-speed)
+    (define-key map (kbd "s f") 'mentor-sort-by-field-prompt)
+    (define-key map (kbd "s n") 'mentor-sort-by-name)
+    (define-key map (kbd "s s") 'mentor-sort-by-state)
+    (define-key map (kbd "s t") 'mentor-sort-by-tied-file-name)
+    (define-key map (kbd "s u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     map))
 
 (defvar mentor-mode-hook nil)
+
+(defvar mentor-auto-update-buffers nil)
+
+(defvar mentor-auto-update-timer nil)
 
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
@@ -97,7 +122,11 @@
         truncate-lines t)
   (set (make-local-variable 'line-move-visual) nil)
   (use-local-map mentor-mode-map)
-  (run-mode-hooks 'mentor-mode-hook))
+  (run-mode-hooks 'mentor-mode-hook)
+  (if (and (not mentor-auto-update-timer) mentor-auto-update-interval)
+      (setq mentor-auto-update-timer
+            (run-at-time t mentor-auto-update-interval
+                         'mentor-auto-update-timer))))
 
 (defun mentor-init ()
   (interactive)
@@ -111,11 +140,30 @@
   ;; TODO
   nil)
 
+(defun mentor-auto-update-timer ()
+  (dolist (buf (buffer-list))
+    (with-current-buffer buf
+      (if (and (eq major-mode 'mentor-mode)
+               mentor-auto-update-flag)
+          (mentor-update t t)))))
+
+(defun mentor-toggle-auto-update (arg)
+  "Change whether this Proced buffer is updated automatically.
+With prefix ARG, update this buffer automatically if ARG is positive,
+otherwise do not update.  Sets the variable `mentor-auto-update-flag'.
+The time interval for updates is specified via `mentor-auto-update-interval'."
+  (interactive (list (or current-prefix-arg 'toggle)))
+  (setq mentor-auto-update-flag
+        (cond ((eq arg 'toggle) (not mentor-auto-update-flag))
+              (arg (> (prefix-numeric-value arg) 0))
+              (t (not mentor-auto-update-flag))))
+  (message "Proced auto update %s"
+           (if mentor-auto-update-flag "enabled" "disabled")))
 
 
 ;;; Run XML-RPC calls
 
-(defun mentor-command (&rest args)
+(defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call via SCGI."
   (when (not (listp args))
     (setq args (list args)))
@@ -127,8 +175,8 @@
      ;; (xml-rpc-value-to-xml-list
      (xml-rpc-request-process-buffer (current-buffer)))))
 
-(defun mentor-command-multi (&rest args)
-  (apply 'mentor-command (apply 'append '("d.multicall" "default") args)))
+(defun mentor-rpc-command-multi (&rest args)
+  (apply 'mentor-rpc-command (apply 'append '("d.multicall" "default") args)))
 
 ;; Needed to work around buggy expressions in rtorrent
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
@@ -138,7 +186,7 @@
 Returns a list of all available commands.  First argument is \
 interpreted as a regexp, and if specified only returns matching \
 functions"
-  (let ((methods (mentor-command "system.listMethods"))
+  (let ((methods (mentor-rpc-command "system.listMethods"))
         (retval '()))
     (when regexp
       (mapc (lambda (cur)
@@ -153,6 +201,13 @@ functions"
 
 ;; (defun mentor-update-torrent-at-point ()
 ;;   (let ((id (mentor-id-at-point)))
+
+;; (defvar *mentor-update-time* (current-time))
+
+;; (destructuring-bind (hi lo ms) (current-time)
+;;   (let ((oldms (+ (* 1000000 (second *mentor-update-time*)) (third *mentor-update-time*)))
+;;         (nowms (+ (* 1000000 lo) ms)))
+;;     (message "%d" (/ (- nowms oldms) 1000))))
 
 (defun mentor-update ()
   "Update torrents"
@@ -171,9 +226,9 @@ functions"
     (let ((inhibit-read-only t))
       (erase-buffer)
       (insert (concat "mentor-" mentor-version " - rTorrent "
-                      (mentor-command "system.client_version") "/"
-                      (mentor-command "system.library_version")
-                      " (" (mentor-command "get_name") ")\n\n"))
+                      (mentor-rpc-command "system.client_version") "/"
+                      (mentor-rpc-command "system.library_version")
+                      " (" (mentor-rpc-command "get_name") ")\n\n"))
       (mentor-insert-torrents))))
 
 (defun mentor-insert-torrents ()
@@ -182,11 +237,14 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrents))
 
-(defvar mentor-format-collapsed-torrent '("%s %s" "state" "name"))
-(setq mentor-format-collapsed-torrent '("%.3s | %s | %-70s"
-                                        mentor-get-progress
-                                        mentor-get-status
-                                        mentor-get-name))
+(defvar mentor-format-collapsed-torrent '("%.1s U:%-5s D:%-5s %-80s %.4s  %-70s"
+                                        mentor-torrent-state
+                                        mentor-torrent-get-speed-up
+                                        mentor-torrent-get-speed-down
+                                        (mentor-torrent-get-name . 80)
+                                        mentor-torrent-get-progress
+                                        mentor-torrent-tied-file-name))
+
 ;;   "The format of a collapsed torrent, as a list.
 
 ;; The first string in the listhas the same syntax as format.
@@ -206,35 +264,57 @@ functions"
 
 (defun mentor-process-format-string (format-list torrent)
   (let ((re mentor-regexp-information-fields))
-    (apply 'format
-           (car format-list)
-           (mapcar (lambda (cur)
-                     (cond ((functionp cur)
-                            (funcall cur torrent))
-                           ((stringp cur)
-                            (if (string-match re cur)
-                                (or (mentor-get-field
-                                     (substring cur
-                                                (+ (match-beginning 0) 0)
-                                                (- (match-end 0) 0))
-                                     torrent)
-                                    "")
-                              cur))
-                           (t "")))
-                   (cdr format-list)))))
+    (apply
+     'format (car format-list)
+     (mapcar
+      (lambda (cur)
+        (let* ((len (if (listp cur) (cdr cur) nil))
+               (cur (if (listp cur) (car cur) cur)))
+          (format (if len (concat "%." (number-to-string len) "s") "%s")
+           (cond ((functionp cur)
+                  (funcall cur torrent))
+                 ((stringp cur)
+                  (if (string-match re cur)
+                      (or (mentor-get-field
+                           (substring cur
+                                      (+ (match-beginning 0) 0)
+                                      (- (match-end 0) 0))
+                           torrent)
+                          "")
+                    cur))
+                 (t "")))))
+      (cdr format-list)))))
 
-(defun mentor-sort ()
-  ;; TODO sort lines according to various criteria
-  (interactive)
+(defun mentor-sort-by-field (field &optional reverse)
   (goto-char (point-min))
   (mentor-next)
   (save-excursion
     (let ((sort-fold-case t)
           (inhibit-read-only t))
-      (sort-subr nil
+      (sort-subr reverse
                  (lambda () (ignore-errors (mentor-next)))
                  (lambda () (ignore-errors (mentor-goto-torrent-end)))
-                 (lambda () (mentor-get-field-at-point "name"))))))
+                 (lambda () (mentor-get-field field))))))
+
+(defun mentor-sort-by-download-speed ()
+  (interactive)
+  (mentor-sort-by-field "down_rate" 'reverse))
+
+(defun mentor-sort-by-name ()
+  (interactive)
+  (mentor-sort-by-field "name"))
+
+(defun mentor-sort-by-state ()
+  (interactive)
+  (mentor-sort-by-field "state"))
+
+(defun mentor-sort-by-tied-file-name ()
+  (interactive)
+  (mentor-sort-by-field "tied_to_file"))
+
+(defun mentor-sort-by-upload-speed ()
+  (interactive)
+  (mentor-sort-by-field "up_rate" 'reverse))
 
 (defun mentor-id-at-point ()
   (get-text-property (point) 'torrent-id))
@@ -242,14 +322,8 @@ functions"
 (defun mentor-torrent-at-point ()
   (mentor-get-torrent (mentor-id-at-point)))
 
-(defun mentor-get-field-at-point (field)
-  (mentor-get-field field (mentor-torrent-at-point)))
-
-(defun mentor-get-hash-at-point ()
-  (mentor-get-field-at-point "hash"))
-
-(defun mentor-command-at-point (command)
-  (mentor-command command (mentor-get-field-at-point "hash")))
+(defun mentor-rpc-command-at-point (command)
+  (mentor-rpc-command command (mentor-get-field "hash")))
 
 (defmacro while-same-torrent (skip-blanks &rest body)
   `(let ((id (mentor-id-at-point)))
@@ -293,10 +367,10 @@ functions"
                       (mentor-torrent-at-point))))
      ,@body))
 
-(defun mentor-kill-torrent ()
+(defun mentor-kill-torrent (&optional torrent)
   (interactive)
   (let ((torrent (mentor-torrent-at-point))
-        (files (mentor-torrent-file-list torrent)))
+        (files (mentor-torrent-get-file-list torrent)))
     ;; (mentor-stop-torrent)
     ;; (mentor-kill-torrent)
     (mapc
@@ -310,22 +384,22 @@ functions"
     (mentor-stop-torrent)
     (message "TODO")))
 
-(defmacro mentor-command-at-torrent-or-point (torrent command)
+(defmacro mentor-rpc-command-at-torrent-or-point (torrent command)
   `(if ,torrent
-       (mentor-command ,command (mentor-get-field "hash" torrent))
-     (mentor-command-at-point command)))
+       (mentor-rpc-command ,command (mentor-get-field "hash" torrent))
+     (mentor-rpc-command-at-point command)))
 
 (defun mentor-stop-torrent (&optional torrent)
   (interactive)
-  (montor-command-at-torrent-or-point torrent "d.stop"))
+  (mentor-rpc-command-at-torrent-or-point torrent "d.stop"))
 
-(defun mentor-start-torrent ()
+(defun mentor-start-torrent (&optional torrent)
   (interactive)
-  (montor-command-at-torrent-or-point torrent "d.start"))
+  (mentor-rpc-command-at-torrent-or-point torrent "d.start"))
 
-(defun mentor-pause-torrent ()
+(defun mentor-pause-torrent (&optional torrent)
   (interactive)
-   (montor-command-at-torrent-or-point torrent "d.pause"))
+   (mentor-rpc-command-at-torrent-or-point torrent "d.pause"))
 
 
 ;;; Torrents
@@ -334,13 +408,15 @@ functions"
   "Hash table containing all torrents")
 (make-variable-buffer-local 'mentor-torrents)
 
+(defvar mentor-regexp-information-fields nil)
+
 (defun mentor-update-torrent-list ()
   "Update torrent information list"
   (message "Updating torrent list...")
   (when (not mentor-torrents)
     (setq mentor-torrents (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
-         (tor-list (mentor-command-multi (mapcar
+         (tor-list (mentor-rpc-command-multi (mapcar
                                           (lambda (x) (concat x "="))
                                           methods)))
          (attributes (mapcar
@@ -365,31 +441,58 @@ functions"
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
 
-(defun mentor-get-field (field torrent)
+(defun mentor-get-field (field &optional torrent)
+  "Get field for a torrent.
+
+If torrent is not specified, use torrent at point."
+  (if (not torrent)
+      (setq torrent (mentor-torrent-at-point)))
   (cdr (assoc field torrent)))
 
-(defun mentor-get-name (torrent)
+(defun mentor-get-hash-at-point ()
+  (mentor-get-field "hash"))
+
+(defun mentor-torrent-get-name (&optional torrent)
   (mentor-get-field "name" torrent))
 
-(defun mentor-get-progress (torrent)
+(defun mentor-torrent-get-progress (&optional torrent)
   (let* ((done (abs (mentor-get-field "bytes_done" torrent)))
          (total (abs (mentor-get-field "size_bytes" torrent)))
          (percent (* 100 (/ done total))))
-    (if (>= percent 100)
-        "    "
-      (format "%2d%s" percent "%"))))
+    ;; (if (>= percent 100)
+    ;;     "    "
+      (format "%3d%s" percent "%")));)
 
-(defun mentor-get-status (torrent)
+(defun mentor-torrent-get-state (&optional torrent)
+  (if (= (mentor-get-field "state" torrent) 1)
+      " "
+    "S"))
+
+(defun mentor-bytes-to-human-readable (bytes)
+  (number-to-string (/ bytes 1024)))
+
+(defun mentor-torrent-get-speed-down (torrent)
+  (mentor-bytes-to-human-readable
+   (mentor-get-field "down_rate" torrent)))
+
+(defun mentor-torrent-get-speed-up (torrent)
+  (mentor-bytes-to-human-readable
+   (mentor-get-field "up_rate" torrent)))
+
+(defun mentor-torrent-status (&optional torrent)
   (let* ((active (mentor-get-field "is_active" torrent))
-         (closed (mentor-get-field "is_closed" torrent))
          (open (mentor-get-field "is_open" torrent)))
-    (cond ((and active (= active 1)) " ")
-          ((and closed (= closed 1)) "C")
-          ((and open (= open 1)) "O")
-          (t "?"))))
+    (if (or (and open (= open 1))
+            (and active (= active 1)))
+        " "
+      "I")))
 
-(defun mentor-get-file-list (torrent)
-  (mentor-command "f.multicall" (mentor-get-field "hash" torrent) "" "f.get_path="))
+(defun mentor-torrent-tied-file-name (torrent)
+  (mentor-get-field "tied_to_file" torrent))
+
+
+(defun mentor-torrent-get-file-list (torrent)
+  (mentor-rpc-command "f.multicall" (mentor-get-field "hash" torrent) "" "f.get_path="))
 
 (defun mentor-get-target-directory (&optional torrent)
   (mentor-use-torrent
