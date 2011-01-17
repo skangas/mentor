@@ -38,6 +38,26 @@
 ;; Filters
 ;; Marking torrents
 
+;; Known issues:
+
+;; Large files (> 4GB) will cause overflows when not running rtorrent compiled
+;; against xmlrpc-c >1.07 with -DXMLRPC_HAVE_I8 and add relevant setting to your
+;; rtorrent configuration (see below).
+;;
+;; Work-around installed for now. For more details, see:
+;;
+;; http://code.google.com/p/transdroid/issues/detail?id=31
+;; http://libtorrent.rakshasa.no/ticket/1538
+;; http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=575560
+;; http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=563075
+;;
+;; We will not get a working version in Debian stable any time soon, so you
+;; might want to install a backported rtorrent. (see package libxmlrpc-c3)
+;;
+;; Also, you must add this following to your .rtorrent.rc:
+;;
+;; xmlrpc_dialect=i8
+
 ;; Bug reports, comments, and suggestions are welcome!
 
 ;;; Change Log:
@@ -105,10 +125,11 @@
     (define-key map (kbd "p") 'mentor-prev)
     (define-key map (kbd "M") 'mentor-move-torrent)
     (define-key map (kbd "m") 'mentor-mark-torrent)
+    (define-key map (kbd "s c") 'mentor-sort-by-state)
     (define-key map (kbd "s d") 'mentor-sort-by-download-speed)
     (define-key map (kbd "s n") 'mentor-sort-by-name)
     (define-key map (kbd "s p") 'mentor-sort-by-property-prompt)
-    (define-key map (kbd "s s") 'mentor-sort-by-state)
+    (define-key map (kbd "s s") 'mentor-sort-by-size)
     (define-key map (kbd "s t") 'mentor-sort-by-tied-file-name)
     (define-key map (kbd "s u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
@@ -255,7 +276,7 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrents))
 
-(defvar mentor-format-collapsed-torrent '("%.1s U:%-5s D:%-5s %-80s %.4s  %10s / %10s  %-70s"
+(defvar mentor-format-collapsed-torrent '("%.1s U:%-5s D:%-5s %-80s %.4s  %10s / %6s  %-70s"
                                         mentor-torrent-state
                                         mentor-torrent-get-speed-up
                                         mentor-torrent-get-speed-down
@@ -343,6 +364,10 @@ functions"
   (interactive)
   (mentor-sort-by-property "tied_to_file"))
 
+(defun mentor-sort-by-size ()
+  (interactive)
+  (mentor-sort-by-property "size_bytes" t))
+
 (defun mentor-sort-by-upload-speed ()
   (interactive)
   (mentor-sort-by-property "up_rate" t))
@@ -391,7 +416,7 @@ functions"
   (let ((id (get-text-property (point) 'torrent-id)))
     (when id
       (let ((torrent (mentor-get-torrent id)))
-        (message (mentor-get-property "connection_current" torrent))))))
+        (message (number-to-string (mentor-get-property "bytes_done" torrent)))))))
 
 
 ;;; Torrent actions
@@ -468,19 +493,16 @@ If so, only the torrent with this ID will be updated."
   (when (not mentor-torrents)
     (setq mentor-torrents (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
-         (tor-list (mentor-rpc-command-multi (mapcar
-                                          (lambda (x) (concat x "="))
-                                          methods)))
+         (tor-list (mentor-rpc-command-multi
+                    (mapcar (lambda (x) (concat x "=")) methods)))
          (attributes (mapcar
                       (lambda (name)
                         (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
                       methods))
-         (torrents (mapcar
-                    (lambda (torrent)
-                      (mentor-join-lists attributes torrent))
-                    (mentor-command-multi (mapcar
-                                           (lambda (x) (concat x "="))
-                                           methods)))))
+         (torrents (mapcar (lambda (torrent)
+                             (mentor-join-lists attributes torrent))
+                    (mentor-command-multi
+                     (mapcar (lambda (x) (concat x "=")) methods)))))
     (mapc (lambda (torrent)
             (let ((id (mentor-get-property "local_id" torrent)))
               (setq torrent (assq-delete-all id torrent))
@@ -519,19 +541,6 @@ If torrent is not specified, use torrent at point."
       " "
     "S"))
 
-;; (defun mentor-bytes-to-human (bytes)
-;;   (let (bytes (if (stringp bytes) (string-to-number bytes) bytes))
-;;     (cond ((< bytes 1024) bytes)
-;;           ((< bytes (* 1024 1024))           (concat (number-to-string (/ bytes 1024)) "K"))
-;;           ((< bytes (* 1024 1024 1024))      (concat (number-to-string (/ bytes 1024 1024)) "M"))
-;;           ((< bytes (* 1024 1024 1024 1024)) (concat (number-to-string (/ bytes 1024 1024 1024)) "G"))
-;;           (t "1TB+"))))
-
-(defun mentor-bytes-to-kilobytes (bytes)
-  (if bytes
-      (number-to-string (/ bytes 1024))
-    ""))
-
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
    (mentor-get-property "down_rate" torrent)))
@@ -541,12 +550,12 @@ If torrent is not specified, use torrent at point."
    (mentor-get-property "up_rate" torrent)))
 
 (defun mentor-torrent-get-size-done (torrent)
-  (mentor-bytes-to-kilobytes
+  (mentor-bytes-to-human
    (mentor-get-property "bytes_done" torrent)))
 
 (defun mentor-torrent-get-size-total (torrent)
-  (mentor-bytes-to-kilobytes
-   (mentor-get-property "bytes_total" torrent)))
+  (mentor-bytes-to-human
+   (mentor-get-property "size_bytes" torrent)))
 
 (defun mentor-torrent-status (&optional torrent)
   (let* ((active (mentor-get-property "is_active" torrent))
@@ -558,7 +567,6 @@ If torrent is not specified, use torrent at point."
 
 (defun mentor-torrent-tied-file-name (torrent)
   (mentor-get-property "tied_to_file" torrent))
-
 
 (defun mentor-torrent-get-file-list (torrent)
   (mentor-rpc-command "f.multicall" (mentor-get-property "hash" torrent) "" "f.get_path="))
@@ -586,12 +594,24 @@ If torrent is not specified, use torrent at point."
 
 ;;; Utility functions
 
-(defun mentor-trim-line (str)
-  (if (string= str "")
-      nil
-    (if (equal (elt str (- (length str) 1)) ?\n)
-	(substring str 0 (- (length str) 1))
-      str)))
+(defun mentor-bytes-to-human (bytes)
+  (if bytes
+      (let* ((bytes (if (stringp bytes) (string-to-number bytes) bytes))
+             (kb 1024.0)
+             (mb (* kb 1024.0))
+             (gb (* mb 1024.0))
+             (tb (* gb 1024.0)))
+        (cond ((< bytes kb) bytes)
+              ((< bytes mb) (concat (format "%.1f" (/ bytes kb)) "K"))
+              ((< bytes gb) (concat (format "%.1f" (/ bytes mb)) "M"))
+              ((< bytes tb) (concat (format "%.1f" (/ bytes gb)) "G"))
+              (t "1TB+")))
+    ""))
+
+(defun mentor-bytes-to-kilobytes (bytes)
+  (if bytes
+      (number-to-string (/ bytes 1024))
+    ""))
 
 (defun mentor-join-lists (list1 list2)
   (let ((result '()))
@@ -600,6 +620,22 @@ If torrent is not specified, use torrent at point."
       (setq list1 (cdr list1))
       (setq list2 (cdr list2)))
     result))
+
+(defun mentor-trim-line (str)
+  (if (string= str "")
+      nil
+    (if (equal (elt str (- (length str) 1)) ?\n)
+	(substring str 0 (- (length str) 1))
+      str)))
+
+;; (let ((i 1024))
+;;   (while (> i 0)
+;;     (setq i (* i 2)))
+;;   (1- i))
+;; (/ 536870911 1024 1024)
+
+;; (/ 536870911 (* 1024.0 1024.0 1024.0))
+
 (provide 'mentor)
 
 ;;; mentor.el ends here
