@@ -114,7 +114,7 @@
 
     (define-key map (kbd "DEL") 'mentor-add-torrent)
 
-    (define-key map (kbd "M-g") 'mentor-update-at-point)
+    (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
     (define-key map (kbd "RET") 'mentor-toggle-object)
@@ -236,9 +236,6 @@ functions"
 
 ;;; Main view
 
-;; (defun mentor-update-torrent-at-point ()
-;;   (let ((id (mentor-id-at-point)))
-
 ;; (defvar *mentor-update-time* (current-time))
 
 ;; (destructuring-bind (hi lo ms) (current-time)
@@ -253,7 +250,7 @@ functions"
   (mentor-update-torrent-list)
   (while (mentor-next)
     (when (not (mentor-torrent-is-done-p))
-      (mentor-update-torrent-at-point))))
+      (mentor-update-torrent))))
 
 (defun mentor-reload ()
   "Completely reload the mentor torrent view buffer."
@@ -286,12 +283,14 @@ functions"
                                         mentor-torrent-get-size-total
                                         mentor-torrent-tied-file-name))
 
-;;   "The format of a collapsed torrent, as a list.
-
-;; The first string in the listhas the same syntax as format.
-
-;; The rest of the list is interpreted literally unless they are strings padded with % \
-;; on either side.  If so, they are taken as info properties to be processed for every torrent.")
+(defun mentor-redisplay-torrent (torrent)
+  (mentor-use-torrent
+   (let ((buffer-read-only nil)
+         (id (mentor-id-at-point)))
+     (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
+     (forward-char) ;; avoid oboe
+     (mentor-insert-torrent id torrent)
+     (mentor-prev))))
 
 (defun mentor-insert-torrent (id torrent)
   (insert
@@ -408,15 +407,23 @@ the torrent at point."
   (while-same-torrent t (backward-char))
   (beginning-of-line))
 
+(defun mentor-get-torrent-beginning ()
+  (save-excursion
+    (mentor-goto-torrent-beginning)
+    (point)))
+
+(defun mentor-get-torrent-end ()
+  (save-excursion
+    (mentor-goto-torrent-end)
+    (point)))
+
 (defun mentor-goto-torrent-beginning ()
   (interactive)
-  (while-same-torrent nil
-                      (backward-char)))
+  (while-same-torrent nil (backward-char)))
 
 (defun mentor-goto-torrent-end ()
   (interactive)
-  (while-same-torrent nil
-                      (forward-char)))
+  (while-same-torrent nil (forward-char)))
 
 (defun mentor-toggle-object ()
   (interactive)
@@ -510,6 +517,46 @@ the torrent at point."
 ;;   "Update the torrent list, using the results from the XML-RPC
 ;; d.multicall which are passed in as the first argument"
   
+(defvar mentor-important-methods
+  '(
+    "d.get_bytes_done"
+    "d.get_down_rate"
+    "d.get_priority"
+    "d.get_up_rate"
+    "d.get_up_total"
+    "d.is_active"
+    "d.is_active"
+    "d.is_hash_checked"
+    "d.is_hash_checking"
+    "d.is_open"
+    "d.is_pex_active"))
+    ;; "hash"
+
+(defun mentor-rpc-method-to-property (name)
+  (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
+
+(defun mentor-property-to-rpc-method ()
+  nil)
+
+(defun mentor-update-torrent-and-redisplay (&optional torrent)
+  (interactive)
+  (mentor-use-torrent
+   (mentor-update-torrent torrent)
+   (mentor-redisplay-torrent torrent)))
+
+(defun mentor-update-torrent (&optional torrent)
+  (mentor-use-torrent
+   (let* ((hash (mentor-get-property "hash" torrent))
+          (methods mentor-important-methods)
+          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
+     (let ((id (mentor-get-property "local_id" torrent)))
+       (dolist (attr attributes)
+         (let ((result (mentor-rpc-command (pop methods) hash)))
+           (setq torrent (assq-delete-all attr torrent))
+           (setq torrent (append torrent `((,attr ,result)))))
+         (puthash id torrent mentor-torrents))))))
+
+
 (defun mentor-update-torrent-list ()
   "Synchronize torrent information with rtorrent.
 
@@ -528,15 +575,15 @@ If so, only the torrent with this ID will be updated."
                       (lambda (name)
                         (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
                       methods))
-         (torrents (mapcar (lambda (torrent)
-                             (mentor-join-lists attributes torrent))
-                    (mentor-command-multi
+         (torrents (mapcar
+                    (lambda (torrent)
+                      (mentor-join-lists attributes torrent))
+                    (mentor-rpc-command-multi
                      (mapcar (lambda (x) (concat x "=")) methods)))))
-    (mapc (lambda (torrent)
-            (let ((id (mentor-get-property "local_id" torrent)))
-              (setq torrent (assq-delete-all id torrent))
-              (puthash id torrent mentor-torrents)))
-          torrents)
+    (dolist (torrent torrents)
+      (let ((id (mentor-get-property "local_id" torrent)))
+        (setq torrent (assq-delete-all id torrent))
+        (puthash id torrent mentor-torrents)))
     (when (not mentor-regexp-information-properties)
       (setq mentor-regexp-information-properties
             (regexp-opt attributes 'words))))
@@ -652,14 +699,6 @@ If `torrent' is nil, use torrent at point."
     (if (equal (elt str (- (length str) 1)) ?\n)
 	(substring str 0 (- (length str) 1))
       str)))
-
-;; (let ((i 1024))
-;;   (while (> i 0)
-;;     (setq i (* i 2)))
-;;   (1- i))
-;; (/ 536870911 1024 1024)
-
-;; (/ 536870911 (* 1024.0 1024.0 1024.0))
 
 (provide 'mentor)
 
