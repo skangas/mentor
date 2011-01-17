@@ -528,8 +528,9 @@ If torrent is not specified, use torrent at point."
 ;;           (t "1TB+"))))
 
 (defun mentor-bytes-to-kilobytes (bytes)
-  bytes)
-  ;; (number-to-string (/ bytes 1024)))
+  (if bytes
+      (number-to-string (/ bytes 1024))
+    ""))
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
