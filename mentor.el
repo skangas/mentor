@@ -104,10 +104,10 @@
     (define-key map (kbd "M-d") 'mentor-stop-torrent) ;; Stop an active download, or remove a stopped download.
     (define-key map (kbd "M-k") 'mentor-close-torrent) ;; Close a torrent and its files.
     (define-key map (kbd "M-e") 'mentor-recreate-files) ;; Set  the 'create/resize queued' flags on all files in a torrent.
-    (define-key map (kbd "M-r") 'mentor-rehash-torrent) ;; Initiate hash check of torrent.
+    (define-key map (kbd "M-r") 'mentor-hash-check-torrent) ;; Initiate hash check of torrent.
     (define-key map (kbd "M-o") 'mentor-change-directory) ;; Change  the  destination  directory of the download. The torrent
     (define-key map (kbd "M-c") 'mentor-call-command) ;; Call commands or change settings.
-    (define-key map (kbd "M-b") 'mentor-recreate-files) ;; Set download to perform initial seeding. Only use when  you  are
+    (define-key map (kbd "M-b") 'mentor-set-inital-seeding) ;; Set download to perform initial seeding.
 
     (define-key map (kbd "+") 'mentor-increase-priority) ;; Change the priority of the download.
     (define-key map (kbd "-") 'mentor-decrease-priority) ;; Change the priority of the download.
@@ -373,7 +373,7 @@ functions"
   (mentor-sort-by-property "up_rate" t))
 
 
-;;
+;;; Get torrent
 
 (defun mentor-id-at-point ()
   (get-text-property (point) 'torrent-id))
@@ -381,8 +381,12 @@ functions"
 (defun mentor-torrent-at-point ()
   (mentor-get-torrent (mentor-id-at-point)))
 
-(defun mentor-rpc-command-at-point (command)
-  (mentor-rpc-command command (mentor-get-property "hash")))
+(defmacro mentor-use-torrent (&rest body)
+  "Convenience macro to use either the defined `torrent' value,
+the torrent at point."
+  `(let ((torrent (or torrent
+                      (mentor-torrent-at-point))))
+     ,@body))
 
 (defmacro while-same-torrent (skip-blanks &rest body)
   `(let ((id (mentor-id-at-point)))
@@ -390,6 +394,9 @@ functions"
                           (not (mentor-id-at-point)))
                      (equal id (mentor-id-at-point))))
        ,@body)))
+
+
+;;; Navigation
 
 (defun mentor-next ()
   (interactive)
@@ -421,21 +428,16 @@ functions"
 
 ;;; Torrent actions
 
-(defmacro mentor-use-torrent (&rest body)
-  `(let ((torrent (or torrent
-                      (mentor-torrent-at-point))))
-     ,@body))
-
 (defun mentor-kill-torrent (&optional torrent)
   (interactive)
-  (let ((torrent (mentor-torrent-at-point))
-        (files (mentor-torrent-get-file-list torrent)))
-    ;; (mentor-stop-torrent)
-    ;; (mentor-kill-torrent)
-    (mapc
-     (lambda (file)
-       (message file))
-     files)))
+  (mentor-use-torrent
+   (let ((files (mentor-torrent-get-file-list torrent)))
+     ;; (mentor-stop-torrent)
+     ;; (mentor-kill-torrent)
+     (mapc
+      (lambda (file)
+        (message file))
+      files))))
 
 (defun mentor-kill-torrent-and-remove-data ()
   (interactive)
@@ -443,22 +445,49 @@ functions"
     (mentor-stop-torrent)
     (message "TODO")))
 
-(defmacro mentor-rpc-command-at-torrent-or-point (torrent command)
-  `(if ,torrent
-       (mentor-rpc-command ,command (mentor-get-property "hash" torrent))
-     (mentor-rpc-command-at-point command)))
-
-(defun mentor-stop-torrent (&optional torrent)
+(defun mentor-call-command (&optional torrent)
   (interactive)
-  (mentor-rpc-command-at-torrent-or-point torrent "d.stop"))
+  (message "TODO"))
 
-(defun mentor-start-torrent (&optional torrent)
+(defun mentor-change-directory (&optional torrent)
   (interactive)
-  (mentor-rpc-command-at-torrent-or-point torrent "d.start"))
+  (message "TODO"))
+
+(defun mentor-close-torrent (&optional torrent)
+  (interactive)
+  (mentor-rpc-command "d.close" (mentor-get-property "hash" torrent)))
+
+(defun mentor-hash-check-torrent (&optional torrent)
+  (interactive)
+  (mentor-rpc-command "d.check_hash" (mentor-get-property "hash" torrent)))
 
 (defun mentor-pause-torrent (&optional torrent)
   (interactive)
-   (mentor-rpc-command-at-torrent-or-point torrent "d.pause"))
+  (mentor-rpc-command "d.pause" (mentor-get-property "hash" torrent)))
+
+(defun mentor-recreate-files (&optional torrent)
+  (interactive)
+  (message "TODO"))
+
+(defun mentor-set-inital-seeding (&optional torrent)
+  (interactive)
+  (message "TODO"))
+
+(defun mentor-start-torrent (&optional torrent)
+  (interactive)
+  (mentor-rpc-command "d.start" (mentor-get-property "hash" torrent)))
+
+(defun mentor-stop-torrent (&optional torrent)
+  (interactive)
+  (mentor-rpc-command "d.stop" (mentor-get-property "hash" torrent)))
+
+(defun mentor-increase-priority (&optional torrent)
+  (interactive)
+  (message "TODO"))
+
+(defun mentor-decrease-priority (&optional torrent)
+  (interactive)
+  (message "TODO"))
 
 
 ;;; Torrents
@@ -518,14 +547,10 @@ If so, only the torrent with this ID will be updated."
 
 (defun mentor-get-property (property &optional torrent)
   "Get property for a torrent.
-
-If torrent is not specified, use torrent at point."
+If `torrent' is nil, use torrent at point."
   (if (not torrent)
       (setq torrent (mentor-torrent-at-point)))
   (cdr (assoc property torrent)))
-
-(defun mentor-get-hash-at-point ()
-  (mentor-get-property "hash"))
 
 (defun mentor-torrent-get-name (&optional torrent)
   (mentor-get-property "name" torrent))
