@@ -186,7 +186,7 @@ connecting through scgi or http."
           (mentor-update t t)))))
 
 (defun mentor-toggle-auto-update (arg)
-  "Change whether this Proced buffer is updated automatically.
+  "Change whether this Mentor buffer is updated automatically.
 With prefix ARG, update this buffer automatically if ARG is positive,
 otherwise do not update.  Sets the variable `mentor-auto-update-flag'.
 The time interval for updates is specified via `mentor-auto-update-interval'."
@@ -195,7 +195,7 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
         (cond ((eq arg 'toggle) (not mentor-auto-update-flag))
               (arg (> (prefix-numeric-value arg) 0))
               (t (not mentor-auto-update-flag))))
-  (message "Proced auto update %s"
+  (message "Mentor auto update %s"
            (if mentor-auto-update-flag "enabled" "disabled")))
 
 
@@ -221,12 +221,16 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 ;; Needed to work around buggy expressions in rtorrent
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
-(defun mentor-rpc-system-listmethods (&optional regexp)
+(defvar mentor-all-rpc-methods-list nil)
+
+(defun mentor-rpc-list-methods (&optional regexp)
   "system.listMethods \
 Returns a list of all available commands.  First argument is \
 interpreted as a regexp, and if specified only returns matching \
 functions"
-  (let ((methods (mentor-rpc-command "system.listMethods"))
+  (when (not mentor-all-rpc-methods-list)
+    (setq mentor-all-rpc-methods-list (mentor-rpc-command "system.listMethods")))
+  (let ((methods mentor-all-rpc-methods-list)
         (retval '()))
     (when regexp
       (mapc (lambda (cur)
@@ -508,9 +512,6 @@ the torrent at point."
 
 (defvar mentor-regexp-information-properties nil)
 
-;; (defun mentor-list-update-methods ()
-;;   (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
-
 ;; (defun mentor-conv-method-names-to-attributes (&rest methods)
 ;;   (mapcar (lambda (method)
 ;;             (replace-regexp-in-string "^d\\.\\(get_\\)?" "" method))
@@ -571,7 +572,7 @@ If so, only the torrent with this ID will be updated."
   (message "Updating torrent list...")
   (when (not mentor-torrents)
     (setq mentor-torrents (make-hash-table :test 'equal)))
-  (let* ((methods (mentor-rpc-system-listmethods "^d\\.\\(get\\|is\\)"))
+  (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
          (tor-list (mentor-rpc-command-multi
                     (mapcar (lambda (x) (concat x "=")) methods)))
          (attributes (mapcar
