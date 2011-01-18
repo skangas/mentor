@@ -31,7 +31,6 @@
 
 ;; TODO:
 ;; Implement SCGI in Emacs Lisp (later)
-;; Support for XML-RPC over HTTP
 ;; Support for categories
 ;; Optimization: Update info only for incomplete torrents
 ;; Highlight current torrent
@@ -88,8 +87,10 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-scgi-url "scgi://localhost:5000"
-  "The scgi URL, as specified in rtorrent config var scgi_port"
+(defcustom mentor-rtorrent-url "http://localhost/RPC2"
+  "The URL to the rtorrent client. Can either be on the form
+scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
+connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
@@ -201,16 +202,18 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 ;;; Run XML-RPC calls
 
 (defun mentor-rpc-command (&rest args)
-  "Run command as an XML-RPC call via SCGI."
+  "Run command as an XML-RPC call via SCGI or http."
   (when (not (listp args))
     (setq args (list args)))
-  (xml-rpc-xml-to-response
-   (with-temp-buffer
-     (apply 'call-process
-            "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
-            nil t nil (append `(,mentor-scgi-url) args))
-     ;; (xml-rpc-value-to-xml-list
-     (xml-rpc-request-process-buffer (current-buffer)))))
+  (if (string= (subseq mentor-rtorrent-url 0 4) "http")
+      (apply 'xml-rpc-method-call mentor-rtorrent-url args)
+    (xml-rpc-xml-to-response
+     (with-temp-buffer
+       (apply 'call-process
+	      "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
+            nil t nil (append `(,mentor-rtorrent-url) args))
+       ;; (xml-rpc-value-to-xml-list
+       (xml-rpc-request-process-buffer (current-buffer))))))
 
 (defun mentor-rpc-command-multi (&rest args)
   (apply 'mentor-rpc-command (apply 'append '("d.multicall" "default") args)))
@@ -501,7 +504,7 @@ If so, only the torrent with this ID will be updated."
                       methods))
          (torrents (mapcar (lambda (torrent)
                              (mentor-join-lists attributes torrent))
-                    (mentor-command-multi
+                    (mentor-rpc-command-multi
                      (mapcar (lambda (x) (concat x "=")) methods)))))
     (mapc (lambda (torrent)
             (let ((id (mentor-get-property "local_id" torrent)))
