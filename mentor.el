@@ -580,8 +580,7 @@ If so, only the torrent with this ID will be updated."
                       methods))
          (torrents (mapcar (lambda (torrent)
                              (mentor-join-lists attributes torrent))
-                    (mentor-rpc-command-multi
-                     (mapcar (lambda (x) (concat x "=")) methods)))))
+                           tor-list)))
     (dolist (torrent torrents)
       (let ((id (mentor-get-property "local_id" torrent)))
         (setq torrent (assq-delete-all id torrent))
