@@ -542,7 +542,8 @@ the torrent at point."
 (defun mentor-update-torrent-and-redisplay (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (mentor-update-torrent torrent)
+   (mentor-update-torrent torrent))
+  (mentor-use-torrent ;; FIXME: remove this call
    (mentor-redisplay-torrent torrent)))
 
 (defun mentor-update-torrent (torrent)
@@ -551,8 +552,8 @@ the torrent at point."
     (dolist (method mentor-important-methods)
       (let ((property (mentor-rpc-method-to-property method))
             (new-value (mentor-rpc-command method hash)))
-        (setq torrent (assq-delete-all attr torrent))
-        (setq torrent (append torrent `((property ,new-value))))))
+        (setq torrent (assq-delete-all property torrent))
+        (setq torrent (cons (cons property new-value) torrent))))
     (puthash id torrent mentor-torrents)))
 
 (defun mentor-update-torrent-list ()
@@ -597,11 +598,11 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-name (&optional torrent)
   (mentor-get-property 'name torrent))
 
-(defun mentor-torrent-get-progress (&optional torrent)
+(defun mentor-torrent-get-progress (torrent)
   (let* ((done (abs (or (mentor-get-property 'bytes_done torrent) 0)))
          (total (abs (or (mentor-get-property 'size_bytes torrent) 1)))
          (percent (* 100 (/ done total))))
-      (format "%3d%s" percent "%")));)
+    (format "%3d%s" percent "%")))
 
 (defun mentor-torrent-get-state (&optional torrent)
   (if (= (mentor-get-property 'state torrent) 1)
