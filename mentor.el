@@ -245,11 +245,6 @@ functions"
 
 ;; (defvar *mentor-update-time* (current-time))
 
-;; (destructuring-bind (hi lo ms) (current-time)
-;;   (let ((oldms (+ (* 1000000 (second *mentor-update-time*)) (third *mentor-update-time*)))
-;;         (nowms (+ (* 1000000 lo) ms)))
-;;     (message "%d" (/ (- nowms oldms) 1000))))
-
 (defun mentor-update ()
   "Update torrents"
   (interactive)
@@ -322,7 +317,7 @@ functions"
            (cond ((functionp fmt)
                   (funcall fmt torrent))
                  ((stringp fmt)
-                  (if (string-match re fmt)
+                  (if nil ;;(string-match re fmt)
                       (or (mentor-get-property
                            (substring fmt
                                       (+ (match-beginning 0) 0)
@@ -391,7 +386,8 @@ functions"
   "Convenience macro to use either the defined `torrent' value,
 the torrent at point."
   `(let ((torrent (or torrent
-                      (mentor-torrent-at-point))))
+                      (mentor-torrent-at-point)
+                      (error "no torrent"))))
      ,@body))
 
 (defmacro while-same-torrent (skip-blanks &rest body)
@@ -437,7 +433,7 @@ the torrent at point."
   (let ((id (get-text-property (point) 'torrent-id)))
     (when id
       (let ((torrent (mentor-get-torrent id)))
-        (message (number-to-string (mentor-get-property "bytes_done" torrent)))))))
+        (message (number-to-string (mentor-get-property 'bytes_done torrent)))))))
 
 
 ;;; Torrent actions
@@ -469,15 +465,15 @@ the torrent at point."
 
 (defun mentor-close-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.close" (mentor-get-property "hash" torrent)))
+  (mentor-rpc-command "d.close" (mentor-get-property 'hash torrent)))
 
 (defun mentor-hash-check-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.check_hash" (mentor-get-property "hash" torrent)))
+  (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash torrent)))
 
 (defun mentor-pause-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.pause" (mentor-get-property "hash" torrent)))
+  (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent)))
 
 (defun mentor-recreate-files (&optional torrent)
   (interactive)
@@ -489,11 +485,11 @@ the torrent at point."
 
 (defun mentor-start-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.start" (mentor-get-property "hash" torrent)))
+  (mentor-rpc-command "d.start" (mentor-get-property 'hash torrent)))
 
 (defun mentor-stop-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.stop" (mentor-get-property "hash" torrent)))
+  (mentor-rpc-command "d.stop" (mentor-get-property 'hash torrent)))
 
 (defun mentor-increase-priority (&optional torrent)
   (interactive)
@@ -537,7 +533,8 @@ the torrent at point."
     ;; "hash"
 
 (defun mentor-rpc-method-to-property (name)
-  (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
+  (intern
+   (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name)))
 
 (defun mentor-property-to-rpc-method ()
   nil)
@@ -548,18 +545,15 @@ the torrent at point."
    (mentor-update-torrent torrent)
    (mentor-redisplay-torrent torrent)))
 
-(defun mentor-update-torrent (&optional torrent)
-  (mentor-use-torrent
-   (let* ((hash (mentor-get-property "hash" torrent))
-          (methods mentor-important-methods)
-          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
-     (let ((id (mentor-get-property "local_id" torrent)))
-       (dolist (attr attributes)
-         (let ((result (mentor-rpc-command (pop methods) hash)))
-           (setq torrent (assq-delete-all attr torrent))
-           (setq torrent (append torrent `((,attr ,result)))))
-         (puthash id torrent mentor-torrents))))))
-
+(defun mentor-update-torrent (torrent)
+  (let* ((hash (mentor-get-property 'hash torrent))
+         (id (mentor-get-property 'local_id torrent)))
+    (dolist (method mentor-important-methods)
+      (let ((property (mentor-rpc-method-to-property method))
+            (new-value (mentor-rpc-command method hash)))
+        (setq torrent (assq-delete-all attr torrent))
+        (setq torrent (append torrent `((property ,new-value))))))
+    (puthash id torrent mentor-torrents)))
 
 (defun mentor-update-torrent-list ()
   "Synchronize torrent information with rtorrent.
@@ -575,21 +569,18 @@ If so, only the torrent with this ID will be updated."
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
          (tor-list (mentor-rpc-command-multi
                     (mapcar (lambda (x) (concat x "=")) methods)))
-         (attributes (mapcar
-                      (lambda (name)
-                        (replace-regexp-in-string "^d\\.\\(get_\\)?" "" name))
-                      methods))
+         (attributes (mapcar 'mentor-rpc-method-to-property methods))
          (torrents (mapcar (lambda (torrent)
                              (mentor-join-lists attributes torrent))
                            tor-list)))
     (dolist (torrent torrents)
-      (let ((id (mentor-get-property "local_id" torrent)))
+      (let ((id (mentor-get-property 'local_id torrent)))
         (setq torrent (assq-delete-all id torrent))
         (puthash id torrent mentor-torrents)))
-    (when (not mentor-regexp-information-properties)
-      (setq mentor-regexp-information-properties
-            (regexp-opt attributes 'words))))
-    (message "Updating torrent list... DONE"))
+  ;; (when (not mentor-regexp-information-properties)
+  ;;   (setq mentor-regexp-information-properties
+  ;;         (regexp-opt attributes 'words))))
+    (message "Updating torrent list... DONE")))
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
@@ -597,73 +588,75 @@ If so, only the torrent with this ID will be updated."
 (defun mentor-get-property (property &optional torrent)
   "Get property for a torrent.
 If `torrent' is nil, use torrent at point."
-  (if (not torrent)
-      (setq torrent (mentor-torrent-at-point)))
+  ;; (when (not torrent)
+  ;;     (setq torrent (mentor-torrent-at-point)))
+  ;; (when (stringp property)
+  ;;     (setq property (make-symbol property)))
   (cdr (assoc property torrent)))
 
 (defun mentor-torrent-get-name (&optional torrent)
-  (mentor-get-property "name" torrent))
+  (mentor-get-property 'name torrent))
 
 (defun mentor-torrent-get-progress (&optional torrent)
-  (let* ((done (abs (mentor-get-property "bytes_done" torrent)))
-         (total (abs (mentor-get-property "size_bytes" torrent)))
+  (let* ((done (abs (or (mentor-get-property 'bytes_done torrent) 0)))
+         (total (abs (or (mentor-get-property 'size_bytes torrent) 1)))
          (percent (* 100 (/ done total))))
       (format "%3d%s" percent "%")));)
 
 (defun mentor-torrent-get-state (&optional torrent)
-  (if (= (mentor-get-property "state" torrent) 1)
+  (if (= (mentor-get-property 'state torrent) 1)
       " "
     "S"))
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-get-property "down_rate" torrent)))
+   (mentor-get-property 'down_rate torrent)))
 
 (defun mentor-torrent-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-get-property "up_rate" torrent)))
+   (mentor-get-property 'up_rate torrent)))
 
 (defun mentor-torrent-get-size-done (torrent)
   (mentor-bytes-to-human
-   (mentor-get-property "bytes_done" torrent)))
+   (mentor-get-property 'bytes_done torrent)))
 
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
-   (mentor-get-property "size_bytes" torrent)))
+   (mentor-get-property 'size_bytes torrent)))
 
 (defun mentor-torrent-status (&optional torrent)
-  (let* ((active (mentor-get-property "is_active" torrent))
-         (open (mentor-get-property "is_open" torrent)))
+  (let* ((active (mentor-get-property 'is_active torrent))
+         (open (mentor-get-property 'is_open torrent)))
     (if (or (and open (= open 1))
             (and active (= active 1)))
         " "
       "I")))
 
 (defun mentor-torrent-tied-file-name (torrent)
-  (mentor-get-property "tied_to_file" torrent))
+  (mentor-get-property 'tied_to_file torrent))
 
 (defun mentor-torrent-get-file-list (torrent)
-  (mentor-rpc-command "f.multicall" (mentor-get-property "hash" torrent) "" "f.get_path="))
+  (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
 
 (defun mentor-get-target-directory (&optional torrent)
   (mentor-use-torrent
-   (mentor-get-property "directory" torrent)))
+   (mentor-get-property 'directory torrent)))
 
 (defun mentor-torrent-is-done-p (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (= (mentor-get-property "bytes_done" torrent)
-      (mentor-get-property "size_bytes" torrent))))
+   (= (mentor-get-property 'bytes_done torrent)
+      (mentor-get-property 'size_bytes torrent))))
 
 (defun mentor-torrent-is-multi-file-p (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (= 1 (mentor-get-property "is_multi_file" torrent))))
+   (= 1 (mentor-get-property 'is_multi_file torrent))))
 
 (defun mentor-torrent-is-open-p (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (= 1 (mentor-get-property "is_open" torrent))))
+   (= 1 (mentor-get-property 'is_open torrent))))
 
 
 ;;; Utility functions
