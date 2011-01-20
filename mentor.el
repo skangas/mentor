@@ -276,14 +276,13 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrents))
 
-(defvar mentor-format-collapsed-torrent '("%2s U:%-5s D:%-5s %-80s %.4s  %10s / %6s  %-70s"
+(defvar mentor-format-collapsed-torrent '("%2s U:%-5s D:%-5s %-80s %.4s %15s %-70s"
                                         mentor-torrent-get-state
                                         mentor-torrent-get-speed-up
                                         mentor-torrent-get-speed-down
                                         (mentor-torrent-get-name . 80)
                                         mentor-torrent-get-progress
-                                        mentor-torrent-get-size-done
-                                        mentor-torrent-get-size-total
+                                        mentor-torrent-get-size
                                         mentor-torrent-tied-file-name))
 
 (defun mentor-redisplay-torrent (torrent)
@@ -484,15 +483,17 @@ the torrent at point."
   "Pause torrent. This is probably not what you want, use
 `mentor-stop-torrent' instead."
   (interactive)
-  (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
-  (mentor-update-torrent-and-redisplay))
+  (mentor-use-torrent
+   (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
+   (mentor-update-torrent-and-redisplay)))
 
 (defun mentor-resume-torrent (&optional torrent)
   "Resume torrent. This is probably not what you want, use
 `mentor-start-torrent' instead."
   (interactive)
-  (mentor-rpc-command "d.resume" (mentor-get-property 'hash torrent))
-  (mentor-update-torrent-and-redisplay))
+  (mentor-use-torrent
+   (mentor-rpc-command "d.resume" (mentor-get-property 'hash torrent))
+   (mentor-update-torrent-and-redisplay)))
 
 (defun mentor-recreate-files (&optional torrent)
   (interactive)
@@ -651,6 +652,15 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
    (mentor-get-property 'up_rate torrent)))
+
+(defun mentor-torrent-get-size (torrent)
+  (let ((done (mentor-get-property 'bytes_done torrent))
+        (total (mentor-get-property 'size_bytes torrent)))
+    (if (= done total)
+        (format "        %-6s" (mentor-bytes-to-human total))
+      (format "%6s / %6s"
+              (mentor-bytes-to-human done)
+              (mentor-bytes-to-human total)))))
 
 (defun mentor-torrent-get-size-done (torrent)
   (mentor-bytes-to-human
