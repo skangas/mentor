@@ -155,6 +155,8 @@ connecting through scgi or http."
     (define-key map (kbd "t u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
+    
+    ;; view bindings
     (define-key map (kbd "v") 'mentor-set-view)
     (define-key map (kbd "1") (lambda () (interactive) (mentor-set-view "main")))
     (define-key map (kbd "2") (lambda () (interactive) (mentor-set-view "name")))
