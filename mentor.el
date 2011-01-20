@@ -275,8 +275,8 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrents))
 
-(defvar mentor-format-collapsed-torrent '("%.1s U:%-5s D:%-5s %-80s %.4s  %10s / %6s  %-70s"
-                                        mentor-torrent-state
+(defvar mentor-format-collapsed-torrent '("%2s U:%-5s D:%-5s %-80s %.4s  %10s / %6s  %-70s"
+                                        mentor-torrent-get-state
                                         mentor-torrent-get-speed-up
                                         mentor-torrent-get-speed-down
                                         (mentor-torrent-get-name . 80)
@@ -464,15 +464,20 @@ the torrent at point."
 
 (defun mentor-close-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.close" (mentor-get-property 'hash torrent)))
+  (mentor-rpc-command "d.close" (mentor-get-property 'hash torrent))
+  (mentor-update-torrent-and-redisplay))
 
 (defun mentor-hash-check-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash torrent)))
+  (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash torrent))
+  (mentor-update-torrent-and-redisplay))
 
 (defun mentor-pause-torrent (&optional torrent)
+  "Pause torrent. This is probably not what you want, use
+`mentor-stop-torrent' instead."
   (interactive)
-  (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent)))
+  (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
+  (mentor-update-torrent-and-redisplay))
 
 (defun mentor-recreate-files (&optional torrent)
   (interactive)
@@ -484,11 +489,14 @@ the torrent at point."
 
 (defun mentor-start-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.start" (mentor-get-property 'hash torrent)))
+  (mentor-use-torrent
+   (mentor-rpc-command "d.start" (mentor-get-property 'hash torrent))
+   (mentor-update-torrent-and-redisplay)))
 
 (defun mentor-stop-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.stop" (mentor-get-property 'hash torrent)))
+  (mentor-rpc-command "d.stop" (mentor-get-property 'hash torrent))
+  (mentor-update-torrent-and-redisplay))
 
 (defun mentor-increase-priority (&optional torrent)
   (interactive)
@@ -517,13 +525,14 @@ the torrent at point."
 ;; d.multicall which are passed in as the first argument"
   
 (defvar mentor-important-methods
-  '(
-    "d.get_bytes_done"
+  '("d.get_bytes_done"
     "d.get_down_rate"
+    "d.get_hashing"
+    "d.get_hashing_failed"
     "d.get_priority"
     "d.get_up_rate"
     "d.get_up_total"
-    "d.is_active"
+    "d.get_state"
     "d.is_active"
     "d.is_hash_checked"
     "d.is_hash_checking"
@@ -600,10 +609,15 @@ If `torrent' is nil, use torrent at point."
          (percent (* 100 (/ done total))))
     (format "%3d%s" percent "%")))
 
+;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
-  (if (= (mentor-get-property 'state torrent) 1)
-      " "
-    "S"))
+  (concat
+   (or (when (= (mentor-get-property 'hashing torrent) 3)
+         "H")
+       (if (not (= (mentor-get-property 'is_active torrent) 1))
+           "S" " ")) ;; 'is_stopped
+   (if (not (= (mentor-get-property 'is_open torrent) 1))
+       "C" " "))) ;; 'is_closed
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
@@ -620,14 +634,6 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
    (mentor-get-property 'size_bytes torrent)))
-
-(defun mentor-torrent-status (&optional torrent)
-  (let* ((active (mentor-get-property 'is_active torrent))
-         (open (mentor-get-property 'is_open torrent)))
-    (if (or (and open (= open 1))
-            (and active (= active 1)))
-        " "
-      "I")))
 
 (defun mentor-torrent-tied-file-name (torrent)
   (mentor-get-property 'tied_to_file torrent))
