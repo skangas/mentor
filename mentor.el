@@ -173,7 +173,8 @@ connecting through scgi or http."
       (message "Unable to connect")
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
-           (mentor-reload))))
+           (mentor-init-torrent-list)
+           (mentor-redisplay))))
 
 (defun mentor-not-connectable-p ()
   ;; TODO
@@ -246,21 +247,17 @@ functions"
 
 ;; (defvar *mentor-update-time* (current-time))
 
-(defun mentor-update ()
-  "Update torrents"
-  (interactive)
-  (beginning-of-buffer)
-  (mentor-update-torrent-list)
-  (while (mentor-next)
-    (when (not (mentor-torrent-is-done-p))
-      (mentor-update-torrent))))
-
 (defun mentor-reload ()
+  "Re-initialize all torrents and redisplay."
+  (interactive)
+  (mentor-init-torrent-list)
+  (mentor-redisplay))
+
+(defun mentor-redisplay ()
   "Completely reload the mentor torrent view buffer."
   (interactive)
   (when (equal major-mode 'mentor-mode)
     (save-excursion
-      (mentor-update-torrent-list)
       (let ((inhibit-read-only t))
         (erase-buffer)
         (insert (concat "mentor-" mentor-version " - rTorrent "
@@ -587,23 +584,21 @@ the torrent at point."
             (new-value (mentor-rpc-command method hash)))
         (setcdr (assq property torrent) new-value)))))
 
-(defun mentor-update-torrent-list ()
-  "Synchronize torrent information with rtorrent.
+(defun mentor-init-torrent-list ()
+  "Initialize torrent list from rtorrent.
 
-By default, all information will be received anew, making this a
-potentially expensive operation.
-
-Optionally a torrent ID may be specified as the second argument.
-If so, only the torrent with this ID will be updated."
-  (message "Updating torrent list...")
+All torrent information will be received anew, which makes this a
+expensive operation."
+  (message "Initializing torrent list...")
   (when (not mentor-torrents)
     (setq mentor-torrents (make-hash-table :test 'equal)))
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
-         (tor-list (mentor-rpc-command-multi
-                    (mapcar (lambda (x) (concat x "=")) methods)))
+         (methods= (mapcar (lambda (x) (concat x "=")) methods))
+         (tor-list (mentor-rpc-command-multi methods=))
          (attributes (mapcar 'mentor-rpc-method-to-property methods))
          (torrents (mapcar (lambda (torrent)
-                             (mentor-join-lists attributes torrent))
+                             (mapcar* (lambda (a b) (cons a b))
+                                      attributes torrent))
                            tor-list)))
     (dolist (torrent torrents)
       (let ((id (mentor-get-property 'local_id torrent)))
@@ -612,7 +607,7 @@ If so, only the torrent with this ID will be updated."
   ;; (when (not mentor-regexp-information-properties)
   ;;   (setq mentor-regexp-information-properties
   ;;         (regexp-opt attributes 'words))))
-    (message "Updating torrent list... DONE")))
+    (message "Initializing torrent list... DONE")))
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
@@ -720,14 +715,6 @@ If `torrent' is nil, use torrent at point."
           "???" ;; workaround for old xmlrpc-c
         (number-to-string (/ bytes 1024)))
     ""))
-
-(defun mentor-join-lists (list1 list2)
-  (let ((result '()))
-    (while list1
-      (setq result (cons `(,(car list1) . ,(car list2)) result))
-      (setq list1 (cdr list1))
-      (setq list2 (cdr list2)))
-    result))
 
 (defun mentor-trim-line (str)
   (if (string= str "")
