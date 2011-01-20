@@ -94,6 +94,12 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
+(defcustom mentor-current-view "main"
+  "The current view to use when browsing torrents. This is also
+  the default view when starting mentor."
+  :group 'mentor
+  :type 'string)
+
 
 ;;; major mode
 
@@ -149,6 +155,11 @@ connecting through scgi or http."
     (define-key map (kbd "t u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
+    (define-key map (kbd "v") 'mentor-set-view)
+    (define-key map (kbd "1") (lambda () (interactive) (mentor-set-view "main")))
+    (define-key map (kbd "2") (lambda () (interactive) (mentor-set-view "name")))
+    (define-key map (kbd "3") (lambda () (interactive) (mentor-set-view "started")))
+    (define-key map (kbd "4") (lambda () (interactive) (mentor-set-view "stopped")))
     map))
 
 (defvar mentor-mode-hook nil)
@@ -231,7 +242,8 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
        (xml-rpc-request-process-buffer (current-buffer))))))
 
 (defun mentor-rpc-command-multi (&rest args)
-  (apply 'mentor-rpc-command (apply 'append '("d.multicall" "default") args)))
+  (apply 'mentor-rpc-command 
+	 (apply 'append (list "d.multicall" mentor-current-view) args)))
 
 ;; Needed to work around buggy expressions in rtorrent
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
@@ -603,8 +615,7 @@ the torrent at point."
 All torrent information will be received anew, which makes this a
 expensive operation."
   (message "Initializing torrent list...")
-  (when (not mentor-torrents)
-    (setq mentor-torrents (make-hash-table :test 'equal)))
+  (setq mentor-torrents (make-hash-table :test 'equal))
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
          (methods= (mapcar (lambda (x) (concat x "=")) methods))
          (tor-list (mentor-rpc-command-multi methods=))
@@ -703,6 +714,19 @@ If `torrent' is nil, use torrent at point."
   (interactive)
   (mentor-use-torrent
    (= 1 (mentor-get-property 'is_open torrent))))
+
+
+
+
+;;; View functions
+
+(defun mentor-set-view (view)
+  (interactive "sSwitch to view: ")
+  (setq mentor-current-view view)
+  (mentor-reload))
+
+(defun mentor-get-views ()
+  nil)
 
 
 ;;; Utility functions
