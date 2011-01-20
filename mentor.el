@@ -115,25 +115,38 @@ connecting through scgi or http."
 
     (define-key map (kbd "DEL") 'mentor-add-torrent)
 
-    (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
-    (define-key map (kbd "d") 'mentor-view-in-dired)
+    ;; torrent list actions
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
-    (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "k") 'mentor-erase-torrent)
-    (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
+    (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
+
+    ;; navigation
     (define-key map (kbd "n") 'mentor-next)
     (define-key map (kbd "p") 'mentor-prev)
     (define-key map (kbd "M") 'mentor-move-torrent)
     (define-key map (kbd "m") 'mentor-mark-torrent)
-    (define-key map (kbd "s c") 'mentor-sort-by-state)
-    (define-key map (kbd "s d") 'mentor-sort-by-download-speed)
-    (define-key map (kbd "s n") 'mentor-sort-by-name)
-    (define-key map (kbd "s p") 'mentor-sort-by-property-prompt)
-    (define-key map (kbd "s s") 'mentor-sort-by-size)
-    (define-key map (kbd "s t") 'mentor-sort-by-tied-file-name)
-    (define-key map (kbd "s u") 'mentor-sort-by-upload-speed)
+
+    ;; single torrent actions
+    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "D") 'mentor-stop-all-torrents)
+    (define-key map (kbd "k") 'mentor-erase-torrent)
+    (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
+    (define-key map (kbd "s") 'mentor-start-torrent)
+    (define-key map (kbd "S") 'mentor-start-all-torrents)
+
+    ;; misc actions
+    (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
+    (define-key map (kbd "TAB") 'mentor-toggle-object)
+    (define-key map (kbd "v") 'mentor-view-in-dired)
+
+    ;; sort functions
+    (define-key map (kbd "t c") 'mentor-sort-by-state)
+    (define-key map (kbd "t d") 'mentor-sort-by-download-speed)
+    (define-key map (kbd "t n") 'mentor-sort-by-name)
+    (define-key map (kbd "t p") 'mentor-sort-by-property-prompt)
+    (define-key map (kbd "t s") 'mentor-sort-by-size)
+    (define-key map (kbd "t t") 'mentor-sort-by-tied-file-name)
+    (define-key map (kbd "t u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     map))
