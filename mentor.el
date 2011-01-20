@@ -665,7 +665,8 @@ If `torrent' is nil, use torrent at point."
              (mb (* kb 1024.0))
              (gb (* mb 1024.0))
              (tb (* gb 1024.0)))
-        (cond ((< bytes kb) bytes)
+        (cond ((< bytes 0) "???") ;; workaround for old xmlrpc-c
+              ((< bytes kb) bytes)
               ((< bytes mb) (concat (format "%.1f" (/ bytes kb)) "K"))
               ((< bytes gb) (concat (format "%.1f" (/ bytes mb)) "M"))
               ((< bytes tb) (concat (format "%.1f" (/ bytes gb)) "G"))
@@ -673,8 +674,10 @@ If `torrent' is nil, use torrent at point."
     ""))
 
 (defun mentor-bytes-to-kilobytes (bytes)
-  (if bytes
-      (number-to-string (/ bytes 1024))
+  (if (numberp bytes)
+      (if (< bytes 0)
+          "???" ;; workaround for old xmlrpc-c
+        (number-to-string (/ bytes 1024)))
     ""))
 
 (defun mentor-join-lists (list1 list2)
