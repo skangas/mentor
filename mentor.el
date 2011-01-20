@@ -94,6 +94,12 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
+(defcustom mentor-current-view "main"
+  "The current view to use when browsing torrents. This is also
+  the default view when starting mentor."
+  :group 'mentor
+  :type 'string)
+
 
 ;;; major mode
 
@@ -150,6 +156,11 @@ connecting through scgi or http."
     (define-key map (kbd "t u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
+    (define-key map (kbd "v") 'mentor-set-view)
+    (define-key map (kbd "1") (lambda () (interactive) (mentor-set-view "main")))
+    (define-key map (kbd "2") (lambda () (interactive) (mentor-set-view "name")))
+    (define-key map (kbd "3") (lambda () (interactive) (mentor-set-view "started")))
+    (define-key map (kbd "4") (lambda () (interactive) (mentor-set-view "stopped")))
     map))
 
 (defvar mentor-mode-hook nil)
@@ -595,7 +606,7 @@ the torrent at point."
 
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
-         (tor-list (apply 'mentor-rpc-command "d.multicall" "default" methods=))
+         (tor-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
     (mapcar (lambda (torrent)
               (mapcar* (lambda (a b) (cons a b))
@@ -620,6 +631,7 @@ the torrent at point."
 All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent list...")
+  (setq mentor-torrents (make-hash-table :test 'equal))
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
@@ -711,6 +723,19 @@ If `torrent' is nil, use torrent at point."
   (interactive)
   (mentor-use-torrent
    (= 1 (mentor-get-property 'is_open torrent))))
+
+
+
+
+;;; View functions
+
+(defun mentor-set-view (view)
+  (interactive "sSwitch to view: ")
+  (setq mentor-current-view view)
+  (mentor-reload))
+
+(defun mentor-get-views ()
+  nil)
 
 
 ;;; Utility functions
