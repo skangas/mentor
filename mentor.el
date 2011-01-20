@@ -350,27 +350,27 @@ functions"
 
 (defun mentor-sort-by-download-speed ()
   (interactive)
-  (mentor-sort-by-property "down_rate" t))
+  (mentor-sort-by-property 'down_rate t))
 
 (defun mentor-sort-by-name ()
   (interactive)
-  (mentor-sort-by-property "name"))
+  (mentor-sort-by-property 'name))
 
 (defun mentor-sort-by-state ()
   (interactive)
-  (mentor-sort-by-property "state"))
+  (mentor-sort-by-property 'state))
 
 (defun mentor-sort-by-tied-file-name ()
   (interactive)
-  (mentor-sort-by-property "tied_to_file"))
+  (mentor-sort-by-property 'tied_to_file))
 
 (defun mentor-sort-by-size ()
   (interactive)
-  (mentor-sort-by-property "size_bytes" t))
+  (mentor-sort-by-property 'size_bytes t))
 
 (defun mentor-sort-by-upload-speed ()
   (interactive)
-  (mentor-sort-by-property "up_rate" t))
+  (mentor-sort-by-property 'up_rate t))
 
 
 ;;; Get torrent
@@ -585,8 +585,8 @@ If so, only the torrent with this ID will be updated."
 (defun mentor-get-property (property &optional torrent)
   "Get property for a torrent.
 If `torrent' is nil, use torrent at point."
-  ;; (when (not torrent)
-  ;;     (setq torrent (mentor-torrent-at-point)))
+  (when (not torrent)
+      (setq torrent (mentor-torrent-at-point)))
   ;; (when (stringp property)
   ;;     (setq property (make-symbol property)))
   (cdr (assoc property torrent)))
