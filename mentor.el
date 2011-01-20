@@ -116,12 +116,13 @@ connecting through scgi or http."
     (define-key map (kbd "DEL") 'mentor-add-torrent)
 
     (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
+    (define-key map (kbd "d") 'mentor-view-in-dired)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "RET") 'mentor-toggle-object)
+    (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "k") 'mentor-kill-torrent)
-    (define-key map (kbd "K") 'mentor-kill-torrent-and-remove-data)
+    (define-key map (kbd "k") 'mentor-erase-torrent)
+    (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
     (define-key map (kbd "n") 'mentor-next)
     (define-key map (kbd "p") 'mentor-prev)
     (define-key map (kbd "M") 'mentor-move-torrent)
@@ -288,10 +289,14 @@ functions"
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
         (id (mentor-id-at-point)))
-    (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
-    (forward-char) ;; avoid oboe
+    (mentor-remove-torrent-from-view torrent)
     (mentor-insert-torrent id torrent)
     (mentor-prev)))
+
+(defun mentor-remove-torrent-from-view (torrent)
+  (let ((buffer-read-only nil))
+    (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
+    (forward-char)))
 
 (defun mentor-insert-torrent (id torrent)
   (insert
@@ -384,7 +389,7 @@ functions"
 (defmacro mentor-use-torrent (&rest body)
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
-  `(let ((torrent (or torrent
+  `(let ((torrent (or (when (boundp 'torrent) torrent)
                       (mentor-torrent-at-point)
                       (error "no torrent"))))
      ,@body))
@@ -437,22 +442,25 @@ the torrent at point."
 
 ;;; Torrent actions
 
-(defun mentor-kill-torrent (&optional torrent)
+(defun mentor-erase-data (torrent)
+  (dired-delete-file (mentor-get-property 'base_path torrent) 'top))
+
+
+;;; Interactive torrent commands
+
+(defun mentor-erase-torrent (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (let ((files (mentor-torrent-get-file-list torrent)))
-     ;; (mentor-stop-torrent)
-     ;; (mentor-kill-torrent)
-     (mapc
-      (lambda (file)
-        (message file))
-      files))))
+   (when (yes-or-no-p (concat "Remove " (mentor-get-property 'name torrent) " "))
+     (mentor-rpc-command "d.erase" (mentor-get-property 'hash torrent))
+     (mentor-remove-torrent-from-view torrent)
+     (remhash (mentor-get-property 'local_id torrent) mentor-torrents))))
 
-(defun mentor-kill-torrent-and-remove-data ()
+(defun mentor-erase-torrent-and-data ()
   (interactive)
-  (let ((id (mentor-id-at-point)))
-    (mentor-stop-torrent)
-    (message "TODO")))
+  (mentor-use-torrent
+   (mentor-erase-torrent torrent)
+   (mentor-erase-data torrent)))
 
 (defun mentor-call-command (&optional torrent)
   (interactive)
@@ -479,6 +487,13 @@ the torrent at point."
   (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
   (mentor-update-torrent-and-redisplay))
 
+(defun mentor-resume-torrent (&optional torrent)
+  "Resume torrent. This is probably not what you want, use
+`mentor-start-torrent' instead."
+  (interactive)
+  (mentor-rpc-command "d.resume" (mentor-get-property 'hash torrent))
+  (mentor-update-torrent-and-redisplay))
+
 (defun mentor-recreate-files (&optional torrent)
   (interactive)
   (message "TODO"))
@@ -486,6 +501,16 @@ the torrent at point."
 (defun mentor-set-inital-seeding (&optional torrent)
   (interactive)
   (message "TODO"))
+
+;; TODO: go directly to file
+(defun mentor-view-in-dired (&optional torrent)
+  (interactive)
+  (mentor-use-torrent
+   (let ((path (mentor-get-property 'base_path torrent))
+         (is-multi-file (mentor-get-property 'is_multi_file torrent)))
+     (find-file (if is-multi-file
+                    path
+                  (file-name-directory path))))))
 
 (defun mentor-start-torrent (&optional torrent)
   (interactive)
@@ -612,7 +637,7 @@ If `torrent' is nil, use torrent at point."
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
   (concat
-   (or (when (= (mentor-get-property 'hashing torrent) 3)
+   (or (when (> (mentor-get-property 'hashing torrent) 0)
          "H")
        (if (not (= (mentor-get-property 'is_active torrent) 1))
            "S" " ")) ;; 'is_stopped
