@@ -286,13 +286,12 @@ functions"
                                         mentor-torrent-tied-file-name))
 
 (defun mentor-redisplay-torrent (torrent)
-  (mentor-use-torrent
-   (let ((buffer-read-only nil)
-         (id (mentor-id-at-point)))
-     (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
-     (forward-char) ;; avoid oboe
-     (mentor-insert-torrent id torrent)
-     (mentor-prev))))
+  (let ((buffer-read-only nil)
+        (id (mentor-id-at-point)))
+    (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
+    (forward-char) ;; avoid oboe
+    (mentor-insert-torrent id torrent)
+    (mentor-prev)))
 
 (defun mentor-insert-torrent (id torrent)
   (insert
@@ -383,7 +382,7 @@ functions"
   (mentor-get-torrent (mentor-id-at-point)))
 
 (defmacro mentor-use-torrent (&rest body)
-  "Convenience macro to use either the defined `torrent' value,
+  "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
   `(let ((torrent (or torrent
                       (mentor-torrent-at-point)
@@ -542,8 +541,7 @@ the torrent at point."
 (defun mentor-update-torrent-and-redisplay (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (mentor-update-torrent torrent))
-  (mentor-use-torrent ;; FIXME: remove this call
+   (mentor-update-torrent torrent)
    (mentor-redisplay-torrent torrent)))
 
 (defun mentor-update-torrent (torrent)
@@ -552,9 +550,7 @@ the torrent at point."
     (dolist (method mentor-important-methods)
       (let ((property (mentor-rpc-method-to-property method))
             (new-value (mentor-rpc-command method hash)))
-        (setq torrent (assq-delete-all property torrent))
-        (setq torrent (cons (cons property new-value) torrent))))
-    (puthash id torrent mentor-torrents)))
+        (setcdr (assq property torrent) new-value)))))
 
 (defun mentor-update-torrent-list ()
   "Synchronize torrent information with rtorrent.
