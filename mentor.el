@@ -278,11 +278,14 @@ functions"
     (save-excursion
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (insert (concat "mentor-" mentor-version " - rTorrent "
+        (setq header-line-format (format " %-3s%-6s%-6s%-81s%-6s%-15s%-80s"
+                                         "S" "Up" "Down" "Name" "Comp"
+                                         "        Size" "Tied to file"))
+        (mentor-insert-torrents)
+        (insert (concat "\nmentor-" mentor-version " - rTorrent "
                         (mentor-rpc-command "system.client_version") "/"
                         (mentor-rpc-command "system.library_version")
-                        " (" (mentor-rpc-command "get_name") ")\n\n"))
-        (mentor-insert-torrents)
+                        " (" (mentor-rpc-command "get_name") ")\n"))
         (mentor-sort-current)))))
 
 (defun mentor-insert-torrents ()
@@ -291,7 +294,7 @@ functions"
      (mentor-insert-torrent id torrent))
    mentor-torrents))
 
-(defvar mentor-format-collapsed-torrent '("%2s U:%-5s D:%-5s %-80s %.4s %15s %-70s"
+(defvar mentor-format-collapsed-torrent '("%2s %-5s %-5s %-80s %.4s %15s %-70s"
                                         mentor-torrent-get-state
                                         mentor-torrent-get-speed-up
                                         mentor-torrent-get-speed-down
