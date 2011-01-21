@@ -108,7 +108,6 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
-
 
 ;;; major mode
 
