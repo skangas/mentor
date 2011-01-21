@@ -100,6 +100,15 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
+(defcustom mentor-header-line
+  (format "%-3s%-6s%-6s%-81s%-6s%-15s%-80s"
+          "S" "Up" "Down" "Name" "Comp"
+          "        Size" "Tied to file")
+  "The header line to display in the mentor window."
+  :group 'mentor
+  :type 'string)
+
+
 
 ;;; major mode
 
@@ -291,9 +300,12 @@ functions"
     (save-excursion
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (setq header-line-format (format " %-3s%-6s%-6s%-81s%-6s%-15s%-80s"
-                                         "S" "Up" "Down" "Name" "Comp"
-                                         "        Size" "Tied to file"))
+        (setq header-line-format
+              '(:eval (concat
+                       (propertize " " 'display '((space :align-to 0)))
+                       (substring mentor-header-line
+                                  (min (length mentor-header-line)
+                                       (window-hscroll))))))
         (mentor-insert-torrents)
         (insert (concat "\nmentor-" mentor-version " - rTorrent "
                         (mentor-rpc-command "system.client_version") "/"
