@@ -39,7 +39,7 @@
 
 ;; Known issues:
 
-;; Large files (> 4GB) will cause overflows when not running rtorrent compiled
+;; Large files (> 2GB) will cause overflows when not running rtorrent compiled
 ;; against xmlrpc-c >1.07 with -DXMLRPC_HAVE_I8 and add relevant setting to your
 ;; rtorrent configuration (see below).
 ;;
