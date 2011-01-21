@@ -131,6 +131,7 @@ connecting through scgi or http."
     (define-key map (kbd "D") 'mentor-stop-all-torrents)
     (define-key map (kbd "k") 'mentor-erase-torrent)
     (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
+    (define-key map (kbd "r") 'mentor-hash-check-torrent)
     (define-key map (kbd "s") 'mentor-start-torrent)
     (define-key map (kbd "S") 'mentor-start-all-torrents)
 
@@ -556,19 +557,19 @@ the torrent at point."
 (defvar mentor-regexp-information-properties nil)
 
 (defvar mentor-d-interesting-methods
-  '("d.get_bytes_done="
-    "d.get_down_rate="
-    "d.get_hashing="
-    "d.get_hashing_failed="
-    "d.get_priority="
-    "d.get_up_rate="
-    "d.get_up_total="
-    "d.get_state="
-    "d.is_active="
-    "d.is_hash_checked="
-    "d.is_hash_checking="
-    "d.is_open="
-    "d.is_pex_active="))
+  '("d.get_bytes_done"
+    "d.get_down_rate"
+    "d.get_hashing"
+    "d.get_hashing_failed"
+    "d.get_priority"
+    "d.get_up_rate"
+    "d.get_up_total"
+    "d.get_state"
+    "d.is_active"
+    "d.is_hash_checked"
+    "d.is_hash_checking"
+    "d.is_open"
+    "d.is_pex_active"))
 
 (defun mentor-rpc-method-to-property (name)
   (intern
@@ -591,7 +592,8 @@ the torrent at point."
    (mentor-redisplay-torrent torrent)))
 
 (defun mentor-rpc-d.multicall (methods)
-  (let* ((tor-list (apply 'mentor-rpc-command "d.multicall" "default" methods))
+  (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
+         (tor-list (apply 'mentor-rpc-command "d.multicall" "default" methods=))
          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
     (mapcar (lambda (torrent)
               (mapcar* (lambda (a b) (cons a b))
@@ -601,7 +603,7 @@ the torrent at point."
 (defun mentor-update-torrents ()
   (interactive)
   (message "Updating torrent list...")
-  (let* ((methods (cons "d.get_local_id=" mentor-d-interesting-methods))
+  (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
       (let* ((id (mentor-get-property 'local_id tor))
@@ -617,8 +619,7 @@ All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent list...")
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
-         (methods= (mapcar (lambda (m) (concat m "=")) methods))
-         (torrents (mentor-rpc-d.multicall methods=)))
+         (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
       (let ((id (mentor-get-property 'local_id tor)))
         (puthash id tor mentor-torrents))))
