@@ -356,7 +356,6 @@ functions"
   (setq mentor-sort-property property)
   (setq mentor-sort-reverse reverse)
   (goto-char (point-min))
-  (mentor-next)
   (save-excursion
     (let ((sort-fold-case t)
           (inhibit-read-only t))
