@@ -108,6 +108,15 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
+(defcustom mentor-custom-views 
+  '((1 . "main") (2 . "name") (3 . "started")
+    (4 . "stopped") (5 . "complete") (6 . "incomplete")
+    (7 . "hashing") (8 . "seeding") (9 . "active"))
+  "A list of mappings \"(BINDING . VIEWNAME)\" where BINDING is
+the key to which the specified view will be bound to."
+  :group 'mentor
+  :type '(cons :integer :string))
+
 
 ;;; major mode
 
@@ -167,10 +176,34 @@ connecting through scgi or http."
     
     ;; view bindings
     (define-key map (kbd "v") 'mentor-set-view)
-    (define-key map (kbd "1") (lambda () (interactive) (mentor-set-view "main")))
-    (define-key map (kbd "2") (lambda () (interactive) (mentor-set-view "name")))
-    (define-key map (kbd "3") (lambda () (interactive) (mentor-set-view "started")))
-    (define-key map (kbd "4") (lambda () (interactive) (mentor-set-view "stopped")))
+    (define-key map (kbd "1") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '1 mentor-custom-views)))))
+    (define-key map (kbd "2") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '2 mentor-custom-views)))))
+    (define-key map (kbd "3") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '3 mentor-custom-views)))))
+    (define-key map (kbd "4") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '4 mentor-custom-views)))))
+    (define-key map (kbd "5") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '5 mentor-custom-views)))))
+    (define-key map (kbd "6") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '6 mentor-custom-views)))))
+    (define-key map (kbd "7") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '7 mentor-custom-views)))))
+    (define-key map (kbd "8") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '8 mentor-custom-views)))))
+    (define-key map (kbd "9") 
+      (lambda () (interactive) 
+    	(mentor-set-view (cdr (assoc '9 mentor-custom-views)))))
+    (define-key map (kbd "M-v") 'mentor-torrent-add-view-prompt)
     map))
 
 (defvar mentor-mode-hook nil)
@@ -184,6 +217,9 @@ connecting through scgi or http."
 
 (defvar mentor-sort-reverse nil)
 (make-variable-buffer-local 'mentor-sort-reverse)
+
+(defvar mentor-torrent-views nil)
+;;(make-variable-buffer-local 'mentor-torrent-views)
 
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
@@ -210,6 +246,7 @@ connecting through scgi or http."
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
            (mentor-init-torrent-list)
+	   (mentor-get-and-update-views)
            (mentor-redisplay))))
 
 (defun mentor-not-connectable-p ()
@@ -290,6 +327,7 @@ functions"
   "Re-initialize all torrents and redisplay."
   (interactive)
   (mentor-init-torrent-list)
+  (mentor-get-and-update-views)
   (mentor-redisplay))
 
 (defun mentor-redisplay ()
@@ -591,6 +629,7 @@ the torrent at point."
     "d.get_up_rate"
     "d.get_up_total"
     "d.get_state"
+    "d.views"
     "d.is_active"
     "d.is_hash_checked"
     "d.is_hash_checking"
@@ -645,11 +684,12 @@ All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent list...")
   (setq mentor-torrents (make-hash-table :test 'equal))
-  (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\)"))
+  (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)"))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
       (let ((id (mentor-get-property 'local_id tor)))
         (puthash id tor mentor-torrents))))
+  (setq mentor-torrent-views (mentor-get-view-list))
   (message "Initializing torrent list... DONE"))
   ;; (when (not mentor-regexp-information-properties)
   ;;   (setq mentor-regexp-information-properties
@@ -737,18 +777,74 @@ If `torrent' is nil, use torrent at point."
   (mentor-use-torrent
    (= 1 (mentor-get-property 'is_open torrent))))
 
+(defun mentor-torrent-get-views (torrent)
+  (mentor-get-property 'views torrent))
 
+(defun mentor-torrent-add-view-prompt (view)
+  (interactive "sAdd torrent to view: ")
+  (mentor-torrent-add-view (mentor-torrent-at-point) view))
+
+(defun mentor-torrent-add-view (torrent view)
+  (if (not (mentor-valid-view-name view))
+      (message "Not a valid name for a view!")
+    (if (not (mentor-is-view-defined view))
+	(if (y-or-n-p (concat "View " view " was not found. Create it? "))
+	    (progn (list (mentor-rpc-command 
+			  "d.views.push_back_unique" 
+			  (mentor-get-property 'hash torrent) view)
+			 (mentor-add-view-and-filter view)))
+	  (message "Nothing done"))
+      (progn (list (mentor-rpc-command 
+		    "d.views.push_back_unique" 
+		    (mentor-get-property 'hash torrent) view)
+		    (mentor-update-view-filter view))))))
 
 
 ;;; View functions
+
+;; TODO find out what a valid name is in rtorrent
+(defun mentor-valid-view-name (name)
+  t)
 
 (defun mentor-set-view (view)
   (interactive "sSwitch to view: ")
   (setq mentor-current-view view)
   (mentor-reload))
 
-(defun mentor-get-views ()
-  nil)
+(defun mentor-add-view-and-filter (view)
+  "Adds the specified view to rtorrents \"view_list\" and sets
+the new views view_filter. SHOULD BE USED WITH CARE! Atleast in
+rtorrent 0.8.6, rtorrent crashes if you try to add the same view
+twice!"
+  (mentor-rpc-command "view_add" view)
+  (setq mentor-torrent-views (cons view mentor-torrent-views))
+  (mentor-update-view-filter view))
+
+(defun mentor-update-view-filter (view)
+  "Updates the view_filter for the specified view. You need to do
+this everytime you add/remove a torrent to a view since
+rtorrent (atleast as of 0.8.6) does not add/remove new torrents
+to a view unless the filter is updated."
+  (mentor-rpc-command "view_filter" view
+		      (concat "d.views.has=" view)))
+
+(defun mentor-get-and-update-views ()
+  "Gets all unique views from torrents, adds all views not
+already in view_list and sets all new view_filters."
+  (interactive)
+  (maphash 
+   (lambda (id torrent)
+     (mapcar (lambda (view) 
+	       (if (not (member view mentor-torrent-views))
+		   (mentor-add-view-and-filter view)))
+	     (cdr (assoc 'views torrent))))
+   mentor-torrents))
+
+(defun mentor-get-view-list ()
+  (mentor-rpc-command "view_list"))
+
+(defun mentor-is-view-defined (view)
+  (member view mentor-torrent-views))
 
 
 ;;; Utility functions
