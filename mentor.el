@@ -789,12 +789,13 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-valid-view-name (name)
   t)
 
-(defun mentor-set-view (view)
+(defun mentor-set-view (new)
   (interactive "sSwitch to view: ")
-  (if (numberp view)
-      (setq mentor-current-view (cdr (assoc view mentor-custom-views)))
-    (setq mentor-current-view view))
-  (mentor-reload))
+  (when (numberp new)
+    (setq new (cdr (assoc new mentor-custom-views))))
+  (when (not (equal new mentor-current-view))
+    (setq mentor-current-view new)
+    (mentor-reload)))
 
 (defun mentor-add-view-and-filter (view)
   "Adds the specified view to rtorrents \"view_list\" and sets
