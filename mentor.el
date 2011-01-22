@@ -310,6 +310,7 @@ functions"
   (interactive)
   (mentor-init-torrent-list)
   (mentor-get-and-update-views)
+  (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
   (mentor-redisplay))
 
 (defun mentor-redisplay ()
