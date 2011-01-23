@@ -1,4 +1,4 @@
-;;; mentor.el --- My Emacs kNows TORrents!  Control rtorrent from GNU Emacs
+;;; mentor.el --- Control rtorrent from GNU Emacs
 
 ;; Copyright (C) 2010, 2011, Stefan Kangas
 
@@ -87,24 +87,9 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-rtorrent-url "scgi://localhost:5000"
-  "The URL to the rtorrent client. Can either be on the form
-scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
-connecting through scgi or http."
-  :group 'mentor
-  :type 'string)
-
 (defcustom mentor-current-view "main"
   "The current view to use when browsing torrents. This is also
   the default view when starting mentor."
-  :group 'mentor
-  :type 'string)
-
-(defcustom mentor-header-line
-  (format "%-3s%-6s%-6s%-81s%-6s%-15s%-80s"
-          "S" "Up" "Down" "Name" "Comp"
-          "        Size" "Tied to file")
-  "The header line to display in the mentor window."
   :group 'mentor
   :type 'string)
 
@@ -116,6 +101,25 @@ connecting through scgi or http."
 the key to which the specified view will be bound to."
   :group 'mentor
   :type '(cons :integer :string))
+
+(defcustom mentor-rtorrent-url "scgi://localhost:5000"
+  "The URL to the rtorrent client. Can either be on the form
+scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
+connecting through scgi or http."
+  :group 'mentor
+  :type 'string)
+
+(defcustom mentor-view-columns
+  '((mentor-torrent-get-state -3 "ST")
+    (mentor-torrent-get-speed-up -6 "Up")
+    (mentor-torrent-get-speed-down -6 "Down")
+    (mentor-torrent-get-name -80 "Name")
+    (mentor-torrent-get-progress -5 "Progress")
+    (mentor-torrent-get-size -15 "     Size")
+    (mentor-torrent-get-tied-file-name -80 "Tied file name"))
+  "A list of all columns to show in mentor view."
+  :group 'mentor
+  :type '(cons :symbol :string))
 
 
 ;;; major mode
@@ -194,6 +198,8 @@ the key to which the specified view will be bound to."
 
 (defvar mentor-auto-update-timer nil)
 
+(defvar mentor-header-line nil)
+
 (defvar mentor-sort-property nil)
 (make-variable-buffer-local 'mentor-sort-property)
 
@@ -227,9 +233,18 @@ the key to which the specified view will be bound to."
       (message "Unable to connect")
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
+           (mentor-init-header-line)
            (mentor-init-torrent-list)
 	   (mentor-get-and-update-views)
            (mentor-redisplay))))
+
+(defun mentor-init-header-line ()
+  (setq header-line-format
+        '(:eval (concat
+                 (propertize " " 'display '((space :align-to 0)))
+                 (substring mentor-header-line
+                            (min (length mentor-header-line)
+                                 (window-hscroll)))))))
 
 (defun mentor-not-connectable-p ()
   ;; TODO
@@ -309,6 +324,7 @@ functions"
   "Re-initialize all torrents and redisplay."
   (interactive)
   (mentor-init-torrent-list)
+  (mentor-reload-header-line)
   (mentor-get-and-update-views)
   (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
   (mentor-redisplay))
@@ -320,12 +336,6 @@ functions"
     (save-excursion
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (setq header-line-format
-              '(:eval (concat
-                       (propertize " " 'display '((space :align-to 0)))
-                       (substring mentor-header-line
-                                  (min (length mentor-header-line)
-                                       (window-hscroll))))))
         (mentor-insert-torrents)
         (insert (concat "\nmentor-" mentor-version " - rTorrent "
                         (mentor-rpc-command "system.client_version") "/"
@@ -338,15 +348,6 @@ functions"
    (lambda (id torrent)
      (mentor-insert-torrent id torrent))
    mentor-torrents))
-
-(defvar mentor-format-collapsed-torrent '("%2s %-5s %-5s %-80s %.4s %15s %-70s"
-                                        mentor-torrent-get-state
-                                        mentor-torrent-get-speed-up
-                                        mentor-torrent-get-speed-down
-                                        (mentor-torrent-get-name . 80)
-                                        mentor-torrent-get-progress
-                                        mentor-torrent-get-size
-                                        mentor-torrent-tied-file-name))
 
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
@@ -361,38 +362,29 @@ functions"
     (forward-char)))
 
 (defun mentor-insert-torrent (id torrent)
-  (insert
-   (concat
-    (propertize (mentor-process-format-string
-                 mentor-format-collapsed-torrent
-                 torrent)
-                'torrent-id id
-                'collapsed t)
-    "\n")))
+  (let ((text (mentor-process-view-columns torrent)))
+    (insert (propertize (concat text "\n")
+                        'torrent-id id 'collapsed t))))
 
-(defun mentor-process-format-string (format-list torrent)
-  "Process the torrent format string"
-  (let ((re mentor-regexp-information-properties))
-    (apply
-     'format (car format-list)
-     (mapcar
-      (lambda (fmt)
-        (let* ((len (if (listp fmt) (cdr fmt) nil))
-               (fmt (if (listp fmt) (car fmt) fmt)))
-          (format (if len (concat "%." (number-to-string len) "s") "%s")
-           (cond ((functionp fmt)
-                  (funcall fmt torrent))
-                 ((stringp fmt)
-                  (if nil ;;(string-match re fmt)
-                      (or (mentor-get-property
-                           (substring fmt
-                                      (+ (match-beginning 0) 0)
-                                      (- (match-end 0) 0))
-                           torrent)
-                          "")
-                    fmt))
-                 (t "")))))
-      (cdr format-list)))))
+(defun mentor-process-view-columns (torrent)
+  (apply 'concat
+         (mapcar (lambda (col)
+                   (let* ((str (funcall (car col) torrent))
+                          (len (cadr col)))
+                     (concat (mentor-enforce-length str len)
+                             " ")))
+                 mentor-view-columns)))
+
+(defun mentor-reload-header-line ()
+  (setq mentor-header-line
+        (apply 'concat
+               (mapcar (lambda (col)
+                         (let* ((str (caddr col))
+                                (len (or (cadddr col)
+                                         (cadr col))))
+                           (concat (mentor-enforce-length str len)
+                                   " ")))
+                       mentor-view-columns))))
 
 
 ;;; Sorting
@@ -734,7 +726,7 @@ If `torrent' is nil, use torrent at point."
   (mentor-bytes-to-human
    (mentor-get-property 'size_bytes torrent)))
 
-(defun mentor-torrent-tied-file-name (torrent)
+(defun mentor-torrent-get-tied-file-name (torrent)
   (mentor-get-property 'tied_to_file torrent))
 
 (defun mentor-torrent-get-file-list (torrent)
@@ -856,6 +848,12 @@ already in view_list and sets all new view_filters."
           "???" ;; workaround for old xmlrpc-c
         (number-to-string (/ bytes 1024)))
     ""))
+
+(defun mentor-enforce-length (str len)
+  (substring (format (concat "%" (when (< len 0) "-")
+                             (number-to-string (abs len)) "s")
+                     str)
+             0 (abs len)))
 
 (defun mentor-trim-line (str)
   (if (string= str "")
