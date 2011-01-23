@@ -36,6 +36,10 @@
 ;; Highlight current torrent
 ;; Filters
 ;; Marking torrents
+;; Sort according to column, changable with < and >
+;; Customizable fonts
+;; Torrent detail screen
+;; Moving torrents
 
 ;; Known issues:
 
@@ -109,11 +113,12 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '((mentor-torrent-get-state -3 "ST")
+
+  '((mentor-torrent-get-progress -5 "Progress")
+    (mentor-torrent-get-state -3 "ST")
+    (mentor-torrent-get-name -80 "Name")
     (mentor-torrent-get-speed-up -6 "Up")
     (mentor-torrent-get-speed-down -6 "Down")
-    (mentor-torrent-get-name -80 "Name")
-    (mentor-torrent-get-progress -5 "Progress")
     (mentor-torrent-get-size -15 "     Size")
     (mentor-torrent-get-tied-file-name -80 "Tied file name"))
   "A list of all columns to show in mentor view."
@@ -147,12 +152,13 @@ connecting through scgi or http."
     (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
 
     ;; navigation
-    (define-key map (kbd "n") 'mentor-next)
-    (define-key map (kbd "p") 'mentor-prev)
+    (define-key map (kbd "n") 'mentor-goto-next-torrent)
+    (define-key map (kbd "p") 'mentor-goto-previous-torrent)
     (define-key map (kbd "M") 'mentor-move-torrent)
     (define-key map (kbd "m") 'mentor-mark-torrent)
 
     ;; single torrent actions
+    (define-key map (kbd "c") 'mentor-change-target-directory)
     (define-key map (kbd "d") 'mentor-stop-torrent)
     (define-key map (kbd "D") 'mentor-stop-all-torrents)
     (define-key map (kbd "k") 'mentor-erase-torrent)
@@ -236,7 +242,8 @@ connecting through scgi or http."
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
            (mentor-init-header-line)
-           (mentor-init-torrent-list)
+           (let ((mentor-current-view "default"))
+             (mentor-init-torrent-list))
 	   (mentor-get-and-update-views)
            (mentor-redisplay))))
 
@@ -289,7 +296,7 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
        ;; (xml-rpc-value-to-xml-list
        (xml-rpc-request-process-buffer (current-buffer))))))
 
-;; Needed to work around buggy expressions in rtorrent
+;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
 (defvar mentor-all-rpc-methods-list nil)
@@ -356,7 +363,7 @@ functions"
         (id (mentor-id-at-point)))
     (mentor-remove-torrent-from-view torrent)
     (mentor-insert-torrent id torrent)
-    (mentor-prev)))
+    (mentor-goto-previous-torrent)))
 
 (defun mentor-remove-torrent-from-view (torrent)
   (let ((buffer-read-only nil))
@@ -399,7 +406,7 @@ functions"
     (let ((sort-fold-case t)
           (inhibit-read-only t))
       (sort-subr reverse
-                 (lambda () (ignore-errors (mentor-next)))
+                 (lambda () (ignore-errors (mentor-goto-next-torrent)))
                  (lambda () (ignore-errors (mentor-goto-torrent-end)))
                  (lambda () (mentor-get-property property))))))
 
@@ -448,6 +455,8 @@ the torrent at point."
                       (mentor-torrent-at-point)
                       (error "no torrent"))))
      ,@body))
+
+;;; Navigation
 
 (defmacro while-same-torrent (skip-blanks &rest body)
   `(let ((id (mentor-id-at-point)))
@@ -456,15 +465,12 @@ the torrent at point."
                      (equal id (mentor-id-at-point))))
        ,@body)))
 
-
-;;; Navigation
-
-(defun mentor-next ()
+(defun mentor-goto-next-torrent ()
   (interactive)
   (while-same-torrent t (forward-char))
   (beginning-of-line))
 
-(defun mentor-prev ()
+(defun mentor-goto-previous-torrent ()
   (interactive)
   (while-same-torrent t (backward-char))
   (beginning-of-line))
@@ -487,6 +493,7 @@ the torrent at point."
   (interactive)
   (while-same-torrent nil (forward-char)))
 
+;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
   (let ((id (get-text-property (point) 'torrent-id)))
@@ -502,6 +509,10 @@ the torrent at point."
 
 
 ;;; Interactive torrent commands
+
+(defun mentor-change-target-directory
+  (interactive)
+  (message "TODO"))
 
 (defun mentor-erase-torrent (&optional torrent)
   (interactive)
@@ -589,7 +600,7 @@ the torrent at point."
   (message "TODO"))
 
 
-;;; Torrents
+;;; Getting data from rtorrent
 
 (defvar mentor-torrents nil
   "Hash table containing all torrents")
@@ -672,6 +683,9 @@ expensive operation."
   ;;   (setq mentor-regexp-information-properties
   ;;         (regexp-opt attributes 'words))))
 
+
+;;; Torrent information
+
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
 
@@ -715,8 +729,8 @@ If `torrent' is nil, use torrent at point."
   (let ((done (mentor-get-property 'bytes_done torrent))
         (total (mentor-get-property 'size_bytes torrent)))
     (if (= done total)
-        (format "        %-6s" (mentor-bytes-to-human total))
-      (format "%6s / %6s"
+        (format "         %-.6s" (mentor-bytes-to-human total))
+      (format "%6s / %-6s"
               (mentor-bytes-to-human done)
               (mentor-bytes-to-human total)))))
 
@@ -728,15 +742,15 @@ If `torrent' is nil, use torrent at point."
   (mentor-bytes-to-human
    (mentor-get-property 'size_bytes torrent)))
 
+(defun mentor-get-target-directory (&optional torrent)
+  (mentor-use-torrent
+   (mentor-get-property 'directory torrent)))
+
 (defun mentor-torrent-get-tied-file-name (torrent)
   (mentor-get-property 'tied_to_file torrent))
 
 (defun mentor-torrent-get-file-list (torrent)
   (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
-
-(defun mentor-get-target-directory (&optional torrent)
-  (mentor-use-torrent
-   (mentor-get-property 'directory torrent)))
 
 (defun mentor-torrent-is-done-p (&optional torrent)
   (interactive)
@@ -825,6 +839,9 @@ already in view_list and sets all new view_filters."
 
 (defun mentor-is-view-defined (view)
   (member view mentor-torrent-views))
+
+
+;;; Torrent details screen
 
 
 ;;; Utility functions
