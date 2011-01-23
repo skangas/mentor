@@ -365,8 +365,8 @@ functions"
 
 (defun mentor-insert-torrent (id torrent)
   (let ((text (mentor-process-view-columns torrent)))
-    (insert (propertize (concat text "\n")
-                        'torrent-id id 'collapsed t))))
+    (insert (propertize text 'torrent-id id 'collapsed t)
+            "\n")))
 
 (defun mentor-process-view-columns (torrent)
   (apply 'concat
