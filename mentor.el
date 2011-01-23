@@ -87,9 +87,8 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-current-view "main"
-  "The current view to use when browsing torrents. This is also
-  the default view when starting mentor."
+(defcustom mentor-default-view "main"
+  "The default view to use when browsing torrents."
   :group 'mentor
   :type 'string)
 
@@ -198,6 +197,8 @@ connecting through scgi or http."
 
 (defvar mentor-auto-update-timer nil)
 
+(defvar mentor-current-view nil)
+
 (defvar mentor-header-line nil)
 
 (defvar mentor-sort-property nil)
@@ -218,8 +219,9 @@ connecting through scgi or http."
         mode-name "mentor"
         buffer-read-only t
         truncate-lines t)
-  (setq mentor-torrents (make-hash-table :test 'equal))
   (set (make-local-variable 'line-move-visual) nil)
+  (setq mentor-current-view mentor-default-view
+        mentor-torrents (make-hash-table :test 'equal))
   (use-local-map mentor-mode-map)
   (run-mode-hooks 'mentor-mode-hook)
   (if (and (not mentor-auto-update-timer) mentor-auto-update-interval)
