@@ -185,7 +185,7 @@ connecting through scgi or http."
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     
     ;; view bindings
-    (define-key map (kbd "v") 'mentor-switch-to-view)
+    (define-key map (kbd "w") 'mentor-switch-to-view)
     (define-key map (kbd "1") (lambda () (interactive) (mentor-switch-to-view 1)))
     (define-key map (kbd "2") (lambda () (interactive) (mentor-switch-to-view 2)))
     (define-key map (kbd "3") (lambda () (interactive) (mentor-switch-to-view 3)))
@@ -195,7 +195,7 @@ connecting through scgi or http."
     (define-key map (kbd "7") (lambda () (interactive) (mentor-switch-to-view 7)))
     (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
-    (define-key map (kbd "M-v") 'mentor-torrent-add-view)
+    (define-key map (kbd "a") 'mentor-torrent-add-view)
     map))
 
 (defvar mentor-mode-hook nil)
@@ -222,6 +222,9 @@ connecting through scgi or http."
 
 (defvar mentor-sort-reverse nil)
 (make-variable-buffer-local 'mentor-sort-reverse)
+
+(defvar mentor-view-torrent-list nil
+  "alist of torrents in given views")
 
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
