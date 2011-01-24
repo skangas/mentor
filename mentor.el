@@ -301,16 +301,13 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call via SCGI or http."
-  (when (not (listp args))
-    (setq args (list args)))
-  (if (string= (subseq mentor-rtorrent-url 0 4) "http")
+  (if (string= (subseq mentor-rtorrent-url 0 7) "http://")
       (apply 'xml-rpc-method-call mentor-rtorrent-url args)
     (xml-rpc-xml-to-response
      (with-temp-buffer
        (apply 'call-process
 	      "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
-            nil t nil (append `(,mentor-rtorrent-url) args))
-       ;; (xml-rpc-value-to-xml-list
+            nil t nil (cons mentor-rtorrent-url args))
        (xml-rpc-request-process-buffer (current-buffer))))))
 
 ;; Do not try methods that makes rtorrent crash
@@ -323,17 +320,19 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 Returns a list of all available commands.  First argument is \
 interpreted as a regexp, and if specified only returns matching \
 functions"
-  (when (not mentor-all-rpc-methods-list)
-    (setq mentor-all-rpc-methods-list (mentor-rpc-command "system.listMethods")))
-  (let ((methods mentor-all-rpc-methods-list)
-        (retval '()))
-    (when regexp
-      (mapc (lambda (cur)
-              (when (and (string-match regexp cur)
-                         (not (string-match mentor-method-exclusions-regexp cur)))
-                (setq retval (cons cur retval))))
-            methods))
-    retval))
+  (if (not mentor-all-rpc-methods-list)
+    (let ((methods (mentor-rpc-command "system.listMethods"))
+          (retval '()))
+      (when regexp
+        (setq methods
+              (delq nil
+                    (mapcar (lambda (m)
+                              (when (and (string-match regexp m)
+                                         (not (string-match mentor-method-exclusions-regexp m)))
+                                m))
+                            methods))))
+      (setq mentor-all-rpc-methods-list methods))
+    mentor-all-rpc-methods-list))
 
 
 ;;; Main view
