@@ -209,6 +209,15 @@ connecting through scgi or http."
 
 (defvar mentor-header-line nil)
 
+(defvar mentor-rtorrent-client-version nil)
+(make-variable-buffer-local 'mentor-rtorrent-client-version)
+
+(defvar mentor-rtorrent-library-version nil)
+(make-variable-buffer-local 'mentor-rtorrent-library-version)
+
+(defvar mentor-rtorrent-name nil)
+(make-variable-buffer-local 'mentor-rtorrent-name)
+
 (defvar mentor-sort-property nil)
 (make-variable-buffer-local 'mentor-sort-property)
 
@@ -247,6 +256,9 @@ connecting through scgi or http."
     (progn (switch-to-buffer (get-buffer-create "*mentor*"))
            (mentor-mode)
            (mentor-init-header-line)
+           (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
+                 mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
+                 mentor-rtorrent-name (mentor-rpc-command "get_name"))
            (let ((mentor-current-view "default"))
              (mentor-init-torrent-list))
 	   (mentor-get-and-update-views)
@@ -351,9 +363,9 @@ functions"
         (erase-buffer)
         (mentor-insert-torrents)
         (insert (concat "\nmentor-" mentor-version " - rTorrent "
-                        (mentor-rpc-command "system.client_version") "/"
-                        (mentor-rpc-command "system.library_version")
-                        " (" (mentor-rpc-command "get_name") ")\n"))
+                        mentor-rtorrent-client-version "/"
+                        mentor-rtorrent-library-version
+                        " (" mentor-rtorrent-name ")\n"))
         (mentor-sort-current)))))
 
 (defun mentor-insert-torrents ()
