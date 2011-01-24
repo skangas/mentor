@@ -35,11 +35,13 @@
 ;; Optimization: Update info only for incomplete torrents
 ;; Highlight current torrent
 ;; Filters
-;; Marking torrents
+;; Marking torrents and executing commands over all marked torrents
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
 ;; Torrent detail screen
 ;; Moving torrents
+;; Completion for (mentor-set-view) and (mentor-torrent-add-view-prompt)
+;; Save cache to disk
 
 ;; Known issues:
 
@@ -184,7 +186,7 @@ connecting through scgi or http."
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     
     ;; view bindings
-    (define-key map (kbd "v") 'mentor-set-view)
+    (define-key map (kbd "w") 'mentor-set-view)
     (define-key map (kbd "1") (lambda () (interactive) (mentor-set-view 1)))
     (define-key map (kbd "2") (lambda () (interactive) (mentor-set-view 2)))
     (define-key map (kbd "3") (lambda () (interactive) (mentor-set-view 3)))
@@ -194,7 +196,7 @@ connecting through scgi or http."
     (define-key map (kbd "7") (lambda () (interactive) (mentor-set-view 7)))
     (define-key map (kbd "8") (lambda () (interactive) (mentor-set-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-set-view 9)))
-    (define-key map (kbd "M-v") 'mentor-torrent-add-view-prompt)
+    (define-key map (kbd "a") 'mentor-torrent-add-view-prompt)
     map))
 
 (defvar mentor-mode-hook nil)
