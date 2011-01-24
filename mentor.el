@@ -97,9 +97,9 @@
   :type 'string)
 
 (defcustom mentor-custom-views 
-  '((1 . "main") (2 . "name") (3 . "started")
-    (4 . "stopped") (5 . "complete") (6 . "incomplete")
-    (7 . "hashing") (8 . "seeding") (9 . "active"))
+  '((1 . "main") (2 . "started") (3 . "stopped")
+    (4 . "complete") (5 . "incomplete") (6 . "hashing")
+    (7 . "seeding") (8 . "active"))
   "A list of mappings \"(BINDING . VIEWNAME)\" where BINDING is
 the key to which the specified view will be bound to."
   :group 'mentor
@@ -215,6 +215,9 @@ connecting through scgi or http."
 
 (defvar mentor-torrent-views nil)
 ;;(make-variable-buffer-local 'mentor-torrent-views)
+
+(defvar mentor-view-torrent-list nil
+  "alist of torrents in given views")
 
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
@@ -333,14 +336,13 @@ functions"
   "Re-initialize all torrents and redisplay."
   (interactive)
   (mentor-init-torrent-list)
-  (mentor-reload-header-line)
   (mentor-get-and-update-views)
-  (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
   (mentor-redisplay))
 
 (defun mentor-redisplay ()
   "Completely reload the mentor torrent view buffer."
   (interactive)
+  (mentor-reload-header-line)
   (when (equal major-mode 'mentor-mode)
     (save-excursion
       (let ((inhibit-read-only t))
@@ -353,10 +355,8 @@ functions"
         (mentor-sort-current)))))
 
 (defun mentor-insert-torrents ()
-  (maphash
-   (lambda (id torrent)
-     (mentor-insert-torrent id torrent))
-   mentor-torrents))
+  (dolist (id (cdr (assoc (intern mentor-current-view) mentor-view-torrent-list)))
+    (mentor-insert-torrent id (mentor-get-torrent id))))
 
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
@@ -644,14 +644,30 @@ the torrent at point."
    (mentor-update-torrent torrent)
    (mentor-redisplay-torrent torrent)))
 
+(defun mentor-view-torrent-list-add (torrent)
+  (let* ((id (mentor-get-property 'local_id torrent))
+         (view (intern mentor-current-view))
+         (l (assq view mentor-view-torrent-list)))
+    (setcdr l (cons id (cdr l)))))
+
+(defun mentor-view-torrent-list-clear ()
+  (let ((view (intern mentor-current-view)))
+    (setq mentor-view-torrent-list
+          (assq-delete-all view mentor-view-torrent-list))
+    (setq mentor-view-torrent-list
+          (cons (list view) mentor-view-torrent-list))))
+
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
-         (tor-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
+         (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
-    (mapcar (lambda (torrent)
-              (mapcar* (lambda (a b) (cons a b))
-                       attributes torrent))
-            tor-list)))
+    (mentor-view-torrent-list-clear)
+    (mapcar (lambda (values)
+              (let ((tor (mapcar* (lambda (a b) (cons a b))
+                                     attributes values)))
+                (mentor-view-torrent-list-add tor)
+                tor))
+            value-list)))
 
 (defun mentor-update-torrents ()
   (interactive)
@@ -671,7 +687,6 @@ the torrent at point."
 All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent list...")
-  (setq mentor-torrents (make-hash-table :test 'equal))
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)"))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
@@ -803,7 +818,8 @@ If `torrent' is nil, use torrent at point."
     (setq new (cdr (assoc new mentor-custom-views))))
   (when (not (equal new mentor-current-view))
     (setq mentor-current-view new)
-    (mentor-reload)))
+    (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
+    (mentor-update)))
 
 (defun mentor-add-view-and-filter (view)
   "Adds the specified view to rtorrents \"view_list\" and sets
