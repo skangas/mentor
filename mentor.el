@@ -105,7 +105,7 @@
   "A list of mappings \"(BINDING . VIEWNAME)\" where BINDING is
 the key to which the specified view will be bound to."
   :group 'mentor
-  :type '(cons :integer :string))
+  :type '(alist :key-type integer :value-type string))
 
 (defcustom mentor-rtorrent-url "scgi://localhost:5000"
   "The URL to the rtorrent client. Can either be on the form
@@ -115,7 +115,6 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-
   '((mentor-torrent-get-progress -5 "Progress")
     (mentor-torrent-get-state -3 "ST")
     (mentor-torrent-get-name -80 "Name")
@@ -125,7 +124,7 @@ connecting through scgi or http."
     (mentor-torrent-get-tied-file-name -80 "Tied file name"))
   "A list of all columns to show in mentor view."
   :group 'mentor
-  :type '(cons :symbol :string))
+  :type '(alist :key-type symbol :value-type string))
 
 
 ;;; major mode
