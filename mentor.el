@@ -833,7 +833,7 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-views-valid-view-name (name)
   t)
 
-(defun mentor-set-view (new)
+(defun mentor-switch-to-view (new)
   (interactive "sSwitch to view: ")
   (when (numberp new)
     (setq new (cdr (assoc new mentor-custom-views))))
