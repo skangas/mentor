@@ -455,21 +455,21 @@ the torrent at point."
 
 ;;; Navigation
 
-(defmacro while-same-torrent (skip-blanks &rest body)
+(defmacro while-same-torrent (skip-blanks condition &rest body)
   `(let ((id (mentor-id-at-point)))
-     (while (and (or (and ,skip-blanks
-                          (not (mentor-id-at-point)))
-                     (equal id (mentor-id-at-point))))
+     (while (and ,condition (or (and ,skip-blanks
+				    (not (mentor-id-at-point)))
+			       (equal id (mentor-id-at-point))))
        ,@body)))
 
 (defun mentor-goto-next-torrent ()
   (interactive)
-  (while-same-torrent t (forward-char))
+  (while-same-torrent t t (forward-char))
   (beginning-of-line))
 
 (defun mentor-goto-previous-torrent ()
   (interactive)
-  (while-same-torrent t (backward-char))
+  (while-same-torrent t t (backward-char))
   (beginning-of-line))
 
 (defun mentor-get-torrent-beginning ()
@@ -484,11 +484,11 @@ the torrent at point."
 
 (defun mentor-goto-torrent-beginning ()
   (interactive)
-  (while-same-torrent nil (backward-char)))
+  (while-same-torrent nil (> (point) 1) (backward-char)))
 
 (defun mentor-goto-torrent-end ()
   (interactive)
-  (while-same-torrent nil (forward-char)))
+  (while-same-torrent nil t (forward-char)))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
