@@ -801,19 +801,20 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-add-view (view &optional torrent)
   (interactive "sAdd torrent to view: ")
   (mentor-use-torrent
+   (setq view (concat mentor-custom-view-prefix view))
    (if (not (mentor-views-valid-view-name view))
        (message "Not a valid name for a view!")
      (if (not (mentor-views-is-view-defined view))
 	 (if (y-or-n-p (concat "View " view " was not found. Create it? "))
-	     (progn (list (mentor-rpc-command 
-			   "d.views.push_back_unique" 
-			   (mentor-get-property 'hash torrent) view)
-			  (mentor-views-add view)))
-	   (message "Nothing done"))
-       (progn (list (mentor-rpc-command 
+	     (progn (mentor-rpc-command 
 		     "d.views.push_back_unique" 
 		     (mentor-get-property 'hash torrent) view)
-		    (mentor-views-update-filter view)))))))
+		    (mentor-views-add view))
+	   (message "Nothing done"))
+       (progn (mentor-rpc-command 
+	       "d.views.push_back_unique" 
+	       (mentor-get-property 'hash torrent) view)
+	      (mentor-views-update-filter view))))))
 
 
 ;;; View functions
@@ -879,9 +880,8 @@ rtorrent."
 this everytime you add/remove a torrent to a view since
 rtorrent (atleast as of 0.8.6) does not add/remove new torrents
 to a view unless the filter is updated."
-  (message (concat "updates the filter for view: " view)))
-  ;; (mentor-rpc-command "view_filter" view
-  ;; 		      (concat "d.views.has=" view)))
+  (mentor-rpc-command "view_filter" view
+  		      (concat "d.views.has=" view)))
 
 (defun mentor-views-update-filters ()
   "Updates all view_filters for custom views in rtorrent."
