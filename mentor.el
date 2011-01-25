@@ -94,7 +94,7 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-default-view "main"
+(defcustom mentor-default-view "default"
   "The default view to use when browsing torrents."
   :group 'mentor
   :type 'string)
