@@ -338,12 +338,16 @@ functions"
 (defun mentor-update ()
   "Update all torrents and redisplay."
   (interactive)
+  (when (mentor-views-is-custom-view mentor-current-view)
+    (mentor-views-update-filter mentor-current-view))
   (mentor-update-torrents)
   (mentor-redisplay))
 
 (defun mentor-reload ()
   "Re-initialize all torrents and redisplay."
   (interactive)
+  (when (mentor-views-is-custom-view mentor-current-view)
+    (mentor-views-update-filter mentor-current-view))
   (mentor-init-torrent-list)
   (mentor-redisplay))
 
@@ -841,8 +845,6 @@ If `torrent' is nil, use torrent at point."
   (when (not (mentor-views-is-default-view new))
     (setq new (concat mentor-custom-view-prefix new)))
   (when (not (equal new mentor-current-view))
-    (when (mentor-views-is-custom-view new)
-      (mentor-views-update-filter new))
     (setq mentor-current-view new)
     (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
     (mentor-update)
