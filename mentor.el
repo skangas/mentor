@@ -685,6 +685,12 @@ the torrent at point."
       (if (assq pnam mentor-view-columns)
           (setq tor (cons (cons pnam (funcall pfun tor)) tor))))))
 
+(defun mentor-update-custom-properties ()
+  (maphash
+   (lambda (id tor)
+     (puthash id (mentor-add-custom-properties tor) mentor-torrents))
+   mentor-torrents))
+
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
          (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
@@ -694,7 +700,7 @@ the torrent at point."
               (let ((tor (mapcar* (lambda (a b) (cons a b))
                                      attributes values)))
                 (mentor-view-torrent-list-add tor)
-                (mentor-add-custom-properties tor)))
+                tor))
             value-list)))
 
 (defun mentor-update-torrents ()
@@ -707,6 +713,7 @@ the torrent at point."
              (tor^ (mentor-get-torrent id)))
         (dolist (p tor)
           (setcdr (assq (car p) tor^) (cdr p))))))
+  (mentor-update-custom-properties)
   (message "Updating torrent list...DONE"))
 
 (defun mentor-init-torrent-list ()
@@ -720,6 +727,7 @@ expensive operation."
     (dolist (tor torrents)
       (let ((id (mentor-get-property 'local_id tor)))
         (puthash id tor mentor-torrents))))
+  (mentor-update-custom-properties)
   (mentor-views-update-views)
   (message "Initializing torrent list... DONE"))
   ;; (when (not mentor-regexp-information-properties)
