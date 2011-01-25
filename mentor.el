@@ -838,9 +838,11 @@ If `torrent' is nil, use torrent at point."
   (interactive "sSwitch to view: ")
   (when (numberp new)
     (setq new (cdr (assoc new mentor-custom-views))))
+  (when (not (mentor-views-is-default-view new))
+    (setq new (concat mentor-custom-view-prefix new)))
   (when (not (equal new mentor-current-view))
-    (when (mentor-views-is-custom-view mentor-current-view)
-      (mentor-views-update-filter view))
+    (when (mentor-views-is-custom-view new)
+      (mentor-views-update-filter new))
     (setq mentor-current-view new)
     (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
     (mentor-update)
@@ -851,10 +853,9 @@ If `torrent' is nil, use torrent at point."
 the new views view_filter. SHOULD BE USED WITH CARE! Atleast in
 rtorrent 0.8.6, rtorrent crashes if you try to add the same view
 twice!"
-  (let (view-name (concat mentor-custom-view-prefix view))
-    (mentor-rpc-command "view_add" view-name)
-    (setq mentor-torrent-views (cons view-name mentor-torrent-views))
-    (mentor-views-update-filter view-name)))
+  (mentor-rpc-command "view_add" view)
+  (setq mentor-torrent-views (cons view mentor-torrent-views))
+  (mentor-views-update-filter view))
 
 (defun mentor-views-init ()
   "Gets all unique views from torrents, adds all views not
@@ -865,8 +866,8 @@ already in view_list and sets all new view_filters."
    (lambda (id torrent)
      (mapcar (lambda (view) 
 	       (when (and (mentor-views-is-custom-view view)
-			  (mentor-views-is-view-defined view))
-		   (mentor-views-add view)))
+			  (not (mentor-views-is-view-defined view)))
+		 (mentor-views-add view)))
 	     (cdr (assoc 'views torrent))))
    mentor-torrents))
 
@@ -896,6 +897,9 @@ to a view unless the filter is updated."
 (defun mentor-views-is-custom-view (view)
   ;;(not (member view mentor-torrent-default-views)))
   (string-match (concat "^" mentor-custom-view-prefix) view))
+
+(defun mentor-views-is-default-view (view)
+  (member view mentor-torrent-default-views))
 
 
 ;;; Torrent details screen
