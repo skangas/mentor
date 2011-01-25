@@ -824,7 +824,7 @@ If `torrent' is nil, use torrent at point."
    (list (mentor-prompt-complete "Add torrent to view: " 
 				 (remove-if-not 'mentor-views-is-custom-view 
 						mentor-torrent-views)
-				 1 mentor-current-view)))
+				 nil mentor-current-view)))
   (mentor-use-torrent
    (when (not (mentor-views-is-custom-view view))
      (setq view (concat mentor-custom-view-prefix view)))
