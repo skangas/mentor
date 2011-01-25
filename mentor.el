@@ -74,11 +74,6 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-default-view "main"
-  "The default view to use when browsing torrents."
-  :group 'mentor
-  :type 'string)
-
 (defcustom mentor-custom-views 
   '((1 . "main") (2 . "started") (3 . "stopped")
     (4 . "complete") (5 . "incomplete") (6 . "hashing")
@@ -87,6 +82,18 @@
 the key to which the specified view will be bound to."
   :group 'mentor
   :type '(alist :key-type integer :value-type string))
+
+(defcustom mentor-default-view "main"
+  "The default view to use when browsing torrents."
+  :group 'mentor
+  :type 'string)
+
+(defcustom mentor-directory-prefix ""
+  "Prefix to use before all directories. (Hint: If your rtorrent
+process is running on a remote host, you could set this to
+something like `/ssh:user@example.com:'.)"
+  :group 'mentor
+  :type 'string)
 
 (defcustom mentor-rtorrent-url "scgi://localhost:5000"
   "The URL to the rtorrent client. Can either be on the form
@@ -137,8 +144,6 @@ connecting through scgi or http."
     ;; navigation
     (define-key map (kbd "n") 'mentor-goto-next-torrent)
     (define-key map (kbd "p") 'mentor-goto-previous-torrent)
-    (define-key map (kbd "M") 'mentor-move-torrent)
-    (define-key map (kbd "m") 'mentor-mark-torrent)
 
     ;; single torrent actions
     (define-key map (kbd "c") 'mentor-change-target-directory)
@@ -153,6 +158,8 @@ connecting through scgi or http."
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
+    (define-key map (kbd "R") 'mentor-move-torrent)
+    (define-key map (kbd "m") 'mentor-mark-torrent)
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
     ;; sort functions
@@ -452,6 +459,16 @@ the torrent at point."
                       (mentor-torrent-at-point)
                       (error "no torrent"))))
      ,@body))
+
+(defmacro mentor-use-tor (&rest body)
+  "Convenience macro to use either the defined `torrent' value or
+the torrent at point."
+  `(let ((torrent (or (when (boundp 'tor) tor)
+                      (when (boundp 'torrent) torrent)
+                      (mentor-torrent-at-point)
+                      (error "no torrent"))))
+     ,@body))
+
 
 ;;; Navigation
 
@@ -542,6 +559,23 @@ the torrent at point."
   (interactive)
   (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash torrent))
   (mentor-update-torrent-and-redisplay))
+
+(defun mentor-move-torrent (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (let* ((old (directory-file-name (mentor-get-property 'base_path tor)))
+          (old-prefixed (concat mentor-directory-prefix old))
+          (new (read-file-name "New location: " old-prefixed nil t)))
+     (if (condition-case err
+             (mentor-rpc-command "execute" "ls" "-d" new)
+           (error nil))
+         (progn
+           (mentor-stop-torrent tor)
+           (mentor-rpc-command "execute" "mv" "-n" (mentor-get-property 'base_path tor) new)
+           (mentor-rpc-command "d.set_directory" (mentor-get-property 'hash tor) new)
+           (mentor-start-torrent tor)
+           (message (concat "Moved torrent to " new)))
+       (error "No such file or directory: " new)))))
 
 (defun mentor-pause-torrent (&optional torrent)
   "Pause torrent. This is probably not what you want, use
