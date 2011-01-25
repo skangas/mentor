@@ -44,26 +44,6 @@
 ;; Completion for (mentor-set-view) and (mentor-torrent-add-view-prompt)
 ;; Save cache to disk
 
-;; Known issues:
-
-;; Large files (> 2GB) will cause overflows when not running rtorrent compiled
-;; against xmlrpc-c >1.07 with -DXMLRPC_HAVE_I8 and add relevant setting to your
-;; rtorrent configuration (see below).
-;;
-;; Work-around installed for now. For more details, see:
-;;
-;; http://code.google.com/p/transdroid/issues/detail?id=31
-;; http://libtorrent.rakshasa.no/ticket/1538
-;; http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=575560
-;; http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=563075
-;;
-;; We will not get a working version in Debian stable any time soon, so you
-;; might want to install a backported rtorrent. (see package libxmlrpc-c3)
-;;
-;; Also, you must add this following to your .rtorrent.rc:
-;;
-;; xmlrpc_dialect=i8
-
 ;; Bug reports, comments, and suggestions are welcome!
 
 ;;; Change Log:
@@ -694,14 +674,24 @@ the torrent at point."
      (puthash id (mentor-add-custom-properties tor) mentor-torrents))
    mentor-torrents))
 
+(defun mentor-prefix-method-with-cat (method)
+  "Used to get some properties as a string, since older versions
+of libxmlrpc-c cannot handle integers longer than 4 bytes."
+  (let ((re (regexp-opt '("d.get_bytes_done" "d.get_completed_bytes"
+                          "d.get_left_bytes" "d.get_size_bytes"))))
+    (if (string-match re method)
+        (concat "cat=$" method)
+      method)))
+
 (defun mentor-rpc-d.multicall (methods)
-  (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
+  (let* ((methods+ (mapcar 'mentor-prefix-method-with-cat methods))
+         (methods= (mapcar (lambda (m) (concat m "=")) methods+))
          (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
          (attributes (mapcar 'mentor-rpc-method-to-property methods)))
     (mentor-view-torrent-list-clear)
     (mapcar (lambda (values)
               (let ((tor (mapcar* (lambda (a b) (cons a b))
-                                     attributes values)))
+                                  attributes values)))
                 (mentor-view-torrent-list-add tor)
                 tor))
             value-list)))
@@ -748,13 +738,13 @@ expensive operation."
 If `torrent' is nil, use torrent at point."
   (when (not torrent)
       (setq torrent (mentor-torrent-at-point)))
-  ;; (when (stringp property)
-  ;;     (setq property (make-symbol property)))
   (cdr (assoc property torrent)))
 
 (defun mentor-torrent-get-progress (torrent)
-  (let* ((done (abs (or (mentor-get-property 'bytes_done torrent) 0)))
-         (total (abs (or (mentor-get-property 'size_bytes torrent) 1)))
+  (let* ((donev (mentor-get-property 'bytes_done torrent))
+         (totalv (mentor-get-property 'size_bytes torrent))
+         (done (abs (or (string-to-number donev) 0)))
+         (total (abs (or (string-to-number totalv) 1)))
          (percent (* 100 (/ done total))))
     (format "%3d%s" percent "%")))
 
@@ -777,8 +767,8 @@ If `torrent' is nil, use torrent at point."
    (mentor-get-property 'up_rate torrent)))
 
 (defun mentor-torrent-get-size (torrent)
-  (let ((done (mentor-get-property 'bytes_done torrent))
-        (total (mentor-get-property 'size_bytes torrent)))
+  (let ((done (string-to-number (mentor-get-property 'bytes_done torrent)))
+        (total (string-to-number (mentor-get-property 'size_bytes torrent))))
     (if (= done total)
         (format "         %-.6s" (mentor-bytes-to-human total))
       (format "%6s / %-6s"
