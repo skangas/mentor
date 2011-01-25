@@ -257,8 +257,11 @@ connecting through scgi or http."
            (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                  mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
                  mentor-rtorrent-name (mentor-rpc-command "get_name"))
-           (let ((mentor-current-view "default"))
-             (mentor-init-torrent-list))
+	   (setq mentor-current-view mentor-default-view)
+	   (setq mentor-last-used-view (mentor-get-custom-view-name 1))
+	   (when (equal mentor-current-view mentor-last-used-view)
+	     (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
+	   (mentor-init-torrent-list)
 	   (mentor-views-init)
            (mentor-redisplay))))
 
@@ -817,9 +820,14 @@ If `torrent' is nil, use torrent at point."
   (mentor-get-property 'views torrent))
 
 (defun mentor-torrent-add-view (view &optional torrent)
-  (interactive "sAdd torrent to view: ")
+  (interactive 
+   (list (mentor-prompt-complete "Add torrent to view: " 
+				 (remove-if-not 'mentor-views-is-custom-view 
+						mentor-torrent-views)
+				 1 mentor-current-view)))
   (mentor-use-torrent
-   (setq view (concat mentor-custom-view-prefix view))
+   (when (not (mentor-views-is-custom-view view))
+     (setq view (concat mentor-custom-view-prefix view)))
    (if (not (mentor-views-valid-view-name view))
        (message "Not a valid name for a view!")
      (if (not (mentor-views-is-view-defined view))
@@ -852,13 +860,19 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-views-valid-view-name (name)
   t)
 
-(defun mentor-switch-to-view (new)
-  (interactive "sSwitch to view: ")
+(defun mentor-switch-to-view (&optional new)
+  (interactive)
+  (when (null new)
+    (setq new (mentor-prompt-complete 
+	       "Switch to view: " mentor-torrent-views 
+	       1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (cdr (assoc new mentor-custom-views))))
-  (when (not (mentor-views-is-default-view new))
+  (when (not (or (mentor-views-is-default-view new)
+		 (mentor-views-is-custom-view new)))
     (setq new (concat mentor-custom-view-prefix new)))
   (when (not (equal new mentor-current-view))
+    (setq mentor-last-used-view mentor-current-view)
     (setq mentor-current-view new)
     (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
     (mentor-update)
