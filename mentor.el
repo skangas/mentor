@@ -867,7 +867,7 @@ If `torrent' is nil, use torrent at point."
 	       "Switch to view: " mentor-torrent-views 
 	       1 mentor-last-used-view)))
   (when (numberp new)
-    (setq new (cdr (assoc new mentor-custom-views))))
+    (setq new (mentor-get-custom-view-name new)))
   (when (not (or (mentor-views-is-default-view new)
 		 (mentor-views-is-custom-view new)))
     (setq new (concat mentor-custom-view-prefix new)))
@@ -936,6 +936,13 @@ to a view unless the filter is updated."
 
 
 ;;; Utility functions
+
+(defun mentor-prompt-complete (prompt list require-match default)
+  (completing-read prompt list nil require-match nil nil
+		   mentor-last-used-view))
+
+(defun mentor-get-custom-view-name (view-id)
+  (cdr (assoc view-id mentor-custom-views)))
 
 (defun mentor-bytes-to-human (bytes)
   (if bytes
