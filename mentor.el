@@ -313,26 +313,27 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 ;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
-(defvar mentor-all-rpc-methods-list nil)
+(defvar mentor-rtorrent-rpc-methods nil)
 
 (defun mentor-rpc-list-methods (&optional regexp)
-  "system.listMethods \
-Returns a list of all available commands.  First argument is \
-interpreted as a regexp, and if specified only returns matching \
+  "system.listMethods
+Returns a list of all available commands.  First argument is
+interpreted as a regexp, and if specified only returns matching
 functions"
-  (if (not mentor-all-rpc-methods-list)
-    (let ((methods (mentor-rpc-command "system.listMethods"))
-          (retval '()))
-      (when regexp
-        (setq methods
-              (delq nil
-                    (mapcar (lambda (m)
-                              (when (and (string-match regexp m)
-                                         (not (string-match mentor-method-exclusions-regexp m)))
-                                m))
-                            methods))))
-      (setq mentor-all-rpc-methods-list methods))
-    mentor-all-rpc-methods-list))
+  (when (not mentor-rtorrent-rpc-methods)
+    (let ((methods (mentor-rpc-command "system.listMethods")))
+      (setq mentor-rtorrent-rpc-methods
+            (delq nil
+                  (mapcar (lambda (m)
+                            (when (not (string-match mentor-method-exclusions-regexp m))
+                              m))
+                          methods)))))
+  (if regexp
+      (delq nil (mapcar (lambda (m)
+                          (when (string-match regexp m)
+                            m))
+                        mentor-rtorrent-rpc-methods))
+    mentor-rtorrent-rpc-methods))
 
 
 ;;; Main view
