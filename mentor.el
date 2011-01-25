@@ -421,13 +421,13 @@ functions"
     (setq mentor-highlight-overlay (make-overlay 1 10))
     (overlay-put mentor-highlight-overlay 
   		 'face 'mentor-highlight-face))
-  (if (and mentor-current-id
-	   (not (equal mentor-current-id mentor-highlighted-torrent)))
-      (progn (setq mentor-highlighted-torrent mentor-current-id)
-	     (move-overlay mentor-highlight-overlay
-			   (mentor-get-torrent-beginning)
-			   (mentor-get-torrent-end)
-			   (current-buffer)))
+  (if mentor-current-id
+      (when (not (equal mentor-current-id mentor-highlighted-torrent))
+	(setq mentor-highlighted-torrent mentor-current-id)
+	(move-overlay mentor-highlight-overlay
+		      (mentor-get-torrent-beginning)
+		      (mentor-get-torrent-end)
+		      (current-buffer)))
     (delete-overlay mentor-highlight-overlay)
     (setq mentor-highlighted-torrent nil)))
 
