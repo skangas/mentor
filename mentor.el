@@ -115,13 +115,14 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '((mentor-torrent-get-progress -5 "Progress")
-    (mentor-torrent-get-state -3 "ST")
-    (mentor-torrent-get-name -80 "Name")
-    (mentor-torrent-get-speed-up -6 "Up")
-    (mentor-torrent-get-speed-down -6 "Down")
-    (mentor-torrent-get-size -15 "     Size")
-    (mentor-torrent-get-tied-file-name -80 "Tied file name"))
+  '((progress -5 "Progress")
+    (state-desc -3 "State")
+    (name -80 "Name")
+    (speed-up -6 "Up")
+    (speed-down -6 "Down")
+    (size -15 "     Size")
+    (tied_to_file -80 "Tied file name")
+    (message -40 "Message"))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(alist :key-type symbol :value-type string))
@@ -390,10 +391,10 @@ functions"
 (defun mentor-process-view-columns (torrent)
   (apply 'concat
          (mapcar (lambda (col)
-                   (let* ((str (funcall (car col) torrent))
-                          (len (cadr col)))
-                     (concat (mentor-enforce-length str len)
-                             " ")))
+                   (let* ((pname (car col))
+                          (len (cadr col))
+                          (str (cdr (assq pname torrent))))
+                     (concat (mentor-enforce-length str len) " ")))
                  mentor-view-columns)))
 
 (defun mentor-reload-header-line ()
@@ -669,6 +670,20 @@ the torrent at point."
     (setq mentor-view-torrent-list
           (cons (list view) mentor-view-torrent-list))))
 
+(defvar mentor-custom-properties
+  '((progress . mentor-torrent-get-progress)
+    (state-desc . mentor-torrent-get-state)
+    (speed-up . mentor-torrent-get-speed-up)
+    (speed-down . mentor-torrent-get-speed-down)
+    (size . mentor-torrent-get-size)))
+
+(defun mentor-add-custom-properties (tor)
+  (dolist (prop mentor-custom-properties tor)
+    (let ((pnam (car prop))
+          (pfun (cdr prop)))
+      (if (assq pnam mentor-view-columns)
+          (setq tor (cons (cons pnam (funcall pfun tor)) tor))))))
+
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
          (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
@@ -678,7 +693,7 @@ the torrent at point."
               (let ((tor (mapcar* (lambda (a b) (cons a b))
                                      attributes values)))
                 (mentor-view-torrent-list-add tor)
-                tor))
+                (mentor-add-custom-properties tor)))
             value-list)))
 
 (defun mentor-update-torrents ()
@@ -725,9 +740,6 @@ If `torrent' is nil, use torrent at point."
   ;;     (setq property (make-symbol property)))
   (cdr (assoc property torrent)))
 
-(defun mentor-torrent-get-name (&optional torrent)
-  (mentor-get-property 'name torrent))
-
 (defun mentor-torrent-get-progress (torrent)
   (let* ((done (abs (or (mentor-get-property 'bytes_done torrent) 0)))
          (total (abs (or (mentor-get-property 'size_bytes torrent) 1)))
@@ -768,13 +780,6 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
    (mentor-get-property 'size_bytes torrent)))
-
-(defun mentor-get-target-directory (&optional torrent)
-  (mentor-use-torrent
-   (mentor-get-property 'directory torrent)))
-
-(defun mentor-torrent-get-tied-file-name (torrent)
-  (mentor-get-property 'tied_to_file torrent))
 
 (defun mentor-torrent-get-file-list (torrent)
   (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
@@ -932,10 +937,12 @@ to a view unless the filter is updated."
     ""))
 
 (defun mentor-enforce-length (str len)
-  (substring (format (concat "%" (when (< len 0) "-")
-                             (number-to-string (abs len)) "s")
-                     str)
-             0 (abs len)))
+  (if str
+      (substring (format (concat "%" (when (< len 0) "-")
+                                 (number-to-string (abs len)) "s")
+                         str)
+                 0 (abs len))
+    (make-string 40 ? )))
 
 (defun mentor-trim-line (str)
   (if (string= str "")
