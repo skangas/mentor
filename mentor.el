@@ -94,7 +94,7 @@
   :type 'integer
   :group 'mentor)
 
-(defcustom mentor-default-view "default"
+(defcustom mentor-default-view "main"
   "The default view to use when browsing torrents."
   :group 'mentor
   :type 'string)
@@ -257,8 +257,7 @@ connecting through scgi or http."
            (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                  mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
                  mentor-rtorrent-name (mentor-rpc-command "get_name"))
-	   (setq mentor-current-view mentor-default-view)
-	   (setq mentor-last-used-view (mentor-get-custom-view-name 1))
+           (mentor-set-view mentor-default-view)
 	   (when (equal mentor-current-view mentor-last-used-view)
 	     (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
 	   (mentor-init-torrent-list)
@@ -860,6 +859,13 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-views-valid-view-name (name)
   t)
 
+(defun mentor-set-view (new)
+  (if mentor-current-view
+      (setq mentor-last-used-view mentor-current-view)
+    (setq mentor-last-used-view mentor-default-view))
+  (setq mentor-current-view new)
+  (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*")))
+
 (defun mentor-switch-to-view (&optional new)
   (interactive)
   (when (null new)
@@ -872,9 +878,7 @@ If `torrent' is nil, use torrent at point."
 		 (mentor-views-is-custom-view new)))
     (setq new (concat mentor-custom-view-prefix new)))
   (when (not (equal new mentor-current-view))
-    (setq mentor-last-used-view mentor-current-view)
-    (setq mentor-current-view new)
-    (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*"))
+    (mentor-set-view new)
     (mentor-update)
     (message (concat "Switched to view: " mentor-current-view))))
 
