@@ -1,6 +1,7 @@
 ;;; mentor.el --- Control rtorrent from GNU Emacs
 
-;; Copyright (C) 2010, 2011, Stefan Kangas
+;; Copyright (C) 2010, 2011 Stefan Kangas.
+;; Copyright (C) 2011 David Spångberg.
 
 ;; Author: Stefan Kangas
 ;; Version: 0.0.1
