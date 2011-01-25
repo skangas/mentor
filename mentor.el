@@ -108,6 +108,14 @@ connecting through scgi or http."
   :group 'mentor
   :type '(alist :key-type symbol :value-type string))
 
+(defface mentor-highlight-face
+  '((((class color) (background light))
+     :background "gray13")
+    (((class color) (background dark))
+     :background "dark goldenrod"))
+  "Face for highlighting the current torrent."
+  :group 'mentor)
+
 
 ;;; major mode
 
@@ -220,6 +228,7 @@ connecting through scgi or http."
   (set (make-local-variable 'line-move-visual) nil)
   (setq mentor-current-view mentor-default-view
         mentor-torrents (make-hash-table :test 'equal))
+  (add-hook 'post-command-hook 'mentor-post-command-hook t t)
   (use-local-map mentor-mode-map)
   (run-mode-hooks 'mentor-mode-hook)
   (if (and (not mentor-auto-update-timer) mentor-auto-update-interval)
@@ -243,6 +252,9 @@ connecting through scgi or http."
 	   (mentor-init-torrent-list)
 	   (mentor-views-init)
            (mentor-redisplay))))
+
+(defun mentor-post-command-hook ()
+  (mentor-highlight-torrent))
 
 (defun mentor-init-header-line ()
   (setq header-line-format
@@ -391,6 +403,26 @@ functions"
                            (concat (mentor-enforce-length str len)
                                    " ")))
                        mentor-view-columns))))
+
+(defvar mentor-highlight-overlay nil)
+(defvar mentor-highlighted-torrent nil)
+(defvar mentor-current-id nil)
+
+(defun mentor-highlight-torrent ()
+  (setq mentor-current-id (mentor-id-at-point))
+  (when (not mentor-highlight-overlay)
+    (setq mentor-highlight-overlay (make-overlay 1 10))
+    (overlay-put mentor-highlight-overlay 
+  		 'face 'mentor-highlight-face))
+  (if (and mentor-current-id
+	   (not (equal mentor-current-id mentor-highlighted-torrent)))
+      (progn (setq mentor-highlighted-torrent mentor-current-id)
+	     (move-overlay mentor-highlight-overlay
+			   (mentor-get-torrent-beginning)
+			   (mentor-get-torrent-end)
+			   (current-buffer)))
+    (delete-overlay mentor-highlight-overlay)
+    (setq mentor-highlighted-torrent nil)))
 
 
 ;;; Sorting
