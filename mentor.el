@@ -150,8 +150,8 @@ connecting through scgi or http."
     (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
 
     ;; navigation
-    (define-key map (kbd "n") 'mentor-goto-next-torrent)
-    (define-key map (kbd "p") 'mentor-goto-previous-torrent)
+    (define-key map (kbd "n") 'mentor-next-torrent)
+    (define-key map (kbd "p") 'mentor-previous-torrent)
 
     ;; single torrent actions
     (define-key map (kbd "c") 'mentor-change-target-directory)
@@ -379,7 +379,7 @@ functions"
         (id (mentor-id-at-point)))
     (mentor-remove-torrent-from-view torrent)
     (mentor-insert-torrent id torrent)
-    (mentor-goto-previous-torrent)))
+    (mentor-previous-torrent)))
 
 (defun mentor-remove-torrent-from-view (torrent)
   (let ((buffer-read-only nil))
@@ -442,8 +442,8 @@ functions"
     (let ((sort-fold-case t)
           (inhibit-read-only t))
       (sort-subr reverse
-                 (lambda () (ignore-errors (mentor-goto-next-torrent)))
-                 (lambda () (ignore-errors (mentor-goto-torrent-end)))
+                 (lambda () (ignore-errors (mentor-next-torrent t)))
+                 (lambda () (ignore-errors (mentor-torrent-end)))
                  (lambda () (mentor-get-property property))))))
 
 (defun mentor-sort-current ()
@@ -511,31 +511,40 @@ the torrent at point."
 			       (equal id (mentor-id-at-point))))
        ,@body)))
 
-(defun mentor-goto-next-torrent ()
+(defun mentor-next-torrent (&optional no-wrap)
   (interactive)
-  (while-same-torrent t t (forward-char))
-  (beginning-of-line))
+  (condition-case err
+      (while-same-torrent t t (forward-char))
+    (end-of-buffer
+     (when (not no-wrap)
+       (beginning-of-buffer)))) ;; no need to call ourselves again,
+  (beginning-of-line))          ;; we are already on a torrent.
 
-(defun mentor-goto-previous-torrent ()
+(defun mentor-previous-torrent (&optional no-wrap)
   (interactive)
-  (while-same-torrent t t (backward-char))
+  (condition-case err
+      (while-same-torrent t t (backward-char))
+    (beginning-of-buffer
+     (when (not no-wrap)
+       (end-of-buffer)
+       (mentor-previous-torrent t))))
   (beginning-of-line))
 
 (defun mentor-get-torrent-beginning ()
   (save-excursion
-    (mentor-goto-torrent-beginning)
+    (mentor-torrent-beginning)
     (point)))
 
 (defun mentor-get-torrent-end ()
   (save-excursion
-    (mentor-goto-torrent-end)
+    (mentor-torrent-end)
     (point)))
 
-(defun mentor-goto-torrent-beginning ()
+(defun mentor-torrent-beginning ()
   (interactive)
   (while-same-torrent nil (> (point) (point-min)) (backward-char)))
 
-(defun mentor-goto-torrent-end ()
+(defun mentor-torrent-end ()
   (interactive)
   (while-same-torrent nil (< (point) (point-max)) (forward-char)))
 
