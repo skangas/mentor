@@ -339,21 +339,31 @@ functions"
 
 ;; (defvar *mentor-update-time* (current-time))
 
+(defmacro mentor-keep-torrent-position (&rest body)
+  ""
+  `(let ((torrent (mentor-torrent-at-point)))
+     ,@body
+     (if torrent
+         (mentor-goto-torrent (mentor-get-property 'local_id torrent))
+       (beginning-of-buffer))))
+
 (defun mentor-update ()
   "Update all torrents and redisplay."
   (interactive)
-  (when (mentor-views-is-custom-view mentor-current-view)
-    (mentor-views-update-filter mentor-current-view))
-  (mentor-update-torrents)
-  (mentor-redisplay))
+  (mentor-keep-torrent-position
+   (when (mentor-views-is-custom-view mentor-current-view)
+     (mentor-views-update-filter mentor-current-view))
+   (mentor-update-torrents)
+   (mentor-redisplay)))
 
 (defun mentor-reload ()
   "Re-initialize all torrents and redisplay."
   (interactive)
-  (when (mentor-views-is-custom-view mentor-current-view)
-    (mentor-views-update-filter mentor-current-view))
-  (mentor-init-torrent-list)
-  (mentor-redisplay))
+  (mentor-keep-torrent-position
+   (when (mentor-views-is-custom-view mentor-current-view)
+     (mentor-views-update-filter mentor-current-view))
+   (mentor-init-torrent-list)
+   (mentor-redisplay)))
 
 (defun mentor-redisplay ()
   "Completely reload the mentor torrent view buffer."
@@ -437,14 +447,15 @@ functions"
 (defun mentor-sort-by-property (property &optional reverse)
   (setq mentor-sort-property property)
   (setq mentor-sort-reverse reverse)
-  (goto-char (point-min))
-  (save-excursion
-    (let ((sort-fold-case t)
-          (inhibit-read-only t))
-      (sort-subr reverse
-                 (lambda () (ignore-errors (mentor-next-torrent t)))
-                 (lambda () (ignore-errors (mentor-torrent-end)))
-                 (lambda () (mentor-get-property property))))))
+  (mentor-keep-torrent-position
+   (goto-char (point-min))
+   (save-excursion
+     (let ((sort-fold-case t)
+           (inhibit-read-only t))
+       (sort-subr reverse
+                  (lambda () (ignore-errors (mentor-next-torrent t)))
+                  (lambda () (ignore-errors (mentor-torrent-end)))
+                  (lambda () (mentor-get-property property)))))))
 
 (defun mentor-sort-current ()
   "Sort buffer according to `mentor-sort-property' and `mentor-sort-reverse'."
@@ -511,6 +522,16 @@ the torrent at point."
 			       (equal id (mentor-id-at-point))))
        ,@body)))
 
+(defun mentor-goto-torrent (id)
+  (let ((pos (save-excursion
+               (beginning-of-buffer)
+               (while (and (not (equal id (mentor-id-at-point)))
+                           (not (= (point) (point-max))))
+                 (mentor-next-torrent t))
+               (point))))
+    (if (not (= pos (point-max)))
+        (goto-char pos))))
+
 (defun mentor-next-torrent (&optional no-wrap)
   (interactive)
   (condition-case err
@@ -559,6 +580,8 @@ the torrent at point."
 
 ;;; Torrent actions
 
+;; FIXME: erase the files belonging to the torrent only (e.g. not extracted
+;; files in the same directory.)
 (defun mentor-erase-data (torrent)
   (dired-delete-file (mentor-get-property 'base_path torrent) 'top))
 
@@ -593,13 +616,15 @@ the torrent at point."
 
 (defun mentor-close-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.close" (mentor-get-property 'hash torrent))
-  (mentor-update-torrent-and-redisplay))
+  (mentor-use-tor
+   (mentor-rpc-command "d.close" (mentor-get-property 'hash tor))
+   (mentor-update)))
 
 (defun mentor-hash-check-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash torrent))
-  (mentor-update-torrent-and-redisplay))
+  (mentor-use-tor
+   (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash tor))
+   (mentor-update)))
 
 (defun mentor-move-torrent (&optional tor)
   (interactive)
@@ -624,7 +649,7 @@ the torrent at point."
   (interactive)
   (mentor-use-torrent
    (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
-   (mentor-update-torrent-and-redisplay)))
+   (mentor-update)))
 
 (defun mentor-resume-torrent (&optional torrent)
   "Resume torrent. This is probably not what you want, use
@@ -632,7 +657,7 @@ the torrent at point."
   (interactive)
   (mentor-use-torrent
    (mentor-rpc-command "d.resume" (mentor-get-property 'hash torrent))
-   (mentor-update-torrent-and-redisplay)))
+   (mentor-update)))
 
 (defun mentor-recreate-files (&optional torrent)
   (interactive)
@@ -654,14 +679,15 @@ the torrent at point."
 
 (defun mentor-start-torrent (&optional torrent)
   (interactive)
-  (mentor-use-torrent
-   (mentor-rpc-command "d.start" (mentor-get-property 'hash torrent))
-   (mentor-update-torrent-and-redisplay)))
+  (mentor-use-tor
+   (mentor-rpc-command "d.start" (mentor-get-property 'hash tor))
+   (mentor-update)))
 
 (defun mentor-stop-torrent (&optional torrent)
   (interactive)
-  (mentor-rpc-command "d.stop" (mentor-get-property 'hash torrent))
-  (mentor-update-torrent-and-redisplay))
+  (mentor-use-tor
+   (mentor-rpc-command "d.stop" (mentor-get-property 'hash tor))
+   (mentor-update)))
 
 (defun mentor-increase-priority (&optional torrent)
   (interactive)
@@ -672,7 +698,7 @@ the torrent at point."
   (message "TODO"))
 
 
-;;; Getting data from rtorrent
+;;; Get data from rtorrent
 
 (defvar mentor-torrents nil
   "Hash table containing all torrents")
@@ -713,7 +739,7 @@ the torrent at point."
 (defun mentor-update-torrent-and-redisplay (&optional torrent)
   (interactive)
   (mentor-use-torrent
-   (mentor-update-torrent torrent)
+   (mentor-update)
    (mentor-redisplay-torrent torrent)))
 
 (defun mentor-view-torrent-list-add (torrent)
