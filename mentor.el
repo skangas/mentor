@@ -533,11 +533,11 @@ the torrent at point."
 
 (defun mentor-goto-torrent-beginning ()
   (interactive)
-  (while-same-torrent nil (> (point) 1) (backward-char)))
+  (while-same-torrent nil (> (point) (point-min)) (backward-char)))
 
 (defun mentor-goto-torrent-end ()
   (interactive)
-  (while-same-torrent nil t (forward-char)))
+  (while-same-torrent nil (< (point) (point-max)) (forward-char)))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
