@@ -1033,7 +1033,7 @@ to a view unless the filter is updated."
                                  (number-to-string (abs len)) "s")
                          str)
                  0 (abs len))
-    (make-string len ? )))
+    (make-string (abs len) ? )))
 
 (defun mentor-trim-line (str)
   (if (string= str "")
