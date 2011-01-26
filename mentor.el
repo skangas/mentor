@@ -495,14 +495,6 @@ functions"
 (defun mentor-torrent-at-point ()
   (mentor-get-torrent (mentor-id-at-point)))
 
-(defmacro mentor-use-torrent (&rest body)
-  "Convenience macro to use either the defined `torrent' value or
-the torrent at point."
-  `(let ((torrent (or (when (boundp 'torrent) torrent)
-                      (mentor-torrent-at-point)
-                      (error "no torrent"))))
-     ,@body))
-
 (defmacro mentor-use-tor (&rest body)
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
@@ -592,35 +584,35 @@ the torrent at point."
   (interactive)
   (message "TODO"))
 
-(defun mentor-erase-torrent (&optional torrent)
+(defun mentor-erase-torrent (&optional tor)
   (interactive)
-  (mentor-use-torrent
-   (when (yes-or-no-p (concat "Remove " (mentor-get-property 'name torrent) " "))
-     (mentor-rpc-command "d.erase" (mentor-get-property 'hash torrent))
-     (mentor-remove-torrent-from-view torrent)
-     (remhash (mentor-get-property 'local_id torrent) mentor-torrents))))
+  (mentor-use-tor
+   (when (yes-or-no-p (concat "Remove " (mentor-get-property 'name tor) " "))
+     (mentor-rpc-command "d.erase" (mentor-get-property 'hash tor))
+     (mentor-remove-torrent-from-view tor)
+     (remhash (mentor-get-property 'local_id tor) mentor-torrents))))
 
 (defun mentor-erase-torrent-and-data ()
   (interactive)
-  (mentor-use-torrent
-   (mentor-erase-torrent torrent)
-   (mentor-erase-data torrent)))
+  (mentor-use-tor
+   (mentor-erase-torrent tor)
+   (mentor-erase-data tor)))
 
-(defun mentor-call-command (&optional torrent)
+(defun mentor-call-command (&optional tor)
   (interactive)
   (message "TODO"))
 
-(defun mentor-change-directory (&optional torrent)
+(defun mentor-change-directory (&optional tor)
   (interactive)
   (message "TODO"))
 
-(defun mentor-close-torrent (&optional torrent)
+(defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.close" (mentor-get-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-hash-check-torrent (&optional torrent)
+(defun mentor-hash-check-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash tor))
@@ -643,57 +635,57 @@ the torrent at point."
            (message (concat "Moved torrent to " new)))
        (error "No such file or directory: " new)))))
 
-(defun mentor-pause-torrent (&optional torrent)
+(defun mentor-pause-torrent (&optional tor)
   "Pause torrent. This is probably not what you want, use
 `mentor-stop-torrent' instead."
   (interactive)
-  (mentor-use-torrent
-   (mentor-rpc-command "d.pause" (mentor-get-property 'hash torrent))
+  (mentor-use-tor
+   (mentor-rpc-command "d.pause" (mentor-get-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-resume-torrent (&optional torrent)
+(defun mentor-resume-torrent (&optional tor)
   "Resume torrent. This is probably not what you want, use
 `mentor-start-torrent' instead."
   (interactive)
-  (mentor-use-torrent
-   (mentor-rpc-command "d.resume" (mentor-get-property 'hash torrent))
+  (mentor-use-tor
+   (mentor-rpc-command "d.resume" (mentor-get-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-recreate-files (&optional torrent)
+(defun mentor-recreate-files (&optional tor)
   (interactive)
   (message "TODO"))
 
-(defun mentor-set-inital-seeding (&optional torrent)
+(defun mentor-set-inital-seeding (&optional tor)
   (interactive)
   (message "TODO"))
 
 ;; TODO: go directly to file
-(defun mentor-view-in-dired (&optional torrent)
+(defun mentor-view-in-dired (&optional tor)
   (interactive)
-  (mentor-use-torrent
-   (let ((path (mentor-get-property 'base_path torrent))
-         (is-multi-file (mentor-get-property 'is_multi_file torrent)))
+  (mentor-use-tor
+   (let ((path (mentor-get-property 'base_path tor))
+         (is-multi-file (mentor-get-property 'is_multi_file tor)))
      (find-file (if is-multi-file
                     path
                   (file-name-directory path))))))
 
-(defun mentor-start-torrent (&optional torrent)
+(defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.start" (mentor-get-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-stop-torrent (&optional torrent)
+(defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.stop" (mentor-get-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-increase-priority (&optional torrent)
+(defun mentor-increase-priority (&optional tor)
   (interactive)
   (message "TODO"))
 
-(defun mentor-decrease-priority (&optional torrent)
+(defun mentor-decrease-priority (&optional tor)
   (interactive)
   (message "TODO"))
 
@@ -736,14 +728,14 @@ the torrent at point."
             (new-value (mentor-rpc-command method hash)))
         (setcdr (assq property torrent) new-value)))))
 
-(defun mentor-update-torrent-and-redisplay (&optional torrent)
+(defun mentor-update-torrent-and-redisplay (&optional tor)
   (interactive)
-  (mentor-use-torrent
+  (mentor-use-tor
    (mentor-update)
-   (mentor-redisplay-torrent torrent)))
+   (mentor-redisplay-torrent tor)))
 
-(defun mentor-view-torrent-list-add (torrent)
-  (let* ((id (mentor-get-property 'local_id torrent))
+(defun mentor-view-torrent-list-add (tor)
+  (let* ((id (mentor-get-property 'local_id tor))
          (view (intern mentor-current-view))
          (l (assq view mentor-view-torrent-list)))
     (setcdr l (cons id (cdr l)))))
@@ -887,36 +879,36 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-file-list (torrent)
   (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
 
-(defun mentor-torrent-is-done-p (&optional torrent)
+(defun mentor-torrent-is-done-p (&optional tor)
   (interactive)
-  (mentor-use-torrent
-   (= (mentor-get-property 'bytes_done torrent)
-      (mentor-get-property 'size_bytes torrent))))
+  (mentor-use-tor
+   (= (mentor-get-property 'bytes_done tor)
+      (mentor-get-property 'size_bytes tor))))
 
-(defun mentor-torrent-is-multi-file-p (&optional torrent)
+(defun mentor-torrent-is-multi-file-p (&optional tor)
   (interactive)
-  (mentor-use-torrent
-   (= 1 (mentor-get-property 'is_multi_file torrent))))
+  (mentor-use-tor
+   (= 1 (mentor-get-property 'is_multi_file tor))))
 
-(defun mentor-torrent-is-open-p (&optional torrent)
+(defun mentor-torrent-is-open-p (&optional tor)
   (interactive)
-  (mentor-use-torrent
-   (= 1 (mentor-get-property 'is_open torrent))))
+  (mentor-use-tor
+   (= 1 (mentor-get-property 'is_open tor))))
 
-(defun mentor-torrent-has-view (torrent view)
+(defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
-  (member view (mentor-torrent-get-views torrent)))
+  (member view (mentor-torrent-get-views tor)))
 
-(defun mentor-torrent-get-views (torrent)
-  (mentor-get-property 'views torrent))
+(defun mentor-torrent-get-views (tor)
+  (mentor-get-property 'views tor))
 
-(defun mentor-torrent-add-view (view &optional torrent)
+(defun mentor-torrent-add-view (view &optional tor)
   (interactive 
    (list (mentor-prompt-complete "Add torrent to view: " 
 				 (remove-if-not 'mentor-views-is-custom-view 
 						mentor-torrent-views)
 				 nil mentor-current-view)))
-  (mentor-use-torrent
+  (mentor-use-tor
    (when (not (mentor-views-is-custom-view view))
      (setq view (concat mentor-custom-view-prefix view)))
    (if (not (mentor-views-valid-view-name view))
@@ -925,12 +917,12 @@ If `torrent' is nil, use torrent at point."
 	 (if (y-or-n-p (concat "View " view " was not found. Create it? "))
 	     (progn (mentor-rpc-command 
 		     "d.views.push_back_unique" 
-		     (mentor-get-property 'hash torrent) view)
+		     (mentor-get-property 'hash tor) view)
 		    (mentor-views-add view))
 	   (message "Nothing done"))
        (progn (mentor-rpc-command 
 	       "d.views.push_back_unique" 
-	       (mentor-get-property 'hash torrent) view)
+	       (mentor-get-property 'hash tor) view)
 	      (mentor-views-update-filter view))))))
 
 
