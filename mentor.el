@@ -383,12 +383,15 @@ functions"
         (insert (concat "\nmentor-" mentor-version " - rTorrent "
                         mentor-rtorrent-client-version "/"
                         mentor-rtorrent-library-version
-                        " (" mentor-rtorrent-name ")\n"))
-        (mentor-sort)))))
+                        " (" mentor-rtorrent-name ")\n"))))))
 
 (defun mentor-insert-torrents ()
-  (dolist (id (cdr (assoc (intern mentor-current-view) mentor-view-torrent-list)))
-    (mentor-insert-torrent id (mentor-get-torrent id))))
+  (let ((tor-ids (cdr (assoc (intern mentor-current-view)
+                             mentor-view-torrent-list))))
+    (dolist (id tor-ids)
+      (mentor-insert-torrent id (mentor-get-torrent id)))
+    (when (> (length nil) 0)
+      (mentor-sort))))
 
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
