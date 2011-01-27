@@ -102,6 +102,17 @@ connecting through scgi or http."
   :group 'mentor
   :type 'string)
 
+(defcustom mentor-xmlrpc-command (concat
+                                  (file-name-directory
+                                   (or (symbol-file 'mentor-version)
+                                       (if load-in-progress
+                                           load-file-name
+                                           (buffer-file-name))))
+                                  "bin/xmlrpc2scgi.py")
+  "Path to xmlrpc2scgi command."
+  :group 'mentor
+  :type 'string)
+
 (defcustom mentor-view-columns
   '((progress -5 "Progress")
     (state-desc -3 "State")
@@ -304,9 +315,8 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
       (apply 'xml-rpc-method-call mentor-rtorrent-url args)
     (xml-rpc-xml-to-response
      (with-temp-buffer
-       (apply 'call-process
-	      "/home/skangas/.emacs.d/lisp-personal/mentor/bin/xmlrpc2scgi.py"
-            nil t nil (cons mentor-rtorrent-url args))
+       (apply 'call-process mentor-xmlrpc-command
+              nil t nil (cons mentor-rtorrent-url args))
        (xml-rpc-request-process-buffer (current-buffer))))))
 
 ;; Do not try methods that makes rtorrent crash
