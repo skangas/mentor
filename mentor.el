@@ -270,7 +270,8 @@ connecting through scgi or http."
 	     (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
 	   (mentor-init-torrent-list)
 	   (mentor-views-init)
-           (mentor-redisplay))))
+           (mentor-redisplay)
+           (beginning-of-buffer))))
 
 (defun mentor-post-command-hook ()
   (when mentor-highlight-enable
