@@ -520,10 +520,10 @@ according to several criteria."
 (defmacro mentor-use-tor (&rest body)
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
-  `(let ((torrent (or (when (boundp 'tor) tor)
-                      (when (boundp 'torrent) torrent)
-                      (mentor-torrent-at-point)
-                      (error "no torrent"))))
+  `(let ((tor (or (when (boundp 'tor) tor)
+                  (when (boundp 'torrent) torrent)
+                  (mentor-torrent-at-point)
+                  (error "no torrent"))))
      ,@body))
 
 
