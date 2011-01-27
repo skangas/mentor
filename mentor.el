@@ -97,7 +97,7 @@ something like `/ssh:user@example.com:'.)"
 (defcustom mentor-highlight-enable nil
   "If non-nil, highlight the line of the current torrent."
   :group 'mentor
-  :type 'bool)
+  :type 'boolean)
 
 (defcustom mentor-rtorrent-url "scgi://localhost:5000"
   "The URL to the rtorrent client. Can either be on the form
