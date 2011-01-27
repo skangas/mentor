@@ -34,7 +34,6 @@
 ;; Implement SCGI in Emacs Lisp (later)
 ;; Support for categories
 ;; Optimization: Update info only for incomplete torrents
-;; Highlight current torrent
 ;; Filters
 ;; Marking torrents and executing commands over all marked torrents
 ;; Sort according to column, changable with < and >
@@ -94,6 +93,11 @@ process is running on a remote host, you could set this to
 something like `/ssh:user@example.com:'.)"
   :group 'mentor
   :type 'string)
+
+(defcustom mentor-highlight-enable nil
+  "If non-nil, highlight the line of the current torrent."
+  :group 'mentor
+  :type 'bool)
 
 (defcustom mentor-rtorrent-url "scgi://localhost:5000"
   "The URL to the rtorrent client. Can either be on the form
@@ -272,7 +276,8 @@ connecting through scgi or http."
            (mentor-redisplay))))
 
 (defun mentor-post-command-hook ()
-  (mentor-highlight-torrent))
+  (when mentor-highlight-enable
+    (mentor-highlight-torrent)))
 
 (defun mentor-init-header-line ()
   (setq header-line-format
