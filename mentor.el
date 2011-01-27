@@ -51,6 +51,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
 (require 'xml-rpc)
 
 (defvar mentor-version "0.0.1")
