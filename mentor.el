@@ -190,6 +190,7 @@ connecting through scgi or http."
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
     
     ;; view bindings
+    (define-key map (kbd "a") 'mentor-add-torrent-to-view)
     (define-key map (kbd "w") 'mentor-switch-to-view)
     (define-key map (kbd "1") (lambda () (interactive) (mentor-switch-to-view 1)))
     (define-key map (kbd "2") (lambda () (interactive) (mentor-switch-to-view 2)))
@@ -200,7 +201,6 @@ connecting through scgi or http."
     (define-key map (kbd "7") (lambda () (interactive) (mentor-switch-to-view 7)))
     (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
-    (define-key map (kbd "a") 'mentor-torrent-add-view)
     map))
 
 (defvar mentor-mode-hook nil)
@@ -482,7 +482,6 @@ according to several criteria."
     (let ((property (car prop))
           (reverse (cdr prop)))
       (mentor-do-sort property reverse))))
-
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
@@ -909,7 +908,10 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-views (tor)
   (mentor-get-property 'views tor))
 
-(defun mentor-torrent-add-view (view &optional tor)
+
+;;; View functions
+
+(defun mentor-add-torrent-to-view (view &optional tor)
   (interactive 
    (list (mentor-prompt-complete "Add torrent to view: " 
 				 (remove-if-not 'mentor-views-is-custom-view 
@@ -920,20 +922,12 @@ If `torrent' is nil, use torrent at point."
      (setq view (concat mentor-custom-view-prefix view)))
    (if (not (mentor-views-valid-view-name view))
        (message "Not a valid name for a view!")
-     (if (not (mentor-views-is-view-defined view))
-	 (if (y-or-n-p (concat "View " view " was not found. Create it? "))
-	     (progn (mentor-rpc-command 
-		     "d.views.push_back_unique" 
-		     (mentor-get-property 'hash tor) view)
-		    (mentor-views-add view))
-	   (message "Nothing done"))
-       (progn (mentor-rpc-command 
-	       "d.views.push_back_unique" 
-	       (mentor-get-property 'hash tor) view)
-	      (mentor-views-update-filter view))))))
-
-
-;;; View functions
+     (if (or (mentor-views-is-view-defined view)
+             (when (y-or-n-p (concat "View " view " was not found. Create it? "))
+               (mentor-views-add view) t))
+         (mentor-rpc-command "d.views.push_back_unique" 
+                             (mentor-get-property 'hash tor) view)
+       (message "Nothing done")))))
 
 (defvar mentor-torrent-views nil)
 (make-variable-buffer-local 'mentor-torrent-views)
@@ -965,13 +959,10 @@ If `torrent' is nil, use torrent at point."
 	       1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (mentor-get-custom-view-name new)))
-  (when (not (or (mentor-views-is-default-view new)
-		 (mentor-views-is-custom-view new)))
-    (setq new (concat mentor-custom-view-prefix new)))
   (when (not (equal new mentor-current-view))
     (mentor-set-view new)
     (mentor-update)
-    (message (concat "Switched to view: " mentor-current-view))))
+    (message (concat "Switched to view " mentor-current-view))))
 
 (defun mentor-views-add (view)
   "Adds the specified view to rtorrents \"view_list\" and sets
