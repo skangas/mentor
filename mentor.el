@@ -125,7 +125,8 @@ connecting through scgi or http."
     (speed-down -6 "Down")
     (size -15 "     Size")
     (tied_to_file -80 "Tied file name")
-    (message -40 "Message"))
+    (message -40 "Message")
+    (directory -100 "Directory"))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(alist :key-type symbol :value-type string))
@@ -380,6 +381,7 @@ functions"
       (let ((inhibit-read-only t))
         (erase-buffer)
         (mentor-insert-torrents)
+        (end-of-buffer)
         (insert (concat "\nmentor-" mentor-version " - rTorrent "
                         mentor-rtorrent-client-version "/"
                         mentor-rtorrent-library-version
@@ -390,7 +392,7 @@ functions"
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
       (mentor-insert-torrent id (mentor-get-torrent id)))
-    (when (> (length nil) 0)
+    (when (> (length tor-ids) 0)
       (mentor-sort))))
 
 (defun mentor-redisplay-torrent (torrent)
@@ -589,16 +591,16 @@ the torrent at point."
   (interactive)
   (let ((id (get-text-property (point) 'torrent-id)))
     (when id
-      (let ((torrent (mentor-get-torrent id)))
-        (message (number-to-string (mentor-property 'bytes_done torrent)))))))
+      (let ((tor (mentor-get-torrent id)))
+        (message (mentor-property 'bytes_done))))))
 
 
 ;;; Torrent actions
 
 ;; FIXME: erase the files belonging to the torrent only (e.g. not extracted
 ;; files in the same directory.)
-(defun mentor-erase-data (torrent)
-  (dired-delete-file (mentor-property 'base_path torrent) 'top))
+(defun mentor-erase-data (tor)
+  (dired-delete-file (mentor-property 'base_path tor) 'top))
 
 
 ;;; Interactive torrent commands
