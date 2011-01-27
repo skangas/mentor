@@ -350,7 +350,7 @@ functions"
   `(let ((torrent (mentor-torrent-at-point)))
      ,@body
      (if torrent
-         (mentor-goto-torrent (mentor-get-property 'local_id torrent))
+         (mentor-goto-torrent (mentor-property 'local_id torrent))
        (beginning-of-buffer))))
 
 (defun mentor-update ()
@@ -462,7 +462,7 @@ functions"
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-torrent t)))
                   (lambda () (ignore-errors (mentor-torrent-end)))
-                  (lambda () (mentor-get-property property)))))))
+                  (lambda () (mentor-property property)))))))
 
 (defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
@@ -590,7 +590,7 @@ the torrent at point."
   (let ((id (get-text-property (point) 'torrent-id)))
     (when id
       (let ((torrent (mentor-get-torrent id)))
-        (message (number-to-string (mentor-get-property 'bytes_done torrent)))))))
+        (message (number-to-string (mentor-property 'bytes_done torrent)))))))
 
 
 ;;; Torrent actions
@@ -598,7 +598,7 @@ the torrent at point."
 ;; FIXME: erase the files belonging to the torrent only (e.g. not extracted
 ;; files in the same directory.)
 (defun mentor-erase-data (torrent)
-  (dired-delete-file (mentor-get-property 'base_path torrent) 'top))
+  (dired-delete-file (mentor-property 'base_path torrent) 'top))
 
 
 ;;; Interactive torrent commands
@@ -610,10 +610,10 @@ the torrent at point."
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (when (yes-or-no-p (concat "Remove " (mentor-get-property 'name tor) " "))
-     (mentor-rpc-command "d.erase" (mentor-get-property 'hash tor))
+   (when (yes-or-no-p (concat "Remove " (mentor-property 'name tor) " "))
+     (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
      (mentor-remove-torrent-from-view tor)
-     (remhash (mentor-get-property 'local_id tor) mentor-torrents))))
+     (remhash (mentor-property 'local_id tor) mentor-torrents))))
 
 (defun mentor-erase-torrent-and-data ()
   (interactive)
@@ -632,19 +632,19 @@ the torrent at point."
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.close" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.close" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-hash-check-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.check_hash" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-move-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (let* ((old (directory-file-name (mentor-get-property 'base_path tor)))
+   (let* ((old (directory-file-name (mentor-property 'base_path tor)))
           (old-prefixed (concat mentor-directory-prefix old))
           (new (read-file-name "New location: " old-prefixed nil t)))
      (if (condition-case err
@@ -652,8 +652,8 @@ the torrent at point."
            (error nil))
          (progn
            (mentor-stop-torrent tor)
-           (mentor-rpc-command "execute" "mv" "-n" (mentor-get-property 'base_path tor) new)
-           (mentor-rpc-command "d.set_directory" (mentor-get-property 'hash tor) new)
+           (mentor-rpc-command "execute" "mv" "-n" (mentor-property 'base_path tor) new)
+           (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
            (mentor-start-torrent tor)
            (message (concat "Moved torrent to " new)))
        (error "No such file or directory: " new)))))
@@ -663,7 +663,7 @@ the torrent at point."
 `mentor-stop-torrent' instead."
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.pause" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.pause" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-resume-torrent (&optional tor)
@@ -671,7 +671,7 @@ the torrent at point."
 `mentor-start-torrent' instead."
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.resume" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.resume" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-recreate-files (&optional tor)
@@ -686,8 +686,8 @@ the torrent at point."
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
-   (let ((path (mentor-get-property 'base_path tor))
-         (is-multi-file (mentor-get-property 'is_multi_file tor)))
+   (let ((path (mentor-property 'base_path tor))
+         (is-multi-file (mentor-property 'is_multi_file tor)))
      (find-file (if is-multi-file
                     path
                   (file-name-directory path))))))
@@ -695,13 +695,13 @@ the torrent at point."
 (defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.start" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.start" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.stop" (mentor-get-property 'hash tor))
+   (mentor-rpc-command "d.stop" (mentor-property 'hash tor))
    (mentor-update)))
 
 (defun mentor-increase-priority (&optional tor)
@@ -744,8 +744,8 @@ the torrent at point."
 ;; (defun mentor-property-to-rpc-method () nil)
 
 (defun mentor-update-torrent (torrent)
-  (let* ((hash (mentor-get-property 'hash torrent))
-         (id (mentor-get-property 'local_id torrent)))
+  (let* ((hash (mentor-property 'hash torrent))
+         (id (mentor-property 'local_id torrent)))
     (dolist (method mentor-d-interesting-methods)
       (let ((property (mentor-rpc-method-to-property method))
             (new-value (mentor-rpc-command method hash)))
@@ -758,7 +758,7 @@ the torrent at point."
    (mentor-redisplay-torrent tor)))
 
 (defun mentor-view-torrent-list-add (tor)
-  (let* ((id (mentor-get-property 'local_id tor))
+  (let* ((id (mentor-property 'local_id tor))
          (view (intern mentor-current-view))
          (l (assq view mentor-view-torrent-list)))
     (setcdr l (cons id (cdr l)))))
@@ -819,7 +819,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
-      (let* ((id (mentor-get-property 'local_id tor))
+      (let* ((id (mentor-property 'local_id tor))
              (tor^ (mentor-get-torrent id)))
         (dolist (p tor)
           (setcdr (assq (car p) tor^) (cdr p))))))
@@ -835,7 +835,7 @@ expensive operation."
   (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)"))
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
-      (let ((id (mentor-get-property 'local_id tor)))
+      (let ((id (mentor-property 'local_id tor)))
         (puthash id tor mentor-torrents))))
   (mentor-update-custom-properties)
   (mentor-views-update-views)
@@ -850,15 +850,15 @@ expensive operation."
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
 
-(defun mentor-get-property (property &optional tor)
+(defun mentor-property (property &optional tor)
   "Get property for a torrent.
 If `torrent' is nil, use torrent at point."
   (mentor-use-tor
    (cdr (assoc property tor))))
 
 (defun mentor-torrent-get-progress (torrent)
-  (let* ((donev (mentor-get-property 'bytes_done torrent))
-         (totalv (mentor-get-property 'size_bytes torrent))
+  (let* ((donev (mentor-property 'bytes_done torrent))
+         (totalv (mentor-property 'size_bytes torrent))
          (done (abs (or (string-to-number donev) 0)))
          (total (abs (or (string-to-number totalv) 1)))
          (percent (* 100 (/ done total))))
@@ -867,24 +867,24 @@ If `torrent' is nil, use torrent at point."
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
   (concat
-   (or (when (> (mentor-get-property 'hashing torrent) 0)
+   (or (when (> (mentor-property 'hashing torrent) 0)
          "H")
-       (if (not (= (mentor-get-property 'is_active torrent) 1))
+       (if (not (= (mentor-property 'is_active torrent) 1))
            "S" " ")) ;; 'is_stopped
-   (if (not (= (mentor-get-property 'is_open torrent) 1))
+   (if (not (= (mentor-property 'is_open torrent) 1))
        "C" " "))) ;; 'is_closed
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-get-property 'down_rate torrent)))
+   (mentor-property 'down_rate torrent)))
 
 (defun mentor-torrent-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-get-property 'up_rate torrent)))
+   (mentor-property 'up_rate torrent)))
 
 (defun mentor-torrent-get-size (torrent)
-  (let ((done (string-to-number (mentor-get-property 'bytes_done torrent)))
-        (total (string-to-number (mentor-get-property 'size_bytes torrent))))
+  (let ((done (string-to-number (mentor-property 'bytes_done torrent)))
+        (total (string-to-number (mentor-property 'size_bytes torrent))))
     (if (= done total)
         (format "         %-.6s" (mentor-bytes-to-human total))
       (format "%6s / %-6s"
@@ -893,21 +893,21 @@ If `torrent' is nil, use torrent at point."
 
 (defun mentor-torrent-get-size-done (torrent)
   (mentor-bytes-to-human
-   (mentor-get-property 'bytes_done torrent)))
+   (mentor-property 'bytes_done torrent)))
 
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
-   (mentor-get-property 'size_bytes torrent)))
+   (mentor-property 'size_bytes torrent)))
 
 (defun mentor-torrent-get-file-list (torrent)
-  (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
+  (mentor-rpc-command "f.multicall" (mentor-property 'hash torrent) "" "f.get_path="))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
   (member view (mentor-torrent-get-views tor)))
 
 (defun mentor-torrent-get-views (tor)
-  (mentor-get-property 'views tor))
+  (mentor-property 'views tor))
 
 
 ;;; View functions
@@ -927,7 +927,7 @@ If `torrent' is nil, use torrent at point."
              (when (y-or-n-p (concat "View " view " was not found. Create it? "))
                (mentor-views-add view) t))
          (mentor-rpc-command "d.views.push_back_unique" 
-                             (mentor-get-property 'hash tor) view)
+                             (mentor-property 'hash tor) view)
        (message "Nothing done")))))
 
 (defvar mentor-torrent-views nil)
