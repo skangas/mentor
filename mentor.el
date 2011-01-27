@@ -7,6 +7,9 @@
 ;; Version: 0.0.1
 ;; Keywords: bittorrent, rtorrent
 
+(defconst mentor-version "0.0.1"
+  "Current version of mentor.el")
+
 ;; This file is NOT part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -32,7 +35,6 @@
 ;; Make mentor-mode inherit special-mode
 ;; Implement SCGI in Emacs Lisp (later)
 ;; Support for categories
-;; Optimization: Update info only for incomplete torrents
 ;; Filters
 ;; Marking torrents and executing commands over all marked torrents
 ;; Sort according to column, changable with < and >
@@ -52,8 +54,6 @@
 
 (eval-when-compile (require 'cl))
 (require 'xml-rpc)
-
-(defvar mentor-version "0.0.1")
 
 
 ;;; configuration
