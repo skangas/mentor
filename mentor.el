@@ -24,13 +24,12 @@
 
 ;;; Commentary:
 
-;; This code plugs the bittorrent client rtorrent into Emacs.  It is
-;; accomplished using XML-RPC, and a Python script plugging the requests over
-;; SCGI in order not to need a webserver locally.  The current goal is to
-;; provide enough features in order to never have to touch the standard ncurses
-;; interface ever again.
+;; This code plugs the bittorrent client rtorrent into GNU Emacs using XML-RPC.
+;; The current goal is to never have to touch the standard ncurses interface
+;; ever again.
 
 ;; TODO:
+;; Make mentor-mode inherit special-mode
 ;; Implement SCGI in Emacs Lisp (later)
 ;; Support for categories
 ;; Optimization: Update info only for incomplete torrents
