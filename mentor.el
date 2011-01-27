@@ -780,6 +780,7 @@ the torrent at point."
   (dolist (prop mentor-custom-properties tor)
     (let ((pnam (car prop))
           (pfun (cdr prop)))
+      (assq-delete-all pnam tor)
       (if (assq pnam mentor-view-columns)
           (setq tor (cons (cons pnam (funcall pfun tor)) tor))))))
 
