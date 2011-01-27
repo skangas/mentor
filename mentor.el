@@ -229,11 +229,8 @@ connecting through scgi or http."
 (defvar mentor-rtorrent-name nil)
 (make-variable-buffer-local 'mentor-rtorrent-name)
 
-(defvar mentor-sort-property nil)
-(make-variable-buffer-local 'mentor-sort-property)
-
-(defvar mentor-sort-reverse nil)
-(make-variable-buffer-local 'mentor-sort-reverse)
+(defvar mentor-sort-list '((name) (up_rate . t)))
+(make-variable-buffer-local 'mentor-sort-list)
 
 (defvar mentor-view-torrent-list nil
   "alist of torrents in given views")
@@ -393,7 +390,7 @@ functions"
                         mentor-rtorrent-client-version "/"
                         mentor-rtorrent-library-version
                         " (" mentor-rtorrent-name ")\n"))
-        (mentor-sort-current)))))
+        (mentor-sort)))))
 
 (defun mentor-insert-torrents ()
   (dolist (id (cdr (assoc (intern mentor-current-view) mentor-view-torrent-list)))
@@ -459,9 +456,7 @@ functions"
 
 ;;; Sorting
 
-(defun mentor-sort-by-property (property &optional reverse)
-  (setq mentor-sort-property property)
-  (setq mentor-sort-reverse reverse)
+(defun mentor-do-sort (property &optional reverse)
   (mentor-keep-torrent-position
    (goto-char (point-min))
    (save-excursion
@@ -472,34 +467,52 @@ functions"
                   (lambda () (ignore-errors (mentor-torrent-end)))
                   (lambda () (mentor-get-property property)))))))
 
-(defun mentor-sort-current ()
-  "Sort buffer according to `mentor-sort-property' and `mentor-sort-reverse'."
-  (when mentor-sort-property
-    (mentor-sort-by-property mentor-sort-property mentor-sort-reverse)))
+(defun mentor-sort (&optional property reverse append)
+  "Sort the mentor torrent buffer.
+Defaults to sorting according to `mentor-sort-list'.
 
-(defun mentor-sort-by-download-speed ()
-  (interactive)
-  (mentor-sort-by-property 'down_rate t))
+PROPERTY gives according to which property the torrents should be
+sorted.
 
-(defun mentor-sort-by-name ()
-  (interactive)
-  (mentor-sort-by-property 'name))
+If REVERSE is non-nil, the result of the sort is reversed.
 
-(defun mentor-sort-by-state ()
-  (interactive)
-  (mentor-sort-by-property 'state))
+When APPEND is non-nil, instead of sorting directly, add the
+result to the end of `mentor-sort-list'.  This means we can sort
+according to several criteria."
+  (when property
+    (let ((elem (cons property reverse)))
+      (if append
+          (add-to-list 'mentor-sort-list elem t)
+        (setq mentor-sort-list (list elem)))))
+  (dolist (prop mentor-sort-list)
+    (let ((property (car prop))
+          (reverse (cdr prop)))
+      (mentor-do-sort property reverse))))
 
-(defun mentor-sort-by-tied-file-name ()
-  (interactive)
-  (mentor-sort-by-property 'tied_to_file))
 
-(defun mentor-sort-by-size ()
-  (interactive)
-  (mentor-sort-by-property 'size_bytes t))
+(defun mentor-sort-by-download-speed (append)
+  (interactive "P")
+  (mentor-sort 'down_rate t append))
 
-(defun mentor-sort-by-upload-speed ()
-  (interactive)
-  (mentor-sort-by-property 'up_rate t))
+(defun mentor-sort-by-name (append)
+  (interactive "P")
+  (mentor-sort 'name nil append))
+
+(defun mentor-sort-by-state (append)
+  (interactive "P")
+  (mentor-sort 'state nil append))
+
+(defun mentor-sort-by-tied-file-name (append)
+  (interactive "P")
+  (mentor-sort 'tied_to_file nil append))
+
+(defun mentor-sort-by-size (append)
+  (interactive "P")
+  (mentor-sort 'size_bytes t append))
+
+(defun mentor-sort-by-upload-speed (append)
+  (interactive "P")
+  (mentor-sort 'up_rate t append))
 
 
 ;;; Get torrent
