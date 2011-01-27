@@ -902,22 +902,6 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-file-list (torrent)
   (mentor-rpc-command "f.multicall" (mentor-get-property 'hash torrent) "" "f.get_path="))
 
-(defun mentor-torrent-is-done-p (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (= (mentor-get-property 'bytes_done tor)
-      (mentor-get-property 'size_bytes tor))))
-
-(defun mentor-torrent-is-multi-file-p (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (= 1 (mentor-get-property 'is_multi_file tor))))
-
-(defun mentor-torrent-is-open-p (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (= 1 (mentor-get-property 'is_open tor))))
-
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
   (member view (mentor-torrent-get-views tor)))
