@@ -523,7 +523,6 @@ according to several criteria."
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
   `(let ((tor (or (when (boundp 'tor) tor)
-                  (when (boundp 'torrent) torrent)
                   (mentor-torrent-at-point)
                   (error "no torrent"))))
      ,@body))
@@ -851,12 +850,11 @@ expensive operation."
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
 
-(defun mentor-get-property (property &optional torrent)
+(defun mentor-get-property (property &optional tor)
   "Get property for a torrent.
 If `torrent' is nil, use torrent at point."
-  (when (not torrent)
-      (setq torrent (mentor-torrent-at-point)))
-  (cdr (assoc property torrent)))
+  (mentor-use-tor
+   (cdr (assoc property tor))))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-get-property 'bytes_done torrent))
