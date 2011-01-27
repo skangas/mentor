@@ -144,22 +144,9 @@ connecting through scgi or http."
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
-    ;; keys mimicking the default rtorrent UI
-    (define-key map (kbd "M-s") 'mentor-start-torrent) ;; Start download.
-    (define-key map (kbd "M-d") 'mentor-stop-torrent) ;; Stop an active download, or remove a stopped download.
-    (define-key map (kbd "M-k") 'mentor-close-torrent) ;; Close a torrent and its files.
-    (define-key map (kbd "M-e") 'mentor-recreate-files) ;; Set  the 'create/resize queued' flags on all files in a torrent.
-    (define-key map (kbd "M-r") 'mentor-hash-check-torrent) ;; Initiate hash check of torrent.
-    (define-key map (kbd "M-o") 'mentor-change-directory) ;; Change  the  destination  directory of the download. The torrent
-    (define-key map (kbd "M-c") 'mentor-call-command) ;; Call commands or change settings.
-    (define-key map (kbd "M-b") 'mentor-set-inital-seeding) ;; Set download to perform initial seeding.
-
-    (define-key map (kbd "+") 'mentor-increase-priority) ;; Change the priority of the download.
-    (define-key map (kbd "-") 'mentor-decrease-priority) ;; Change the priority of the download.
-
-    (define-key map (kbd "DEL") 'mentor-add-torrent)
 
     ;; torrent list actions
+    (define-key map (kbd "DEL") 'mentor-add-torrent)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
     (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
@@ -169,14 +156,20 @@ connecting through scgi or http."
     (define-key map (kbd "p") 'mentor-previous-torrent)
 
     ;; single torrent actions
-    (define-key map (kbd "c") 'mentor-change-target-directory)
-    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "+") 'mentor-increase-priority)
+    (define-key map (kbd "-") 'mentor-decrease-priority)
+    (define-key map (kbd "C") 'mentor-call-command)
     (define-key map (kbd "D") 'mentor-stop-all-torrents)
-    (define-key map (kbd "k") 'mentor-erase-torrent)
     (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
+    (define-key map (kbd "S") 'mentor-start-all-torrents)
+    (define-key map (kbd "b") 'mentor-set-inital-seeding)
+    (define-key map (kbd "c") 'mentor-close-torrent)
+    (define-key map (kbd "e") 'mentor-recreate-files) ;; Set the 'create/resize queued' flags on all files in a torrent.
+    (define-key map (kbd "o") 'mentor-change-target-directory)
+    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "k") 'mentor-erase-torrent)
     (define-key map (kbd "r") 'mentor-hash-check-torrent)
     (define-key map (kbd "s") 'mentor-start-torrent)
-    (define-key map (kbd "S") 'mentor-start-all-torrents)
 
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
