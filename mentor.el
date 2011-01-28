@@ -3,7 +3,7 @@
 ;; Copyright (C) 2010, 2011 Stefan Kangas.
 ;; Copyright (C) 2011 David Spångberg.
 
-;; Author: Stefan Kangas
+;; Author: Stefan Kangas <skangas@skangas.se>
 ;; Version: 0.0.1
 ;; Keywords: bittorrent, rtorrent
 
@@ -51,7 +51,6 @@
 ;; 0.1.0 First public release
 
 ;;; Code:
-
 (eval-when-compile (require 'cl))
 (require 'xml-rpc)
 
