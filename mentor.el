@@ -538,6 +538,13 @@ the torrent at point."
 
 ;;; Navigation
 
+(defmacro while-same-item (skip-blanks item-fun condition &rest body)
+  `(let ((item ,item-fun))
+     (while (and ,condition (or (and ,skip-blanks
+				     (not ,item-fun))
+				(equal item ,item-fun)))
+       ,@body)))
+
 (defmacro while-same-torrent (skip-blanks condition &rest body)
   `(let ((id (mentor-id-at-point)))
      (while (and ,condition (or (and ,skip-blanks
@@ -545,17 +552,28 @@ the torrent at point."
 			       (equal id (mentor-id-at-point))))
        ,@body)))
 
+(defun mentor-item-beginning ()
+  (interactive)
+  (let ((start (get-text-property (point) 'item-start)))
+    (when start
+      (goto-char start))))
+
 (defun mentor-next-section (&optional no-wrap)
   (interactive)
-  (if (null mentor-sub-mode)
-      (mentor-next-torrent no-wrap)
-    (message "todo")))
+  (let (item)
+    (if (null mentor-sub-mode)
+	(mentor-next-torrent no-wrap)
+      (cond ((eq mentor-sub-mode 'torrent-details) (setq item 'file)))
+      (while-same-item t (get-text-property (point) 'file) t (forward-char)))))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
-  (if (null mentor-sub-mode)
-      (mentor-previous-torrent no-wrap)
-    (message "todo")))
+  (let (item)
+    (if (null mentor-sub-mode)
+	(mentor-previous-torrent no-wrap)
+      (cond ((eq mentor-sub-mode 'torrent-details) (setq item 'file)))
+      (while-same-item t (get-text-property (point) 'file) t (backward-char))
+      (mentor-item-beginning))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -607,10 +625,10 @@ the torrent at point."
 ;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
-  (let ((id (get-text-property (point) 'torrent-id)))
-    (when id
-      (let ((tor (mentor-get-torrent id)))
-        (message (mentor-property 'bytes_done))))))
+  (let ((type (get-text-property (point) 'type))
+	(props (text-properties-at (point))))
+    (cond ((eq type 'file) 
+	   (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
 ;;; Torrent actions
