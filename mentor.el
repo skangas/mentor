@@ -254,6 +254,7 @@ connecting through scgi or http."
             (run-at-time t mentor-auto-update-interval
                          'mentor-auto-update-timer))))
 
+;;;###autoload
 (defun mentor ()
   (interactive)
   (if (mentor-not-connectable-p)
