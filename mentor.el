@@ -229,6 +229,11 @@ connecting through scgi or http."
 (defvar mentor-view-torrent-list nil
   "alist of torrents in given views")
 
+(defvar mentor-sub-mode nil
+  "The submode which is currently active")
+(make-variable-buffer-local 'mentor-sub-mode)
+(put 'mentor-sub-mode 'permanent-local t)
+
 (defun mentor-mode ()
   "Major mode for controlling rtorrent from emacs
 
@@ -1034,6 +1039,61 @@ to a view unless the filter is updated."
 
 
 ;;; Torrent details screen
+
+(defvar mentor-selected-torrent nil)
+(make-variable-buffer-local 'mentor-selected-torrent)
+(put 'mentor-selected-torrent 'permanent-local t)
+
+(defvar mentor-torrent-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "g") 'mentor-details-update)
+    map)
+  "Keymap used in `mentor-torrent-mode'.")
+
+
+(defvar mentor-f-interesting-methods nil)
+(put 'mentor-f-interesting-methods 'permanent-local t)
+
+(define-minor-mode mentor-torrent-mode
+  "Minor mode for managing a torrent in mentor."
+  :group mentor
+  :init-value nil
+  :lighter nil
+  :keymap mentor-torrent-mode-map)
+
+(defun mentor-torrent-detail-screen (&optional tor)
+  "Show information about the specified torrent or the torrent at
+point."
+  (interactive)
+  (mentor-use-tor
+   (when (null mentor-f-interesting-methods)
+     (setq mentor-f-interesting-methods
+	   (mentor-rpc-list-methods "^f.\\(get\\|is\\)")))
+   (switch-to-buffer "*mentor-torrent*")
+   (setq mentor-sub-mode 'torrent-details)
+   (mentor-mode)
+   (mentor-torrent-mode t)
+   (setq mentor-selected-torrent tor)
+   (mentor-details-redisplay)))
+
+(defun mentor-details-update ()
+  (interactive)
+  (mentor-details-redisplay))
+  
+(defun mentor-details-redisplay ()
+  (interactive)
+  (let* ((inhibit-read-only t)
+	 (tor mentor-selected-torrent)
+	 (tor-name (mentor-property 'base_filename tor))
+	 (hash (mentor-property 'hash tor))
+	 (files (mentor-rpc-command "f.multicall" hash "" "f.get_path=")))
+    (save-excursion
+      (erase-buffer)
+      (insert (concat "*** " tor-name " ***\n\n"))
+      ;; just showing some info before deciding what to show and how and
+      ;; how to store the info
+      (dolist (file files)
+	(insert (concat (car file) "\n"))))))
 
 
 ;;; Utility functions
