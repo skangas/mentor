@@ -1101,6 +1101,15 @@ contain."
 (defun mentor-file-is-dir (file)
   (eq 'dir (mentor-file-type file)))
 
+(defun mentor-toggle-file (file)
+  (interactive)
+  (when (mentor-file-is-dir file)
+    (setf (mentor-file-show file)
+	  (if (mentor-file-show file)
+	      nil
+	    t))
+    (mentor-details-redisplay)))
+
 (defun mentor-file-get-or-add-file (dir file)
   "If there already exist a file with the same name in the
 specified directory return it, else add the file to the directory
@@ -1149,15 +1158,6 @@ point."
    (setq mentor-selected-torrent tor)
    (mentor-details-update)
    (mentor-details-redisplay)))
-
-(defun mentor-toggle-file (file)
-  (interactive)
-  (when (mentor-file-is-dir file)
-    (setf (mentor-file-show file)
-	  (if (mentor-file-show file)
-	      nil
-	    t))
-    (mentor-details-redisplay)))
 
 (defun mentor-details-update ()
   (interactive)
