@@ -1072,21 +1072,21 @@ to a view unless the filter is updated."
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-torrent-mode-map
+(defvar mentor-torrent-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "g") 'mentor-details-update)
     map)
-  "Keymap used in `mentor-torrent-mode'.")
+  "Keymap used in `mentor-torrent-details-mode'.")
 
 (defvar mentor-f-interesting-methods nil)
 (put 'mentor-f-interesting-methods 'permanent-local t)
 
-(define-minor-mode mentor-torrent-mode
+(define-minor-mode mentor-torrent-details-mode
   "Minor mode for managing a torrent in mentor."
   :group mentor
   :init-value nil
   :lighter nil
-  :keymap mentor-torrent-mode-map)
+  :keymap mentor-torrent-details-mode-map)
 
 (defstruct mentor-file
   "The datastructure that contains the information about torrent
@@ -1151,10 +1151,10 @@ point."
    (when (null mentor-f-interesting-methods)
      (setq mentor-f-interesting-methods
 	   (mentor-rpc-list-methods "^f.\\(get\\|is\\)")))
-   (switch-to-buffer "*mentor-torrent*")
+   (switch-to-buffer "*mentor: torrent-details*")
    (setq mentor-sub-mode 'torrent-details)
    (mentor-mode)
-   (mentor-torrent-mode t)
+   (mentor-torrent-details-mode t)
    (setq mentor-selected-torrent tor)
    (mentor-details-update)
    (mentor-details-redisplay)))
