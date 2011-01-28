@@ -1075,6 +1075,8 @@ to a view unless the filter is updated."
 (defvar mentor-torrent-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "g") 'mentor-details-update)
+    (define-key map (kbd "N") 'mentor-details-next-directory)
+    (define-key map (kbd "P") 'mentor-details-previous-directory)
     map)
   "Keymap used in `mentor-torrent-details-mode'.")
 
@@ -1099,7 +1101,7 @@ contain."
   (get-text-property (point) 'file))
 
 (defun mentor-file-is-dir (file)
-  (eq 'dir (mentor-file-type file)))
+  (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
 
 (defun mentor-toggle-file (file)
   (interactive)
@@ -1224,6 +1226,23 @@ point."
     (end-of-buffer)
     (mentor-details-show-dir-content dir 0)
     (goto-char pos)))
+
+(defun mentor-details-next-directory ()
+  (interactive)
+  (when (mentor-file-is-dir (mentor-file-at-point))
+    (mentor-next-section))
+  (when (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t (mentor-file-is-dir 
+			(mentor-file-at-point)) t (forward-char))))
+
+(defun mentor-details-previous-directory ()
+  (interactive)
+  (when (mentor-file-is-dir (mentor-file-at-point))
+    (mentor-previous-section))
+  (when (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t (mentor-file-is-dir 
+			(mentor-file-at-point)) t (backward-char))
+    (mentor-item-beginning)))
 
 
 ;;; Utility functions
