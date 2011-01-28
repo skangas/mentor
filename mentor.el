@@ -153,8 +153,8 @@ connecting through scgi or http."
     (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
 
     ;; navigation
-    (define-key map (kbd "n") 'mentor-next-torrent)
-    (define-key map (kbd "p") 'mentor-previous-torrent)
+    (define-key map (kbd "n") 'mentor-next-section)
+    (define-key map (kbd "p") 'mentor-previous-section)
 
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
@@ -538,6 +538,18 @@ the torrent at point."
 				    (not (mentor-id-at-point)))
 			       (equal id (mentor-id-at-point))))
        ,@body)))
+
+(defun mentor-next-section (&optional no-wrap)
+  (interactive)
+  (if (null mentor-sub-mode)
+      (mentor-next-torrent no-wrap)
+    (message "todo")))
+
+(defun mentor-previous-section (&optional no-wrap)
+  (interactive)
+  (if (null mentor-sub-mode)
+      (mentor-previous-torrent no-wrap)
+    (message "todo")))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
