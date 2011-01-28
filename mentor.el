@@ -139,6 +139,11 @@ connecting through scgi or http."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
+(defface mentor-directory-face
+  '((t :inherit font-lock-function-name-face))
+  "Face for highlighting directories."
+  :group 'mentor)
+
 
 ;;; major mode
 
