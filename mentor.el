@@ -1209,7 +1209,7 @@ point."
 		     (mentor-details-show-dir-content file (+ level 1))
 		     (insert margin "/\n"))))
 	(insert margin "|-- ")
-	(insert (mentor-file-propertize file) "\n")))))g
+	(insert (mentor-file-propertize file) "\n")))))
 
 (defun mentor-details-redisplay ()
   (interactive)
