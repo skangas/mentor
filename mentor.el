@@ -1224,19 +1224,20 @@ point."
     (mentor-details-show-dir-content dir 0)
     (goto-char pos)))
 
+;; wrapping doesn't work for next-dir atm
 (defun mentor-details-next-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-section))
-  (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t t (mentor-next-section))))
+  (while (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t t (forward-char))))
 
 (defun mentor-details-previous-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-section))
-  (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t t (mentor-previous-section))
+  (while (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t t (backward-char))
     (mentor-item-beginning)))
 
 
