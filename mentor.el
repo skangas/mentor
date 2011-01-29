@@ -1105,13 +1105,17 @@ to a view unless the filter is updated."
 
 (defstruct mentor-file
   "The datastructure that contains the information about torrent
-files. A mentor-file can be either a regular file or a filename
+files.  A mentor-file can be either a regular file or a filename
 and if it is the latter it will contain a list of the files it
-contain."
-  name show type files)
+contain.  If it is a regular file it will contain an id which is
+the integer index used by rtorrent to identify this file."
+  name show type id files)
 
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
+
+(defun mentor-file-id-at-point ()
+  (get-text-property (point) 'file-id))
 
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
@@ -1157,6 +1161,7 @@ and return it."
 		'face face
 		'type 'file
 		'subtype (mentor-file-type file)
+                'file-id (mentor-file-id file)
 		'item-start (point)
 		'file file
 		'show (mentor-file-show file))))
@@ -1184,7 +1189,9 @@ point."
   (let* ((tor mentor-selected-torrent)
 	 (hash (mentor-property 'hash tor))
 	 (files (mentor-rpc-command "f.multicall" hash "" "f.get_path_components="))
-	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil)))
+	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
+         (file-id 0)
+         (dir-id 0))
     (dolist (path-list files)
       (setq path-list (car path-list))
       (let ((file (car path-list))
@@ -1193,12 +1200,15 @@ point."
 	(while (> len 1)
 	  (setq file (make-mentor-file :name file
 				       :type 'dir
+                                       :id (decf dir-id)
 				       :show nil))
 	  (setq curr-dir (mentor-file-get-or-add-file curr-dir file))
 	  (setq file (car (setq path-list (cdr path-list))))
 	  (decf len))
 	(mentor-file-add-file curr-dir
-			      (make-mentor-file :name file :show 1 :type 'file))))
+			      (make-mentor-file :name file :show 1 
+                                                :type 'file :id file-id))
+        (incf file-id)))
     ;; reverse all file lists
     (let ((dir-list (list root))
 	  (curr-dir))
