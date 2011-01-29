@@ -544,10 +544,11 @@ the torrent at point."
 ;;; Navigation
 
 (defmacro while-same-item (skip-blanks item-fun condition &rest body)
-  `(let ((item ,item-fun))
-     (while (and ,condition (or (and ,skip-blanks
-				     (not ,item-fun))
-				(equal item ,item-fun)))
+  `(let ((item (apply ,item-fun nil)))
+     (while (and ,condition
+                 (or (and ,skip-blanks
+                          (not (apply ,item-fun nil)))
+                     (equal item (apply ,item-fun nil))))
        ,@body)))
 
 (defmacro while-same-torrent (skip-blanks condition &rest body)
@@ -567,17 +568,29 @@ the torrent at point."
   (interactive)
   (let (item)
     (if (null mentor-sub-mode)
-	(mentor-next-torrent no-wrap)
-      (cond ((eq mentor-sub-mode 'torrent-details) (setq item 'file)))
-      (while-same-item t (get-text-property (point) 'file) t (forward-char)))))
+        (mentor-next-torrent no-wrap)
+      (cond ((eq mentor-sub-mode 'torrent-details)
+             (setq fun 'mentor-file-id-at-point)))
+      (condition-case err
+          (while-same-item t fun t (forward-char))
+        (end-of-buffer
+         (when (not no-wrap)
+           (goto-char (point-min))
+           (mentor-next-section t)))))))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
-  (let (item)
+  (let (fun)
     (if (null mentor-sub-mode)
-	(mentor-previous-torrent no-wrap)
-      (cond ((eq mentor-sub-mode 'torrent-details) (setq item 'file)))
-      (while-same-item t (get-text-property (point) 'file) t (backward-char))
+        (mentor-previous-torrent no-wrap)
+      (cond ((eq mentor-sub-mode 'torrent-details)
+             (setq fun 'mentor-file-id-at-point)))
+      (condition-case err
+          (while-same-item t fun t (backward-char))
+        (beginning-of-buffer
+         (when (not no-wrap)
+           (goto-char (point-max))
+           (mentor-previous-section t))))
       (mentor-item-beginning))))
 
 (defun mentor-goto-torrent (id)
@@ -1103,6 +1116,9 @@ contain."
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
 
+(defun mentor-file-at-point-is-dir ()
+  (mentor-file-is-dir (mentor-file-at-point)))
+
 (defun mentor-toggle-file (file)
   (interactive)
   (when (mentor-file-is-dir file)
@@ -1232,16 +1248,14 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-section))
   (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t (mentor-file-is-dir 
-			(mentor-file-at-point)) t (forward-char))))
+    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-next-section))))
 
 (defun mentor-details-previous-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-section))
   (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t (mentor-file-is-dir 
-			(mentor-file-at-point)) t (backward-char))
+    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-previous-section))
     (mentor-item-beginning)))
 
 
