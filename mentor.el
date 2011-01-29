@@ -138,6 +138,11 @@ connecting through scgi or http."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
+(defface mentor-directory-face
+  '((t :inherit font-lock-function-name-face))
+  "Face for highlighting directories."
+  :group 'mentor)
+
 
 ;;; major mode
 
@@ -537,24 +542,48 @@ the torrent at point."
 
 ;;; Navigation
 
-(defmacro while-same-torrent (skip-blanks condition &rest body)
-  `(let ((id (mentor-id-at-point)))
-     (while (and ,condition (or (and ,skip-blanks
-				    (not (mentor-id-at-point)))
-			       (equal id (mentor-id-at-point))))
+(defmacro while-same-item (skip-blanks item-fun condition &rest body)
+  `(let ((item (apply ,item-fun nil)))
+     (while (and ,condition
+                 (or (and ,skip-blanks
+                          (not (apply ,item-fun nil)))
+                     (equal item (apply ,item-fun nil))))
        ,@body)))
+
+(defun mentor-item-beginning ()
+  (interactive)
+  (let ((start (get-text-property (point) 'item-start)))
+    (when start
+      (goto-char start))))
 
 (defun mentor-next-section (&optional no-wrap)
   (interactive)
-  (if (null mentor-sub-mode)
-      (mentor-next-torrent no-wrap)
-    (message "todo")))
+  (let (item)
+    (cond ((not mentor-sub-mode)
+	   (setq fun 'mentor-id-at-point))
+	  ((eq mentor-sub-mode 'torrent-details)
+	   (setq fun 'mentor-file-id-at-point)))
+    (condition-case err
+	(while-same-item t fun t (forward-char))
+      (end-of-buffer
+       (when (not no-wrap)
+	 (goto-char (point-min))
+	 (mentor-next-section t))))))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
-  (if (null mentor-sub-mode)
-      (mentor-previous-torrent no-wrap)
-    (message "todo")))
+  (let (fun)
+    (cond ((not mentor-sub-mode)
+	   (setq fun 'mentor-id-at-point))
+	  ((eq mentor-sub-mode 'torrent-details)
+	   (setq fun 'mentor-file-id-at-point)))
+    (condition-case err
+	(while-same-item t fun t (backward-char))
+      (beginning-of-buffer
+       (when (not no-wrap)
+	 (goto-char (point-max))
+	 (mentor-previous-section t))))
+    (mentor-item-beginning)))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -565,25 +594,6 @@ the torrent at point."
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos))))
-
-(defun mentor-next-torrent (&optional no-wrap)
-  (interactive)
-  (condition-case err
-      (while-same-torrent t t (forward-char))
-    (end-of-buffer
-     (when (not no-wrap)
-       (beginning-of-buffer)))) ;; no need to call ourselves again,
-  (beginning-of-line))          ;; we are already on a torrent.
-
-(defun mentor-previous-torrent (&optional no-wrap)
-  (interactive)
-  (condition-case err
-      (while-same-torrent t t (backward-char))
-    (beginning-of-buffer
-     (when (not no-wrap)
-       (end-of-buffer)
-       (mentor-previous-torrent t))))
-  (beginning-of-line))
 
 (defun mentor-get-torrent-beginning ()
   (save-excursion
@@ -597,19 +607,19 @@ the torrent at point."
 
 (defun mentor-torrent-beginning ()
   (interactive)
-  (while-same-torrent nil (> (point) (point-min)) (backward-char)))
+  (while-same-item nil 'mentor-id-at-point (> (point) (point-min)) (backward-char)))
 
 (defun mentor-torrent-end ()
   (interactive)
-  (while-same-torrent nil (< (point) (point-max)) (forward-char)))
+  (while-same-item nil 'mentor-id-at-point (< (point) (point-max)) (forward-char)))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
-  (let ((id (get-text-property (point) 'torrent-id)))
-    (when id
-      (let ((tor (mentor-get-torrent id)))
-        (message (mentor-property 'bytes_done))))))
+  (let ((type (get-text-property (point) 'type))
+	(props (text-properties-at (point))))
+    (cond ((eq type 'file) 
+	   (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
 ;;; Torrent actions
@@ -1044,22 +1054,90 @@ to a view unless the filter is updated."
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-torrent-mode-map
+(defvar mentor-selected-torrent-info nil)
+(make-variable-buffer-local 'mentor-selected-torrent)
+(put 'mentor-selected-torrent 'permanent-local t)
+
+(defvar mentor-torrent-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "g") 'mentor-details-update)
+    (define-key map (kbd "N") 'mentor-details-next-directory)
+    (define-key map (kbd "P") 'mentor-details-previous-directory)
     map)
-  "Keymap used in `mentor-torrent-mode'.")
-
+  "Keymap used in `mentor-torrent-details-mode'.")
 
 (defvar mentor-f-interesting-methods nil)
 (put 'mentor-f-interesting-methods 'permanent-local t)
 
-(define-minor-mode mentor-torrent-mode
+(define-minor-mode mentor-torrent-details-mode
   "Minor mode for managing a torrent in mentor."
   :group mentor
   :init-value nil
   :lighter nil
-  :keymap mentor-torrent-mode-map)
+  :keymap mentor-torrent-details-mode-map)
+
+(defstruct mentor-file
+  "The datastructure that contains the information about torrent
+files.  A mentor-file can be either a regular file or a filename
+and if it is the latter it will contain a list of the files it
+contain.  If it is a regular file it will contain an id which is
+the integer index used by rtorrent to identify this file."
+  name show type id files)
+
+(defun mentor-file-at-point ()
+  (get-text-property (point) 'file))
+
+(defun mentor-file-id-at-point ()
+  (get-text-property (point) 'file-id))
+
+(defun mentor-file-is-dir (file)
+  (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
+
+(defun mentor-file-at-point-is-dir ()
+  (mentor-file-is-dir (mentor-file-at-point)))
+
+(defun mentor-toggle-file (file)
+  (interactive)
+  (when (mentor-file-is-dir file)
+    (setf (mentor-file-show file)
+	  (if (mentor-file-show file)
+	      nil
+	    t))
+    (mentor-details-redisplay)))
+
+(defun mentor-file-get-or-add-file (dir file)
+  "If there already exist a file with the same name in the
+specified directory return it, else add the file to the directory
+and return it."
+  (let* ((name (mentor-file-name file))
+	(pred (lambda (x) (string= name x)))
+	(file^ (assoc-if pred (mentor-file-files dir))))
+    (if file^
+	(cdr file^)
+      (mentor-file-add-file dir file)
+      file)))
+
+(defun mentor-file-add-file (dir file)
+  "Adds a file to the specified directory structure."
+  (let ((name (mentor-file-name file)))
+    ;; (setf (mentor-file-files dir)
+    ;; 	  (nconc (mentor-file-files dir) (list (cons name file))))))
+    (setf (mentor-file-files dir)
+    	  (cons (cons name file) (mentor-file-files dir)))))
+
+(defun mentor-file-propertize (file)
+  (let ((text (mentor-file-name file))
+	(face (if (mentor-file-is-dir file)
+		  'mentor-directory-face
+		nil)))
+    (propertize text
+		'face face
+		'type 'file
+		'subtype (mentor-file-type file)
+                'file-id (mentor-file-id file)
+		'item-start (point)
+		'file file
+		'show (mentor-file-show file))))
 
 (defun mentor-torrent-detail-screen (&optional tor)
   "Show information about the specified torrent or the torrent at
@@ -1069,31 +1147,99 @@ point."
    (when (null mentor-f-interesting-methods)
      (setq mentor-f-interesting-methods
 	   (mentor-rpc-list-methods "^f.\\(get\\|is\\)")))
-   (switch-to-buffer "*mentor-torrent*")
+   (switch-to-buffer "*mentor: torrent-details*")
    (setq mentor-sub-mode 'torrent-details)
    (mentor-mode)
-   (mentor-torrent-mode t)
+   (mentor-torrent-details-mode t)
    (setq mentor-selected-torrent tor)
+   (mentor-details-update)
    (mentor-details-redisplay)))
 
 (defun mentor-details-update ()
   (interactive)
+  (setq mentor-selected-torrent-info
+	(assq-delete-all 'files mentor-selected-torrent-info))
+  (let* ((tor mentor-selected-torrent)
+	 (hash (mentor-property 'hash tor))
+	 (files (mentor-rpc-command "f.multicall" hash "" "f.get_path_components="))
+	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
+         (file-id 0)
+         (dir-id 0))
+    (dolist (path-list files)
+      (setq path-list (car path-list))
+      (let ((file (car path-list))
+	    (len (length path-list))
+	    (curr-dir root))
+	(while (> len 1)
+	  (setq file (make-mentor-file :name file
+				       :type 'dir
+                                       :id (decf dir-id)
+				       :show nil))
+	  (setq curr-dir (mentor-file-get-or-add-file curr-dir file))
+	  (setq file (car (setq path-list (cdr path-list))))
+	  (decf len))
+	(mentor-file-add-file curr-dir
+			      (make-mentor-file :name file :show 1 
+                                                :type 'file :id file-id))
+        (incf file-id)))
+    ;; reverse all file lists
+    (let ((dir-list (list root))
+	  (curr-dir))
+      (while dir-list
+	(setq curr-dir (pop dir-list))
+	(setf (mentor-file-files curr-dir) 
+	      (nreverse (mentor-file-files curr-dir)))
+	(mapc (lambda (file)
+		(when (mentor-file-is-dir (cdr file))
+		  (setq dir-list (cons (cdr file) dir-list))))
+	      (mentor-file-files curr-dir))))
+    (add-to-list 'mentor-selected-torrent-info (cons 'files root)))
   (mentor-details-redisplay))
-  
+      
+(defun mentor-details-show-dir-content (dir level)
+  (interactive)
+  (dolist (file (mentor-file-files dir))
+    (let ((file (cdr file))
+	  (margin (make-string level 32)))
+      (if (mentor-file-is-dir file)
+	  (let* ((show-content (mentor-file-show file))
+		 (symb (if show-content "\\ " "+ ")))
+	    (progn (insert margin symb)
+		   (insert (mentor-file-propertize file) "\n")
+		   (when show-content
+		     (mentor-details-show-dir-content file (+ level 1))
+		     (insert margin "/\n"))))
+	(insert margin "|-- ")
+	(insert (mentor-file-propertize file) "\n")))))
+
 (defun mentor-details-redisplay ()
   (interactive)
-  (let* ((inhibit-read-only t)
-	 (tor mentor-selected-torrent)
-	 (tor-name (mentor-property 'base_filename tor))
-	 (hash (mentor-property 'hash tor))
-	 (files (mentor-rpc-command "f.multicall" hash "" "f.get_path=")))
-    (save-excursion
-      (erase-buffer)
-      (insert (concat "*** " tor-name " ***\n\n"))
-      ;; just showing some info before deciding what to show and how and
-      ;; how to store the info
-      (dolist (file files)
-	(insert (concat (car file) "\n"))))))
+  (let ((inhibit-read-only t)
+	(pos (point))
+	(tor-name (mentor-property 'base_filename mentor-selected-torrent))
+	(dir (cdr (assq 'files mentor-selected-torrent-info))))
+    (erase-buffer)
+    (insert (concat "*** " tor-name " ***\n\n"))
+    ;; just showing some info before deciding what to show and how and
+    ;; how to store the info
+    (end-of-buffer)
+    (mentor-details-show-dir-content dir 0)
+    (goto-char pos)))
+
+(defun mentor-details-next-directory ()
+  (interactive)
+  (when (mentor-file-is-dir (mentor-file-at-point))
+    (mentor-next-section))
+  (when (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-next-section))))
+
+(defun mentor-details-previous-directory ()
+  (interactive)
+  (when (mentor-file-is-dir (mentor-file-at-point))
+    (mentor-previous-section))
+  (when (not (mentor-file-is-dir (mentor-file-at-point)))
+    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-previous-section))
+    (mentor-item-beginning)))
 
 
 ;;; Utility functions
