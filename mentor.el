@@ -1104,7 +1104,7 @@ the integer index used by rtorrent to identify this file."
     (mentor-details-redisplay)))
 
 (defun mentor-file-get-or-add-file (dir file)
-  "If there already exist a file with the same name in the
+  "If there already exists a file with the same name in the
 specified directory return it, else add the file to the directory
 and return it."
   (let* ((name (mentor-file-name file))
