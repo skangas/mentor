@@ -542,12 +542,16 @@ the torrent at point."
 
 ;;; Navigation
 
-(defmacro while-same-item (skip-blanks item-fun condition &rest body)
-  `(let ((item (apply ,item-fun nil)))
+(defmacro while-same-item (skip-blanks condition &rest body)
+  `(let* ((item-fun (cond ((not mentor-sub-mode)
+                           'mentor-id-at-point)
+                          ((eq mentor-sub-mode 'torrent-details)
+                           'mentor-file-id-at-point)))
+          (item (funcall item-fun)))
      (while (and ,condition
                  (or (and ,skip-blanks
-                          (not (apply ,item-fun nil)))
-                     (equal item (apply ,item-fun nil))))
+                          (not (funcall item-fun)))
+                     (equal item (funcall item-fun))))
        ,@body)))
 
 (defun mentor-item-beginning ()
@@ -558,32 +562,22 @@ the torrent at point."
 
 (defun mentor-next-section (&optional no-wrap)
   (interactive)
-  (let (item)
-    (cond ((not mentor-sub-mode)
-	   (setq fun 'mentor-id-at-point))
-	  ((eq mentor-sub-mode 'torrent-details)
-	   (setq fun 'mentor-file-id-at-point)))
-    (condition-case err
-	(while-same-item t fun t (forward-char))
-      (end-of-buffer
-       (when (not no-wrap)
-	 (goto-char (point-min))
-	 (mentor-next-section t))))))
+  (condition-case err
+      (while-same-item t t (forward-char))
+    (end-of-buffer
+     (when (not no-wrap)
+       (goto-char (point-min))
+       (mentor-next-section t)))))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
-  (let (fun)
-    (cond ((not mentor-sub-mode)
-	   (setq fun 'mentor-id-at-point))
-	  ((eq mentor-sub-mode 'torrent-details)
-	   (setq fun 'mentor-file-id-at-point)))
-    (condition-case err
-	(while-same-item t fun t (backward-char))
-      (beginning-of-buffer
-       (when (not no-wrap)
-	 (goto-char (point-max))
-	 (mentor-previous-section t))))
-    (mentor-item-beginning)))
+  (condition-case err
+      (while-same-item t t (backward-char))
+    (beginning-of-buffer
+     (when (not no-wrap)
+       (goto-char (point-max))
+       (mentor-previous-section t))))
+  (mentor-item-beginning))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -607,11 +601,15 @@ the torrent at point."
 
 (defun mentor-torrent-beginning ()
   (interactive)
-  (while-same-item nil 'mentor-id-at-point (> (point) (point-min)) (backward-char)))
+  (if (not mentor-sub-mode)
+      (while-same-item nil (> (point) (point-min)) (backward-char))
+    (message "Not in main torrent view")))
 
 (defun mentor-torrent-end ()
   (interactive)
-  (while-same-item nil 'mentor-id-at-point (< (point) (point-max)) (forward-char)))
+  (if (not mentor-sub-mode)
+      (while-same-item nil (< (point) (point-max)) (forward-char))
+    (message "Not in main torrent view")))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
@@ -1231,14 +1229,14 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-section))
   (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-next-section))))
+    (while-same-item t t (mentor-next-section))))
 
 (defun mentor-details-previous-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-section))
   (when (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t 'mentor-file-at-point-is-dir t (mentor-previous-section))
+    (while-same-item t t (mentor-previous-section))
     (mentor-item-beginning)))
 
 
