@@ -472,7 +472,7 @@ functions"
      (let ((sort-fold-case t)
            (inhibit-read-only t))
        (sort-subr reverse
-                  (lambda () (ignore-errors (mentor-next-torrent t)))
+                  (lambda () (ignore-errors (mentor-next-section t)))
                   (lambda () (ignore-errors (mentor-torrent-end)))
                   (lambda () (mentor-property property)))))))
 
@@ -584,7 +584,7 @@ the torrent at point."
                (beginning-of-buffer)
                (while (and (not (equal id (mentor-id-at-point)))
                            (not (= (point) (point-max))))
-                 (mentor-next-torrent t))
+                 (mentor-next-section t))
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos))))
