@@ -53,6 +53,7 @@
 ;;; Code:
 (eval-when-compile (require 'cl))
 (require 'xml-rpc)
+(require 'url-scgi)
 
 
 ;;; configuration
@@ -102,17 +103,6 @@ something like `/ssh:user@example.com:'.)"
   "The URL to the rtorrent client. Can either be on the form
 scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
 connecting through scgi or http."
-  :group 'mentor
-  :type 'string)
-
-(defcustom mentor-xmlrpc-command (concat
-                                  (file-name-directory
-                                   (or (symbol-file 'mentor-version)
-                                       (if load-in-progress
-                                           load-file-name
-                                           (buffer-file-name))))
-                                  "bin/xmlrpc2scgi.py")
-  "Path to xmlrpc2scgi command."
   :group 'mentor
   :type 'string)
 
@@ -318,13 +308,8 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call via SCGI or http."
-  (if (string= (subseq mentor-rtorrent-url 0 7) "http://")
-      (apply 'xml-rpc-method-call mentor-rtorrent-url args)
-    (xml-rpc-xml-to-response
-     (with-temp-buffer
-       (apply 'call-process mentor-xmlrpc-command
-              nil t nil (cons mentor-rtorrent-url args))
-       (xml-rpc-request-process-buffer (current-buffer))))))
+  (let ((url-http-response-status 200))
+    (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
 
 ;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
