@@ -541,7 +541,8 @@ the torrent at point."
 
 (defun mentor-item-beginning ()
   (interactive)
-  (let ((start (get-text-property (point) 'item-start)))
+  (let ((start (or (get-text-property (point) 'item-start)
+                   (field-beginning nil nil (point-at-bol)))))
     (when start
       (goto-char start))))
 
@@ -575,14 +576,10 @@ the torrent at point."
         (goto-char pos))))
 
 (defun mentor-get-torrent-beginning ()
-  (save-excursion
-    (mentor-torrent-beginning)
-    (point)))
+  (field-beginning nil nil (point-at-bol)))
 
 (defun mentor-get-torrent-end ()
-  (save-excursion
-    (mentor-torrent-end)
-    (point)))
+  (field-end nil t))
 
 (defun mentor-torrent-beginning ()
   (interactive)
