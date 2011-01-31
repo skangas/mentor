@@ -553,7 +553,8 @@ the torrent at point."
     (end-of-buffer
      (when (not no-wrap)
        (goto-char (point-min))
-       (mentor-next-section t)))))
+       (when (not (field-at-pos (point)))
+         (mentor-next-section t))))))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
@@ -562,7 +563,8 @@ the torrent at point."
     (beginning-of-buffer
      (when (not no-wrap)
        (goto-char (point-max))
-       (mentor-previous-section t))))
+       (when (not (field-at-pos (point)))
+         (mentor-previous-section t)))))
   (mentor-item-beginning))
 
 (defun mentor-goto-torrent (id)
