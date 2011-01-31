@@ -404,7 +404,7 @@ functions"
 
 (defun mentor-insert-torrent (id torrent)
   (let ((text (mentor-process-view-columns torrent)))
-    (insert (propertize text 'torrent-id id 'collapsed t)
+    (insert (propertize text 'field id 'torrent-id id 'collapsed t)
             "\n")))
 
 (defun mentor-process-view-columns (torrent)
@@ -1118,6 +1118,7 @@ and return it."
 		'type 'file
 		'subtype (mentor-file-type file)
                 'file-id (mentor-file-id file)
+                'field (mentor-file-id file)
 		'item-start (point)
 		'file file
 		'show (mentor-file-show file))))
