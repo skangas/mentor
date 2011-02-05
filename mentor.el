@@ -608,7 +608,7 @@ start point."
   (interactive)
   (let ((type (get-text-property (point) 'type))
 	(props (text-properties-at (point))))
-    (cond ((eq type 'file) 
+    (cond ((eq type 'dir) 
 	   (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
@@ -1171,8 +1171,7 @@ and return it."
 		nil)))
     (propertize text
 		'face face
-		'type 'file
-		'subtype (mentor-file-type file)
+		'type (mentor-file-type file)
                 'file-id (mentor-file-id file)
                 'field (mentor-file-id file)
 		'item-start (point)
@@ -1284,6 +1283,10 @@ point."
 
 
 ;;; Utility functions
+
+(defun mentor-item-type ()
+  (interactive)
+  (get-text-property (point) 'type))
 
 (defun mentor-prompt-complete (prompt list require-match default)
   (completing-read prompt list nil require-match nil nil
