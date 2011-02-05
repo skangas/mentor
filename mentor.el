@@ -1193,7 +1193,7 @@ point."
 	(assq-delete-all 'files mentor-selected-torrent-info))
   (let* ((tor mentor-selected-torrent)
 	 (hash (mentor-property 'hash tor))
-	 (files (mentor-torrent-get-file-list))
+	 (files (mentor-torrent-get-file-list tor))
 	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
          (file-id 0)
          (dir-id 0))
