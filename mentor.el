@@ -128,10 +128,21 @@ connecting through scgi or http."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
+(defface mentor-marked-item
+  '((t :inherit font-lock-warning-face))
+  "Face used for marked items."
+  :group 'mentor)
+(defvar mentor-marked-item-face 'mentor-marked-item)
+(defvar mentor-marked-char ?*)
+
 (defface mentor-directory-face
   '((t :inherit font-lock-function-name-face))
   "Face for highlighting directories."
   :group 'mentor)
+
+(defvar mentor-default-item-face
+  '((torrent . nil) (file . nil) (dir mentor-directory-face))
+  "An alist with the default face for item types.")
 
 
 ;;; major mode
@@ -170,7 +181,8 @@ connecting through scgi or http."
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
     (define-key map (kbd "R") 'mentor-move-torrent)
-    (define-key map (kbd "m") 'mentor-mark-torrent)
+    (define-key map (kbd "m") 'mentor-mark-item)
+    (define-key map (kbd "u") 'mentor-unmark-item)
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
     ;; sort functions
@@ -274,7 +286,7 @@ connecting through scgi or http."
 (defun mentor-init-header-line ()
   (setq header-line-format
         '(:eval (concat
-                 (propertize " " 'display '((space :align-to 0)))
+                 (propertize " " 'display '((space :align-to 2)))
                  (substring mentor-header-line
                             (min (length mentor-header-line)
                                  (window-hscroll)))))))
@@ -408,7 +420,7 @@ functions"
             "\n")))
 
 (defun mentor-process-view-columns (torrent)
-  (apply 'concat
+  (apply 'concat "  "
          (mapcar (lambda (col)
                    (let* ((pname (car col))
                           (len (cadr col))
@@ -1170,6 +1182,7 @@ and return it."
 		  'mentor-directory-face
 		nil)))
     (propertize text
+                'marked nil
 		'face face
 		'type (mentor-file-type file)
                 'file-id (mentor-file-id file)
@@ -1331,6 +1344,29 @@ point."
     (if (equal (elt str (- (length str) 1)) ?\n)
 	(substring str 0 (- (length str) 1))
       str)))
+
+(defun mentor-mark-item ()
+  (interactive)
+  (let* ((type (get-text-property (point) 'type))
+         (inhibit-read-only t)
+         (marked (if (boundp 'marked) marked t)))
+    (when type
+      (add-text-properties (mentor-get-item-beginning)
+                           (mentor-get-item-end)
+                           `(face ,mentor-marked-item-face
+                             marked ,marked))
+      (save-excursion
+        ;; insert at point-at-bol + 1 to inherit all properties
+        (goto-char (+ 1 (point-at-bol))) (insert-and-inherit mentor-marked-char)
+        (delete-region (point-at-bol) (+ 1 (point-at-bol))))
+      (mentor-next-section))))
+
+(defun mentor-unmark-item ()
+  (interactive)
+  (let ((mentor-marked-item-face (assq (mentor-item-type) mentor-default-item-face))
+        (mentor-marked-char " ")
+        (marked nil))
+    (mentor-mark-item)))
 
 (provide 'mentor)
 
