@@ -399,12 +399,12 @@ functions"
 
 (defun mentor-remove-torrent-from-view (torrent)
   (let ((buffer-read-only nil))
-    (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
+    (delete-region (mentor-get-item-beginning t) (mentor-get-item-end))
     (forward-char)))
 
 (defun mentor-insert-torrent (id torrent)
   (let ((text (mentor-process-view-columns torrent)))
-    (insert (propertize text 'field id 'torrent-id id 'collapsed t)
+    (insert (propertize text 'field id 'torrent-id id 'collapsed t 'type 'torrent)
             "\n")))
 
 (defun mentor-process-view-columns (torrent)
@@ -441,8 +441,8 @@ functions"
       (when (not (equal mentor-current-id mentor-highlighted-torrent))
 	(setq mentor-highlighted-torrent mentor-current-id)
 	(move-overlay mentor-highlight-overlay
-		      (mentor-get-torrent-beginning)
-		      (mentor-get-torrent-end)
+		      (mentor-get-item-beginning)
+		      (mentor-get-item-end)
 		      (current-buffer)))
     (delete-overlay mentor-highlight-overlay)
     (setq mentor-highlighted-torrent nil)))
@@ -458,7 +458,7 @@ functions"
            (inhibit-read-only t))
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-section t)))
-                  (lambda () (ignore-errors (mentor-torrent-end)))
+                  (lambda () (ignore-errors (mentor-item-end)))
                   (lambda () (mentor-property property)))))))
 
 (defun mentor-sort (&optional property reverse append)
@@ -539,12 +539,39 @@ the torrent at point."
                      (equal item (funcall item-fun))))
        ,@body)))
 
-(defun mentor-item-beginning ()
+(defun mentor-item-beginning (&optional real-start)
+  "Goto the beginning of the item at point. If the item at point
+has an item-start property defined and real-start is nil goto
+that point. Otherwise goto the real start point."
   (interactive)
   (let ((start (or (get-text-property (point) 'item-start)
                    (field-beginning nil nil (point-at-bol)))))
     (when start
       (goto-char start))))
+  ;; (let ((start (get-text-property (point) 'item-start)))
+  ;;   (if (and start (not real-start))
+  ;;       (goto-char start)
+  ;;     (while-same-item nil (> (point) (point-min)) (backward-char))
+  ;;     (when (not (eq (point) (point-min)))
+  ;;       (forward-char)))))
+
+(defun mentor-item-end ()
+  "Goto the end of the item at point."
+  (interactive)
+  (while-same-item nil (< (point) (point-max)) (forward-char)))
+
+(defun mentor-get-item-beginning (&optional real-start)
+  "If real-start is nil and the item at point has a item-start
+property defined return that point. Otherwise returt the real
+start point."
+  (save-excursion
+    (mentor-item-beginning real-start)
+    (point)))
+
+(defun mentor-get-item-end ()
+  (save-excursion
+    (mentor-item-end)
+    (point)))
 
 (defun mentor-next-section (&optional no-wrap)
   (interactive)
@@ -553,7 +580,7 @@ the torrent at point."
     (end-of-buffer
      (when (not no-wrap)
        (goto-char (point-min))
-       (when (not (field-at-pos (point)))
+       (when (not (mentor-item-type))
          (mentor-next-section t))))))
 
 (defun mentor-previous-section (&optional no-wrap)
@@ -563,9 +590,8 @@ the torrent at point."
     (beginning-of-buffer
      (when (not no-wrap)
        (goto-char (point-max))
-       (when (not (field-at-pos (point)))
-         (mentor-previous-section t)))))
-  (mentor-item-beginning))
+       (mentor-previous-section t))))
+  (mentor-item-beginning t))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -576,24 +602,6 @@ the torrent at point."
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos))))
-
-(defun mentor-get-torrent-beginning ()
-  (field-beginning nil nil (point-at-bol)))
-
-(defun mentor-get-torrent-end ()
-  (field-end nil t))
-
-(defun mentor-torrent-beginning ()
-  (interactive)
-  (if (not mentor-sub-mode)
-      (while-same-item nil (> (point) (point-min)) (backward-char))
-    (message "Not in main torrent view")))
-
-(defun mentor-torrent-end ()
-  (interactive)
-  (if (not mentor-sub-mode)
-      (while-same-item nil (< (point) (point-max)) (forward-char))
-    (message "Not in main torrent view")))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
