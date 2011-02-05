@@ -714,17 +714,18 @@ the torrent at point."
   (interactive)
   (message "TODO"))
 
-;; TODO: go directly to file
+;; TODO: go directly to file in the opened dired buffer
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
-   (let ((path (mentor-property 'base_path tor))
-         (is-multi-file (mentor-property 'is_multi_file tor))
-         (loc (if is-multi-file
-                  path
-                (file-name-directory path)))
-                  
-     (find-file ))))
+   (let* ((path (mentor-property 'base_path))
+          (is-multi-file (mentor-property 'is_multi_file))
+          (loc (if (= 1 is-multi-file)
+                   path
+                 (file-name-directory path))))
+     (if loc
+         (find-file loc)
+       (message "Torrent has no data: %s" (mentor-property 'name))))))
 
 (defun mentor-start-torrent (&optional tor)
   (interactive)
