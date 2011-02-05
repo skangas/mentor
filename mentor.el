@@ -33,14 +33,12 @@
 
 ;; TODO:
 ;; Make mentor-mode inherit special-mode
-;; Implement SCGI in Emacs Lisp (later)
 ;; Support for categories
 ;; Filters
 ;; Marking torrents and executing commands over all marked torrents
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
 ;; Torrent detail screen
-;; Moving torrents
 ;; Completion for (mentor-set-view) and (mentor-torrent-add-view-prompt)
 ;; Save cache to disk
 
@@ -198,23 +196,23 @@ connecting through scgi or http."
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
     map))
 
-(defvar mentor-mode-hook nil)
+(defvar mentor-mode-hook)
 
-(defvar mentor-auto-update-buffers nil)
+(defvar mentor-auto-update-buffers)
 
-(defvar mentor-auto-update-timer nil)
+(defvar mentor-auto-update-timer)
 
-(defvar mentor-current-view nil)
+(defvar mentor-current-view)
 
-(defvar mentor-header-line nil)
+(defvar mentor-header-line)
 
-(defvar mentor-rtorrent-client-version nil)
+(defvar mentor-rtorrent-client-version)
 (make-variable-buffer-local 'mentor-rtorrent-client-version)
 
-(defvar mentor-rtorrent-library-version nil)
+(defvar mentor-rtorrent-library-version)
 (make-variable-buffer-local 'mentor-rtorrent-library-version)
 
-(defvar mentor-rtorrent-name nil)
+(defvar mentor-rtorrent-name)
 (make-variable-buffer-local 'mentor-rtorrent-name)
 
 (defvar mentor-sort-list '((name) (up_rate . t)))
@@ -427,9 +425,9 @@ functions"
                                    " ")))
                        mentor-view-columns))))
 
-(defvar mentor-highlight-overlay nil)
-(defvar mentor-highlighted-torrent nil)
-(defvar mentor-current-id nil)
+(defvar mentor-highlight-overlay)
+(defvar mentor-highlighted-torrent)
+(defvar mentor-current-id)
 
 (defun mentor-highlight-torrent ()
   (setq mentor-current-id (mentor-id-at-point))
@@ -478,10 +476,10 @@ according to several criteria."
       (if append
           (add-to-list 'mentor-sort-list elem t)
         (setq mentor-sort-list (list elem)))))
-  (dolist (prop mentor-sort-list)
-    (let ((property (car prop))
-          (reverse (cdr prop)))
-      (mentor-do-sort property reverse))))
+  (dolist (property mentor-sort-list)
+    (let ((prop (car property))
+          (rev (cdr property)))
+      (mentor-do-sort prop rev))))
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
@@ -754,7 +752,7 @@ the torrent at point."
   "Hash table containing all torrents")
 (make-variable-buffer-local 'mentor-torrents)
 
-(defvar mentor-regexp-information-properties nil)
+(defvar mentor-regexp-information-properties)
 
 (defvar mentor-d-interesting-methods
   '("d.get_bytes_done"
@@ -990,7 +988,7 @@ If `torrent' is nil, use torrent at point."
                              (mentor-property 'hash tor) view)
        (message "Nothing done")))))
 
-(defvar mentor-torrent-views nil)
+(defvar mentor-torrent-views)
 (make-variable-buffer-local 'mentor-torrent-views)
 
 (defconst mentor-torrent-default-views
@@ -1097,7 +1095,7 @@ to a view unless the filter is updated."
     map)
   "Keymap used in `mentor-torrent-details-mode'.")
 
-(defvar mentor-f-interesting-methods nil)
+(defvar mentor-f-interesting-methods)
 (put 'mentor-f-interesting-methods 'permanent-local t)
 
 (define-minor-mode mentor-torrent-details-mode
