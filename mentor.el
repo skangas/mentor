@@ -237,7 +237,7 @@ connecting through scgi or http."
         mode-name "mentor"
         buffer-read-only t
         truncate-lines t)
-  (set (make-local-variable 'line-move-visual) nil)
+  (set (make-local-variable 'line-move-visual) t)
   (setq mentor-current-view mentor-default-view
         mentor-torrents (make-hash-table :test 'equal))
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
@@ -606,10 +606,29 @@ the torrent at point."
 
 ;;; Torrent actions
 
-;; FIXME: erase the files belonging to the torrent only (e.g. not extracted
-;; files in the same directory.)
+(defun mentor-erase-file (file)
+  (let ((dired-recursive-deletes nil))
+    (message "Deleting %s" file)
+    (condition-case err
+        (dired-delete-file file)
+      (file-error nil))))
+
 (defun mentor-erase-data (tor)
-  (dired-delete-file (mentor-property 'base_path tor) 'top))
+  (when (yes-or-no-p (concat "Remove data for " (mentor-property 'name tor) " "))
+    (let* ((hash (mentor-property 'hash tor))
+           (base-path (mentor-property 'base_path tor))
+           (files (mentor-torrent-get-file-list tor))
+           (dirs nil))
+      (if (= 0 (mentor-property 'is_multi_file tor))
+          (mentor-erase-file base-path)
+        (progn
+          (dolist (file files)
+            (let* ((file (mapconcat 'identity (apply 'list base-path (car file)) "/"))
+                   (dir (file-name-directory file)))
+              (mentor-erase-file file)
+              (setq dirs (adjoin dir dirs :test 'equal))))
+          (dolist (dir dirs)
+            (mentor-erase-file dir)))))))
 
 
 ;;; Interactive torrent commands
@@ -621,16 +640,18 @@ the torrent at point."
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (when (yes-or-no-p (concat "Remove " (mentor-property 'name tor) " "))
-     (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
-     (mentor-remove-torrent-from-view tor)
-     (remhash (mentor-property 'local_id tor) mentor-torrents))))
+   (let ((confirm (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))))
+       (when confirm
+         (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
+         (remhash (mentor-property 'local_id tor) mentor-torrents))
+       confirm)))
 
 (defun mentor-erase-torrent-and-data ()
   (interactive)
   (mentor-use-tor
-   (mentor-erase-torrent tor)
-   (mentor-erase-data tor)))
+   (mentor-torrent-get-file-list)
+   (when (mentor-erase-torrent tor)
+     (mentor-erase-data tor))))
 
 (defun mentor-call-command (&optional tor)
   (interactive)
@@ -698,10 +719,12 @@ the torrent at point."
   (interactive)
   (mentor-use-tor
    (let ((path (mentor-property 'base_path tor))
-         (is-multi-file (mentor-property 'is_multi_file tor)))
-     (find-file (if is-multi-file
-                    path
-                  (file-name-directory path))))))
+         (is-multi-file (mentor-property 'is_multi_file tor))
+         (loc (if is-multi-file
+                  path
+                (file-name-directory path)))
+                  
+     (find-file ))))
 
 (defun mentor-start-torrent (&optional tor)
   (interactive)
@@ -910,8 +933,18 @@ If `torrent' is nil, use torrent at point."
   (mentor-bytes-to-human
    (mentor-property 'size_bytes torrent)))
 
-(defun mentor-torrent-get-file-list (torrent)
-  (mentor-rpc-command "f.multicall" (mentor-property 'hash torrent) "" "f.get_path="))
+(defun mentor-torrent-get-file-list (&optional tor)
+  (mentor-use-tor
+   (let ((id (mentor-property 'local_id tor))
+         (hash (mentor-property 'hash tor))
+         (files (cdr-safe (assoc 'files tor))))
+     (when (not files)
+       (progn
+         (setq files (mentor-rpc-command
+                      "f.multicall" hash "" "f.get_path_components="))
+         (setcdr tor (cons (cons 'files files) (cdr tor)))
+         (puthash id tor mentor-torrents)))
+     files)))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
@@ -1032,11 +1065,11 @@ to a view unless the filter is updated."
 
 ;;; Torrent details screen
 
-(defvar mentor-selected-torrent nil)
+(defvar mentor-selected-torrent)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-selected-torrent-info nil)
+(defvar mentor-selected-torrent-info)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
@@ -1144,7 +1177,7 @@ point."
 	(assq-delete-all 'files mentor-selected-torrent-info))
   (let* ((tor mentor-selected-torrent)
 	 (hash (mentor-property 'hash tor))
-	 (files (mentor-rpc-command "f.multicall" hash "" "f.get_path_components="))
+	 (files (mentor-torrent-get-file-list))
 	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
          (file-id 0)
          (dir-id 0))
