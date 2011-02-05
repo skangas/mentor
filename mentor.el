@@ -826,24 +826,39 @@ the torrent at point."
      (puthash id (mentor-add-custom-properties tor) mentor-torrents))
    mentor-torrents))
 
+(defconst mentor-methods-to-prefix-with-cat
+  (regexp-opt '("bytes_done" "completed_bytes"
+                "left_bytes" "size_bytes"))
+  "Methods that should be prefixed with cat= when fetched.")
+
 (defun mentor-prefix-method-with-cat (method)
   "Used to get some properties as a string, since older versions
 of libxmlrpc-c cannot handle integers longer than 4 bytes."
-  (let ((re (regexp-opt '("d.get_bytes_done" "d.get_completed_bytes"
-                          "d.get_left_bytes" "d.get_size_bytes"))))
+  (let ((re (concat "\\(?:d\\.get_"
+                    mentor-methods-to-prefix-with-cat
+                    "\\)")))
     (if (string-match re method)
         (concat "cat=$" method)
       method)))
+
+(defun create-torrent (properties values)
+  (mapcar* 
+   (lambda (p v)
+     (cons p
+           (if (string-match mentor-methods-to-prefix-with-cat
+                             (symbol-name p))
+               (string-to-number v)
+             v)))
+   properties values))
 
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-prefix-method-with-cat methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
          (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
-         (attributes (mapcar 'mentor-rpc-method-to-property methods)))
+         (properties (mapcar 'mentor-rpc-method-to-property methods)))
     (mentor-view-torrent-list-clear)
     (mapcar (lambda (values)
-              (let ((tor (mapcar* (lambda (a b) (cons a b))
-                                  attributes values)))
+              (let ((tor (create-torrent properties values)))
                 (mentor-view-torrent-list-add tor)
                 tor))
             value-list)))
@@ -894,8 +909,8 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-property 'bytes_done torrent))
          (totalv (mentor-property 'size_bytes torrent))
-         (done (abs (or (string-to-number donev) 0)))
-         (total (abs (or (string-to-number totalv) 1)))
+         (done (abs (or donev 0)))
+         (total (abs (or totalv 1)))
          (percent (* 100 (/ done total))))
     (format "%3d%s" percent "%")))
 
@@ -918,8 +933,8 @@ If `torrent' is nil, use torrent at point."
    (mentor-property 'up_rate torrent)))
 
 (defun mentor-torrent-get-size (torrent)
-  (let ((done (string-to-number (mentor-property 'bytes_done torrent)))
-        (total (string-to-number (mentor-property 'size_bytes torrent))))
+  (let ((done (mentor-property 'bytes_done torrent))
+        (total (mentor-property 'size_bytes torrent)))
     (if (= done total)
         (format "         %-.6s" (mentor-bytes-to-human total))
       (format "%6s / %-6s"
