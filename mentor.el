@@ -1101,11 +1101,11 @@ to a view unless the filter is updated."
 
 ;;; Torrent details screen
 
-(defvar mentor-selected-torrent)
+(defvar mentor-selected-torrent nil)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-selected-torrent-info)
+(defvar mentor-selected-torrent-info nil)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
