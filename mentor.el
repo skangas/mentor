@@ -1329,6 +1329,16 @@ point."
 
 ;;; Utility functions
 
+(defmacro do-marked-items (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (when (not (mentor-item-type))
+       (mentor-next-section t))
+     (while (mentor-item-type)
+       (when (mentor-item-is-marked)
+         ,@body)
+       (mentor-next-section t))))
+
 (defun mentor-item-type ()
   (interactive)
   (get-text-property (point) 'type))
