@@ -182,6 +182,8 @@ connecting through scgi or http."
     (define-key map (kbd "R") 'mentor-move-torrent)
     (define-key map (kbd "m") 'mentor-mark-item)
     (define-key map (kbd "u") 'mentor-unmark-item)
+    (define-key map (kbd "M") 'mentor-mark-all)
+    (define-key map (kbd "U") 'mentor-unmark-all)
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
     ;; sort functions
@@ -1389,9 +1391,10 @@ point."
 (defun mentor-item-is-marked ()
   (get-text-property (point) 'marked))
 
-(defun mentor-mark-item (&optional clear-mark)
+(defun mentor-mark-item (&optional clear-mark no-jump)
   "Mark the item at point unless `clear-mark' is non nil then
-unmark the item instead."
+unmark the item instead. If `no-jump' is non nil stay at current
+item instead of jumping to next."
   (interactive)
   (let* ((type (get-text-property (point) 'type))
          (inhibit-read-only t)
@@ -1415,13 +1418,27 @@ unmark the item instead."
             ((eq type 'file)
              (setf (mentor-file-marked (mentor-file-at-point)) new-mark))
             ((eq type 'dir) (mentor-mark-dir (mentor-file-at-point) clear-mark)))
-      (when (not (eq type 'dir))
+      (when (and (not no-jump) (not (eq type 'dir)))
         (mentor-next-section t)))))
 
-(defun mentor-unmark-item ()
+(defun mentor-unmark-item (&optional no-jump)
   "Unmark the item at point."
   (interactive)
-  (mentor-mark-item t))
+  (mentor-mark-item t no-jump))
+
+(defun mentor-mark-all ()
+  "Mark all visible items except directories."
+  (interactive)
+  (do-items
+   (when (not (eq (mentor-item-type) 'dir))
+     (mentor-mark-item nil t))))
+
+(defun mentor-unmark-all ()
+  "Unmark all visible items."
+  (interactive)
+  (do-items
+   (when (mentor-item-is-marked)
+     (mentor-unmark-item t))))
 
 (provide 'mentor)
 
