@@ -126,10 +126,20 @@ connecting through scgi or http."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
+(defface mentor-marked-item
+  '((t :inherit font-lock-warning-face))
+  "Face used for marked items."
+  :group 'mentor)
+(defvar mentor-marked-item-face 'mentor-marked-item)
+
 (defface mentor-directory-face
   '((t :inherit font-lock-function-name-face))
   "Face for highlighting directories."
   :group 'mentor)
+
+(defvar mentor-default-item-faces
+  '((torrent . nil) (file . nil) (dir . mentor-directory-face))
+  "An alist with the default face for item types.")
 
 
 ;;; major mode
@@ -168,7 +178,10 @@ connecting through scgi or http."
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
     (define-key map (kbd "R") 'mentor-move-torrent)
-    (define-key map (kbd "m") 'mentor-mark-torrent)
+    (define-key map (kbd "m") 'mentor-mark-item)
+    (define-key map (kbd "u") 'mentor-unmark-item)
+    (define-key map (kbd "M") 'mentor-mark-all)
+    (define-key map (kbd "U") 'mentor-unmark-all)
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
     ;; sort functions
@@ -272,7 +285,7 @@ connecting through scgi or http."
 (defun mentor-init-header-line ()
   (setq header-line-format
         '(:eval (concat
-                 (propertize " " 'display '((space :align-to 0)))
+                 (propertize " " 'display '((space :align-to 2)))
                  (substring mentor-header-line
                             (min (length mentor-header-line)
                                  (window-hscroll)))))))
@@ -397,16 +410,21 @@ functions"
 
 (defun mentor-remove-torrent-from-view (torrent)
   (let ((buffer-read-only nil))
-    (delete-region (mentor-get-torrent-beginning) (mentor-get-torrent-end))
+    (delete-region (mentor-get-item-beginning t) (mentor-get-item-end))
     (forward-char)))
 
 (defun mentor-insert-torrent (id torrent)
-  (let ((text (mentor-process-view-columns torrent)))
-    (insert (propertize text 'field id 'torrent-id id 'collapsed t)
-            "\n")))
+  (let ((text (mentor-process-view-columns torrent))
+        (marked (mentor-property 'marked torrent)))
+    (insert (propertize text 'marked marked 'field id 'torrent-id id 
+                        'collapsed t 'type 'torrent) "\n")
+    (when marked
+      (save-excursion
+        (mentor-previous-section)
+        (mentor-mark-item)))))
 
 (defun mentor-process-view-columns (torrent)
-  (apply 'concat
+  (apply 'concat "  "
          (mapcar (lambda (col)
                    (let* ((pname (car col))
                           (len (cadr col))
@@ -439,8 +457,8 @@ functions"
       (when (not (equal mentor-current-id mentor-highlighted-torrent))
 	(setq mentor-highlighted-torrent mentor-current-id)
 	(move-overlay mentor-highlight-overlay
-		      (mentor-get-torrent-beginning)
-		      (mentor-get-torrent-end)
+		      (mentor-get-item-beginning)
+		      (mentor-get-item-end)
 		      (current-buffer)))
     (delete-overlay mentor-highlight-overlay)
     (setq mentor-highlighted-torrent nil)))
@@ -456,7 +474,7 @@ functions"
            (inhibit-read-only t))
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-section t)))
-                  (lambda () (ignore-errors (mentor-torrent-end)))
+                  (lambda () (ignore-errors (mentor-item-end)))
                   (lambda () (mentor-property property)))))))
 
 (defun mentor-sort (&optional property reverse append)
@@ -537,12 +555,39 @@ the torrent at point."
                      (equal item (funcall item-fun))))
        ,@body)))
 
-(defun mentor-item-beginning ()
+(defun mentor-item-beginning (&optional real-start)
+  "Goto the beginning of the item at point. If the item at point
+has an item-start property defined and real-start is nil goto
+that point. Otherwise goto the real start point."
   (interactive)
   (let ((start (or (get-text-property (point) 'item-start)
                    (field-beginning nil nil (point-at-bol)))))
     (when start
       (goto-char start))))
+  ;; (let ((start (get-text-property (point) 'item-start)))
+  ;;   (if (and start (not real-start))
+  ;;       (goto-char start)
+  ;;     (while-same-item nil (> (point) (point-min)) (backward-char))
+  ;;     (when (not (eq (point) (point-min)))
+  ;;       (forward-char)))))
+
+(defun mentor-item-end ()
+  "Goto the end of the item at point."
+  (interactive)
+  (while-same-item nil (< (point) (point-max)) (forward-char)))
+
+(defun mentor-get-item-beginning (&optional real-start)
+  "If real-start is nil and the item at point has a item-start
+property defined return that point. Otherwise returt the real
+start point."
+  (save-excursion
+    (mentor-item-beginning real-start)
+    (point)))
+
+(defun mentor-get-item-end ()
+  (save-excursion
+    (mentor-item-end)
+    (point)))
 
 (defun mentor-next-section (&optional no-wrap)
   (interactive)
@@ -551,7 +596,7 @@ the torrent at point."
     (end-of-buffer
      (when (not no-wrap)
        (goto-char (point-min))
-       (when (not (field-at-pos (point)))
+       (when (not (mentor-item-type))
          (mentor-next-section t))))))
 
 (defun mentor-previous-section (&optional no-wrap)
@@ -561,9 +606,8 @@ the torrent at point."
     (beginning-of-buffer
      (when (not no-wrap)
        (goto-char (point-max))
-       (when (not (field-at-pos (point)))
-         (mentor-previous-section t)))))
-  (mentor-item-beginning))
+       (mentor-previous-section t))))
+  (mentor-item-beginning t))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -575,30 +619,12 @@ the torrent at point."
     (if (not (= pos (point-max)))
         (goto-char pos))))
 
-(defun mentor-get-torrent-beginning ()
-  (field-beginning nil nil (point-at-bol)))
-
-(defun mentor-get-torrent-end ()
-  (field-end nil t))
-
-(defun mentor-torrent-beginning ()
-  (interactive)
-  (if (not mentor-sub-mode)
-      (while-same-item nil (> (point) (point-min)) (backward-char))
-    (message "Not in main torrent view")))
-
-(defun mentor-torrent-end ()
-  (interactive)
-  (if (not mentor-sub-mode)
-      (while-same-item nil (< (point) (point-max)) (forward-char))
-    (message "Not in main torrent view")))
-
 ;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
   (let ((type (get-text-property (point) 'type))
 	(props (text-properties-at (point))))
-    (cond ((eq type 'file) 
+    (cond ((eq type 'dir) 
 	   (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
@@ -884,6 +910,7 @@ expensive operation."
          (torrents (mentor-rpc-d.multicall methods)))
     (dolist (tor torrents)
       (let ((id (mentor-property 'local_id tor)))
+        (mentor-set-property 'marked nil tor)
         (puthash id tor mentor-torrents))))
   (mentor-update-custom-properties)
   (mentor-views-update-views)
@@ -903,6 +930,14 @@ expensive operation."
 If `torrent' is nil, use torrent at point."
   (mentor-use-tor
    (cdr (assoc property tor))))
+
+(defun mentor-set-property (property val &optional tor)
+  "Set a property for a torrent.
+If `torrent' is nil, use torrent at point."
+  (mentor-use-tor
+   (let ((id (mentor-property 'local_id tor)))
+     (assq-delete-all property tor)
+     (puthash id (cons (cons property val) tor) mentor-torrents))))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-property 'bytes_done torrent))
@@ -1079,11 +1114,11 @@ to a view unless the filter is updated."
 
 ;;; Torrent details screen
 
-(defvar mentor-selected-torrent)
+(defvar mentor-selected-torrent nil)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-selected-torrent-info)
+(defvar mentor-selected-torrent-info nil)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
@@ -1111,7 +1146,7 @@ files.  A mentor-file can be either a regular file or a filename
 and if it is the latter it will contain a list of the files it
 contain.  If it is a regular file it will contain an id which is
 the integer index used by rtorrent to identify this file."
-  name show type id files)
+  name show type id files marked)
 
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
@@ -1127,12 +1162,14 @@ the integer index used by rtorrent to identify this file."
 
 (defun mentor-toggle-file (file)
   (interactive)
-  (when (mentor-file-is-dir file)
-    (setf (mentor-file-show file)
-	  (if (mentor-file-show file)
-	      nil
-	    t))
-    (mentor-details-redisplay)))
+  (let ((start-point (point)))
+    (when (mentor-file-is-dir file)
+      (setf (mentor-file-show file)
+            (if (mentor-file-show file)
+                nil
+              t))
+      (mentor-details-redisplay))
+    (goto-char start-point)))
 
 (defun mentor-file-get-or-add-file (dir file)
   "If there already exists a file with the same name in the
@@ -1160,9 +1197,9 @@ and return it."
 		  'mentor-directory-face
 		nil)))
     (propertize text
+                'marked nil
 		'face face
-		'type 'file
-		'subtype (mentor-file-type file)
+		'type (mentor-file-type file)
                 'file-id (mentor-file-id file)
                 'field (mentor-file-id file)
 		'item-start (point)
@@ -1191,7 +1228,7 @@ point."
 	(assq-delete-all 'files mentor-selected-torrent-info))
   (let* ((tor mentor-selected-torrent)
 	 (hash (mentor-property 'hash tor))
-	 (files (mentor-torrent-get-file-list tor))
+         (files (mentor-torrent-get-file-list tor))
 	 (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
          (file-id 0)
          (dir-id 0))
@@ -1230,7 +1267,7 @@ point."
   (interactive)
   (dolist (file (mentor-file-files dir))
     (let ((file (cdr file))
-	  (margin (make-string level 32)))
+	  (margin (make-string (+ 2 level) 32)))
       (if (mentor-file-is-dir file)
 	  (let* ((show-content (mentor-file-show file))
 		 (symb (if show-content "\\ " "+ ")))
@@ -1240,7 +1277,11 @@ point."
 		     (mentor-details-show-dir-content file (+ level 1))
 		     (insert margin "/\n"))))
 	(insert margin "|-- ")
-	(insert (mentor-file-propertize file) "\n")))))
+	(insert (mentor-file-propertize file) "\n")
+        (when (mentor-file-marked file)
+          (save-excursion
+            (mentor-previous-section)
+            (mentor-mark-item)))))))
 
 (defun mentor-details-redisplay ()
   (interactive)
@@ -1272,8 +1313,34 @@ point."
     (while-same-item t t (backward-char))
     (mentor-item-beginning)))
 
+(defun mentor-mark-dir (file &optional clear-mark no-redisplay)
+  (interactive)
+  (when (not (mentor-file-show file))
+    (setf (mentor-file-show file) t))
+  (dolist (curr-file (mentor-file-files file))
+    (let ((curr-file (cdr curr-file))
+          (new-mark (if clear-mark nil t)))
+      (if (mentor-file-is-dir curr-file)
+          (mentor-mark-dir curr-file clear-mark t)
+        (setf (mentor-file-marked curr-file) new-mark))))
+  (when (not no-redisplay)
+    (mentor-details-redisplay)))
+
 
 ;;; Utility functions
+
+(defmacro do-items (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (when (not (mentor-item-type))
+       (mentor-next-section t))
+     (while (mentor-item-type)
+       ,@body
+       (mentor-next-section t))))
+
+(defun mentor-item-type ()
+  (interactive)
+  (get-text-property (point) 'type))
 
 (defun mentor-prompt-complete (prompt list require-match default)
   (completing-read prompt list nil require-match nil nil
@@ -1318,6 +1385,58 @@ point."
     (if (equal (elt str (- (length str) 1)) ?\n)
 	(substring str 0 (- (length str) 1))
       str)))
+
+(defun mentor-item-is-marked ()
+  (get-text-property (point) 'marked))
+
+(defun mentor-mark-item (&optional clear-mark no-jump)
+  "Mark the item at point unless `clear-mark' is non nil then
+unmark the item instead. If `no-jump' is non nil stay at current
+item instead of jumping to next."
+  (interactive)
+  (let* ((type (get-text-property (point) 'type))
+         (inhibit-read-only t)
+         (new-mark (if clear-mark nil t))
+         (new-face (if new-mark mentor-marked-item-face
+                 (assq (mentor-item-type) mentor-default-item-faces)))
+         (mark-char (if clear-mark " " ?*))
+         (start-point (point)))
+    (when type
+      (when (not (eq type 'dir))
+        (add-text-properties (mentor-get-item-beginning)
+                             (mentor-get-item-end)
+                             `(face ,new-face
+                               marked ,new-mark))
+        ;; insert at point-at-bol + 1 to inherit all properties
+        (goto-char (+ 1 (point-at-bol))) (insert-and-inherit mark-char)
+        (delete-region (point-at-bol) (+ 1 (point-at-bol))))
+      (goto-char start-point)
+      (cond ((eq type 'torrent)
+             (mentor-set-property 'marked new-mark))
+            ((eq type 'file)
+             (setf (mentor-file-marked (mentor-file-at-point)) new-mark))
+            ((eq type 'dir) (mentor-mark-dir (mentor-file-at-point) clear-mark)))
+      (when (and (not no-jump) (not (eq type 'dir)))
+        (mentor-next-section t)))))
+
+(defun mentor-unmark-item (&optional no-jump)
+  "Unmark the item at point."
+  (interactive)
+  (mentor-mark-item t no-jump))
+
+(defun mentor-mark-all ()
+  "Mark all visible items except directories."
+  (interactive)
+  (do-items
+   (when (not (eq (mentor-item-type) 'dir))
+     (mentor-mark-item nil t))))
+
+(defun mentor-unmark-all ()
+  "Unmark all visible items."
+  (interactive)
+  (do-items
+   (when (mentor-item-is-marked)
+     (mentor-unmark-item t))))
 
 (provide 'mentor)
 
