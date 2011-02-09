@@ -323,6 +323,16 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
   (let ((url-http-response-status 200))
     (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
 
+(defun mentor-sys-multicall (&rest calls)
+  "Perform a system.multicall with `calls'.  Every call should be
+a list where the first element is the method name and all
+consecutive elements is its arguments."
+  (mentor-rpc-command
+   "system.multicall"
+   (mapcar (lambda (c)
+             (apply 'mentor-multicall-string 
+                    (car c) (cdr c))) calls)))
+  
 ;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
@@ -347,6 +357,9 @@ functions"
                             m))
                         mentor-rtorrent-rpc-methods))
     mentor-rtorrent-rpc-methods))
+
+(defun mentor-multicall-string (method &rest args)
+  (list (cons "methodName" method) (cons "params" args)))
 
 
 ;;; Main view
@@ -1347,6 +1360,13 @@ point."
      (while (mentor-item-type)
        ,@body
        (mentor-next-section t))))
+
+(defun limit-num (num min max)
+  (if (< num min)
+      min
+    (if (> num max)
+        max
+      num)))
 
 (defun mentor-item-type ()
   (interactive)
