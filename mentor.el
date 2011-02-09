@@ -214,7 +214,7 @@ connecting through scgi or http."
 
 (defvar mentor-auto-update-buffers)
 
-(defvar mentor-auto-update-timer)
+(defvar mentor-auto-update-timer nil)
 
 (defvar mentor-current-view)
 
@@ -466,8 +466,8 @@ functions"
                                           " ")))
                               mentor-view-columns))))))
 
-(defvar mentor-highlight-overlay)
-(defvar mentor-highlighted-torrent)
+(defvar mentor-highlight-overlay nil)
+(defvar mentor-highlighted-torrent nil)
 (defvar mentor-current-id)
 
 (defun mentor-highlight-torrent ()
