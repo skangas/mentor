@@ -105,7 +105,8 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '((progress -5 "Progress")
+  '((prio -6 "Prio")
+    (progress -5 "Progress")
     (state-desc -3 "State")
     (name -80 "Name")
     (speed-up -6 "Up")
@@ -116,7 +117,7 @@ connecting through scgi or http."
     (directory -100 "Directory"))
   "A list of all columns to show in mentor view."
   :group 'mentor
-  :type '(alist :key-type symbol :value-type string))
+  :type '(repeat (list symbol integer string)))
 
 (defface mentor-highlight-face
   '((((class color) (background light))
@@ -786,6 +787,7 @@ start point."
     "d.get_hashing"
     "d.get_hashing_failed"
     "d.get_priority"
+    "d.get_chunk_size"
     "d.get_up_rate"
     "d.get_up_total"
     "d.get_state"
@@ -834,7 +836,8 @@ start point."
     (state-desc . mentor-torrent-get-state)
     (speed-up . mentor-torrent-get-speed-up)
     (speed-down . mentor-torrent-get-speed-down)
-    (size . mentor-torrent-get-size)))
+    (size . mentor-torrent-get-size)
+    (prio . mentor-torrent-get-prio-string)))
 
 (defun mentor-add-custom-properties (tor)
   (dolist (prop mentor-custom-properties tor)
@@ -852,7 +855,7 @@ start point."
 
 (defconst mentor-methods-to-prefix-with-cat
   (regexp-opt '("bytes_done" "completed_bytes"
-                "left_bytes" "size_bytes"))
+                "left_bytes" "size_bytes" "chunk_size"))
   "Methods that should be prefixed with cat= when fetched.")
 
 (defun mentor-prefix-method-with-cat (method)
@@ -1001,6 +1004,13 @@ If `torrent' is nil, use torrent at point."
 
 (defun mentor-torrent-get-views (tor)
   (mentor-property 'views tor))
+
+(defun mentor-torrent-get-prio-string (tor)
+  (let ((prio (mentor-property 'priority tor)))
+    (cond ((= 0 prio) "off")
+          ((= 1 prio) "low")
+          ((= 2 prio) "normal")
+          ((= 3 prio) "high"))))
 
 
 ;;; View functions
