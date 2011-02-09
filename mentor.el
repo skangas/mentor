@@ -947,7 +947,7 @@ If `torrent' is nil, use torrent at point."
          (totalv (mentor-property 'size_bytes torrent))
          (done (abs (or donev 0)))
          (total (abs (or totalv 1)))
-         (percent (* 100 (/ done total))))
+         (percent (* 100 (/ (+ 0.0 done) total))))
     (format "%3d%s" percent "%")))
 
 ;; TODO show an "I" for incomplete torrents
