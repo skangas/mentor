@@ -620,7 +620,8 @@ start point."
      (when (not no-wrap)
        (goto-char (point-min))
        (when (not (mentor-item-type))
-         (mentor-next-section t))))))
+         (mentor-next-section t)))))
+  (mentor-item-beginning))
 
 (defun mentor-previous-section (&optional no-wrap)
   (interactive)
@@ -1396,7 +1397,8 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-section))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t t (forward-char))))
+    (while-same-item t t (forward-char)))
+  (mentor-item-beginning))
 
 (defun mentor-details-previous-directory ()
   (interactive)
