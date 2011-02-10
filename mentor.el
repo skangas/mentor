@@ -832,7 +832,7 @@ start point."
 
 (defun mentor-rpc-method-to-property (name)
   (intern
-   (replace-regexp-in-string "^d\\.\\(get_\\)?\\|=$" "" name)))
+   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" name)))
 
 ;; (defun mentor-property-to-rpc-method () nil)
 
@@ -887,13 +887,14 @@ start point."
 
 (defconst mentor-methods-to-prefix-with-cat
   (regexp-opt '("bytes_done" "completed_bytes"
-                "left_bytes" "size_bytes" "chunk_size"))
+                "left_bytes" "size_bytes" "chunk_size"
+                "completed_chunks" "size_chunks"))
   "Methods that should be prefixed with cat= when fetched.")
 
 (defun mentor-prefix-method-with-cat (method)
   "Used to get some properties as a string, since older versions
 of libxmlrpc-c cannot handle integers longer than 4 bytes."
-  (let ((re (concat "\\(?:d\\.get_"
+  (let ((re (concat "\\(?:[df]\\.get_"
                     mentor-methods-to-prefix-with-cat
                     "\\)")))
     (if (string-match re method)
