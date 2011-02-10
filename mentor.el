@@ -219,6 +219,7 @@ connecting through scgi or http."
 (defvar mentor-current-view)
 
 (defvar mentor-header-line)
+(make-variable-buffer-local 'mentor-header-line)
 
 (defvar mentor-rtorrent-client-version)
 (make-variable-buffer-local 'mentor-rtorrent-client-version)
