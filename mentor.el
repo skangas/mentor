@@ -392,11 +392,13 @@ functions"
 (defun mentor-reload ()
   "Re-initialize all torrents and redisplay."
   (interactive)
-  (mentor-keep-torrent-position
-   (when (mentor-views-is-custom-view mentor-current-view)
-     (mentor-views-update-filter mentor-current-view))
-   (mentor-init-torrent-list)
-   (mentor-redisplay)))
+  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update t))
+        ((not mentor-sub-mode)
+         (mentor-keep-torrent-position
+          (when (mentor-views-is-custom-view mentor-current-view)
+            (mentor-views-update-filter mentor-current-view))
+          (mentor-init-torrent-list)
+          (mentor-redisplay)))))
 
 (defun mentor-redisplay ()
   "Completely reload the mentor torrent view buffer."
