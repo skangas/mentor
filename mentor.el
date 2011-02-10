@@ -870,20 +870,33 @@ start point."
     (speed-down . mentor-torrent-get-speed-down)
     (size . mentor-torrent-get-size)
     (prio . mentor-torrent-get-prio-string)))
+(make-variable-buffer-local 'mentor-custom-properties)
 
-(defun mentor-add-custom-properties (tor)
-  (dolist (prop mentor-custom-properties tor)
+(defun mentor-add-custom-properties (item)
+  (dolist (prop mentor-custom-properties item)
     (let ((pnam (car prop))
           (pfun (cdr prop)))
-      (assq-delete-all pnam tor)
-      (if (assq pnam mentor-view-columns)
-          (setq tor (cons (cons pnam (funcall pfun tor)) tor))))))
+      (cond ((eq mentor-sub-mode 'file-details)
+             (let ((file-fun (mentor-concat-symbols
+                              'mentor-file- pnam)))
+               (eval `(setf ,file-fun (funcall pfun item)))))
+            ((not mentor-sub-mode)
+             (assq-delete-all pnam item)
+             (if (assq pnam mentor-view-columns)
+                 (setq item
+                       (cons (cons pnam (funcall pfun item)) item))))))))
 
 (defun mentor-update-custom-properties ()
-  (maphash
-   (lambda (id tor)
-     (puthash id (mentor-add-custom-properties tor) mentor-torrents))
-   mentor-torrents))
+  (cond ((eq mentor-sub-mode 'file-details)
+         (mapc
+          (lambda (file)
+            (mentor-add-custom-properties file))
+          (cdr (assq 'files mentor-selected-torrent-info))))
+        ((not mentor-sub-mode)
+         (maphash
+          (lambda (id tor)
+            (puthash id (mentor-add-custom-properties tor) mentor-torrents))
+          mentor-torrents))))
 
 (defconst mentor-methods-to-prefix-with-cat
   (regexp-opt '("bytes_done" "completed_bytes"
@@ -1179,7 +1192,7 @@ to a view unless the filter is updated."
   "Keymap used in `mentor-torrent-details-mode'.")
 
 (defconst mentor-f-interesting-methods
-  '("f.get_priority" "cat=$f.get_completed_chunks" "cat=$f.get_size_chunks"))
+  '("f.get_priority" "f.get_completed_chunks" "f.get_size_chunks"))
 (put 'mentor-f-interesting-methods 'permanent-local t)
 
 (define-minor-mode mentor-torrent-details-mode
@@ -1195,7 +1208,8 @@ files.  A mentor-file can be either a regular file or a filename
 and if it is the latter it will contain a list of the files it
 contain.  If it is a regular file it will contain an id which is
 the integer index used by rtorrent to identify this file."
-  name show type id files marked completed total-size prio)
+  name show marked size completed_chunks
+  size_chunks priority files type id)
 
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
@@ -1210,15 +1224,28 @@ the integer index used by rtorrent to identify this file."
   (mentor-file-is-dir (mentor-file-at-point)))
 
 (defun mentor-file-prio-string (file)
-  (let ((prio (mentor-file-prio file)))
+  (let ((prio (mentor-file-priority file)))
     (cond ((eq prio 0) "off")
           ((eq prio 1) "normal")
           ((eq prio 2) "high"))))
 
+(defun mentor-file-progress (file)
+  (let* ((chunk-size (mentor-property
+                     'chunk_size mentor-selected-torrent))
+         (done (mentor-file-completed_chunks file))
+         (size (mentor-file-size_chunks file)))
+    (format "%d%s" (* 100 (/ (+ 0.0 done) size)) "%")))
+
+(defun mentor-file-size (file)
+  (let* ((chunk-size (mentor-property
+                      'chunk_size mentor-selected-torrent)))
+    (mentor-bytes-to-human
+     (* chunk-size (mentor-file-size_chunks file)))))
+
 (defun mentor-file-priority-fun (val)
   (let* ((file (mentor-file-at-point))
          (id   (mentor-file-id file))
-         (prio (mentor-file-prio file))
+         (prio (mentor-file-priority file))
          (hash (mentor-property 'hash mentor-selected-torrent)))
     (when (not (mentor-file-is-dir file))
       (list "f.set_priority" hash id (limit-num (+ prio val) 0 2)))))
@@ -1234,37 +1261,28 @@ the integer index used by rtorrent to identify this file."
       (mentor-details-redisplay))
     (goto-char start-point)))
 
-(defun mentor-file-get-or-add-file (dir file)
-  "If there already exists a file with the same name in the
-specified directory return it, else add the file to the directory
-and return it."
-  (let* ((name (mentor-file-name file))
-         (pred (lambda (x) (string= name (mentor-file-name x))))
+(defun mentor-file-get-file (dir name)
+  "Returns the file with the specified name in the directory
+`dir'."
+  (let* ((pred (lambda (x) (string= name (mentor-file-name x))))
          (file^ (find-if pred (mentor-file-files dir))))
-    (if file^
-	file^
-      (mentor-file-add-file dir file)
-      file)))
+    (when file^
+      file^)))
 
 (defun mentor-file-add-file (dir file)
-  "Adds a file to the specified directory structure."
-  (let ((name (mentor-file-name file)))
-    (push file (mentor-file-files dir))))
+  "Adds a file to the back of the specified directory."
+  (setf (mentor-file-files dir)
+        (nconc (mentor-file-files dir) (list file))))
 
-(defun mentor-file-propertize (file)
-  (let ((name (mentor-file-name file))
-        (face (if (mentor-file-is-dir file)
+(defun mentor-file-properties (file)
+  (let ((face (if (mentor-file-is-dir file)
                   'mentor-directory-face
                 nil)))
-    (propertize name
-                'marked nil
-                'face face
-                'type (mentor-file-type file)
-                'file-id (mentor-file-id file)
-                'field (mentor-file-id file)
-                'item-start (point)
-                'file file
-                'show (mentor-file-show file))))
+    (list 'face face
+          'type (mentor-file-type file)
+          'file-id (mentor-file-id file)
+          'file file
+          'show (mentor-file-show file))))
 
 (defun mentor-torrent-detail-screen (&optional tor)
   "Show information about the specified torrent or the torrent at
@@ -1276,120 +1294,133 @@ point."
    (mentor-mode)
    (mentor-init-header-line)
    (setq mentor-priority-fun 'mentor-file-priority-fun)
+   (setq mentor-custom-properties '((prio . mentor-file-prio-string)
+                                    (progress . mentor-file-progress)
+                                    (size . mentor-file-size)))
    (mentor-torrent-details-mode t)
    (setq mentor-selected-torrent tor)
-   (mentor-details-files-init)
+   (mentor-details-files-update t)
    (mentor-details-redisplay)
-   (when (not (mentor-item-type))
-     (mentor-next-section t))))
+   (if (not (mentor-item-type))
+       (mentor-next-section t)
+     (mentor-item-beginning))))
 
-(defun mentor-details-files-update ()
-  (interactive)
-  (let* ((root (cdr (assq 'files mentor-selected-torrent-info)))
-         (chunk-size (mentor-property 'chunk_size mentor-selected-torrent))
-         (hash (mentor-property 'hash mentor-selected-torrent))
-         (file-list (mentor-file-files root))
-         (curr-file (pop file-list))
-         (all-props (apply 'mentor-rpc-command "f.multicall" hash ""
-                           (mapcar (lambda (m) (concat m "="))
-                                   mentor-f-interesting-methods))))
-    (dolist (file-props all-props)
-      (while (mentor-file-is-dir curr-file)
-        (setq file-list (append (mentor-file-files curr-file)
-                                file-list))
-        (setq curr-file (pop file-list)))
-      (let ((prio (car file-props))
-            (completed (* chunk-size (string-to-number (cadr file-props))))
-            (size (* chunk-size (string-to-number (caddr file-props)))))
-        (setf (mentor-file-prio curr-file) prio)
-        (setf (mentor-file-total-size curr-file) size)
-        (setf (mentor-file-completed curr-file) completed)
-        (setq curr-file (pop file-list)))))
-  (mentor-details-redisplay))
+(defun mentor-details-add-files (name-list)
+  (let ((root (make-mentor-file :name "/" :type 'dir :id -1 :show t))
+        (all-files (make-hash-table :test 'eql))
+        (dir-id -1)
+        (file-id -1))
+    (dolist (names name-list)
+      (let* ((file (pop names))
+             (len (length names))
+             (last-dir root)
+             (curr-dir nil))
+        (while (> len 0)
+          (if (mentor-file-get-file last-dir file)
+              (setq last-dir (mentor-file-get-file last-dir file))
+            (setq curr-dir (make-mentor-file :name file
+                                             :type 'dir :show nil
+                                             :id (decf dir-id)))
+            (mentor-file-add-file last-dir curr-dir)
+            (setq last-dir curr-dir))
+          (setq file (pop names))
+          (decf len))
+        (setq file (make-mentor-file :name file :type 'file
+                                     :id (incf file-id)))
+        (mentor-file-add-file last-dir file)
+        (puthash file-id file all-files)))
+    (setq mentor-selected-torrent-info
+          (cons (cons 'root root)
+                (cons (cons 'files all-files)
+                      mentor-selected-torrent-info)))))
 
-(defun mentor-details-files-init ()
+(defun mentor-details-files-update (&optional add-files)
   (interactive)
-  (setq mentor-selected-torrent-info
-	(assq-delete-all 'files mentor-selected-torrent-info))
+  (when add-files
+    (setq mentor-selected-torrent-info
+          (assq-delete-all 'root mentor-selected-torrent-info))
+    (setq mentor-selected-torrent-info
+          (assq-delete-all 'files mentor-selected-torrent-info)))
   (let* ((tor mentor-selected-torrent)
-	 (hash (mentor-property 'hash tor))
-         (chunk-size (mentor-property 'chunk_size tor))
-         (methods (cons "f.get_path_components" mentor-f-interesting-methods))
-         (files (apply 'mentor-rpc-command "f.multicall" hash ""
-                       (mapcar (lambda (m) (concat m "=")) methods)))
-         (root (make-mentor-file :name "/" :show 1 :type 'dir :files nil))
-         (file-id 0)
-         (dir-id 0))
-    (dolist (file files)
-      (let* ((prio (cadr file))
-             (completed (* chunk-size (string-to-number (caddr file))))
-             (size (* chunk-size (string-to-number (cadddr file))))
-             (paths (car file))
-             (len (length paths))
-             (curr-file (car paths))
-             (curr-dir root))
-	(while (> len 1)
-	  (setq curr-file (make-mentor-file :name curr-file :type 'dir
-                                            :id (decf dir-id) :show nil))
-	  (setq curr-dir (mentor-file-get-or-add-file curr-dir curr-file))
-	  (setq curr-file (car (setq paths (cdr paths))))
-	  (decf len))
-	(mentor-file-add-file curr-dir
-			      (make-mentor-file :name curr-file :show 1 
-                                                :type 'file :id file-id
-                                                :prio prio :total-size size
-                                                :completed completed))
-        (incf file-id)))
-    ;; reverse all file lists
-    (let ((dir-list (list root))
-	  (curr-dir))
-      (while dir-list
-	(setq curr-dir (pop dir-list))
-	(setf (mentor-file-files curr-dir) 
-	      (nreverse (mentor-file-files curr-dir)))
-	(mapc (lambda (file)
-                (when (mentor-file-is-dir file)
-                  (push file dir-list)))
-	      (mentor-file-files curr-dir))))
-    (add-to-list 'mentor-selected-torrent-info (cons 'files root)))
+         (hash (mentor-property 'hash tor))
+         (methods mentor-f-interesting-methods)
+         (methods+ (mapcar
+                    'mentor-prefix-method-with-cat
+                    (if add-files
+                        (cons "f.get_path_components" methods)
+                      methods)))
+         (methods= (mapcar (lambda (m) (concat m "=")) methods+))
+         (value-list (apply 'mentor-rpc-command
+                            "f.multicall" hash "" methods=))
+         (properties (mapcar 'mentor-rpc-method-to-property methods)))
+    (when add-files
+      (mentor-details-add-files (mapcar 'car value-list))
+      (setq value-list (mapcar 'cdr value-list)))
+    (let ((files (cdr (assq 'files mentor-selected-torrent-info)))
+          (id -1))
+      (dolist (values value-list)
+        (let ((file (gethash (incf id) files)))
+          (mapc (lambda (p)
+                  (let* ((file-fun (mentor-concat-symbols 'mentor-file- p))
+                         (val (if (string-match mentor-methods-to-prefix-with-cat
+                                                (symbol-name p))
+                                  (string-to-number (pop values))
+                                (pop values))))
+                    (eval `(setf (,file-fun file) ,val))))
+                properties)
+          (setq file (mentor-add-custom-properties file))))))
   (mentor-details-redisplay))
 
-(defun mentor-details-show-dir-content (dir level)
+(defvar mentor-file-detail-columns
+  '((mentor-file-progress . -7) (mentor-file-prio-string . -7)
+    (mentor-file-size . 6)))
+
+(defun mentor-insert-file (file level)
+  (interactive)
+  (let ((margin (make-string level ? ))
+        (props (mentor-file-properties file))
+        (text nil))
+    (setq text (apply 'concat "  "
+                      (mapcar (lambda (col)
+                                (let* ((pfun (car col))
+                                       (len (cdr col))
+                                       (str (funcall pfun file)))
+                                  (mentor-enforce-length str len)))
+                              mentor-file-detail-columns)))
+    (insert (apply 'propertize
+                   (concat text margin " |-- " (mentor-file-name file))
+                   (cons 'item-start (cons (+ level 5 (point) (length text))
+                                           props)))
+            "\n")))
+
+(defun mentor-insert-dir-content (dir level)
   (interactive)
   (dolist (file (mentor-file-files dir))
-    (let ((dir-margin (make-string (+ 23 level) ? )))
-      (if (mentor-file-is-dir file)
-	  (let* ((show-content (mentor-file-show file))
-		 (symb (if show-content "\\ " "+ ")))
-	    (insert dir-margin symb)
-            (insert (mentor-file-propertize file) "\n")
-            (when show-content
-              (mentor-details-show-dir-content file (+ level 1))
-              (insert dir-margin "/\n")))
-        (let* ((done (mentor-file-completed file))
-               (size (mentor-file-total-size file))
-               (completed (format "%d%s" (* 100 (/ (+ 0.0 done) size)) "%"))
-               (prio (mentor-file-prio-string file))
-               (file-margin (make-string level ? )))
-          (insert "  " (mentor-enforce-length completed -7)
-                  (mentor-enforce-length prio -7)
-                  (mentor-enforce-length (mentor-bytes-to-human size) 6)
-                  file-margin " | -- ")
-          (insert (mentor-file-propertize file) "\n")
-          (when (mentor-file-marked file)
-            (save-excursion
-              (mentor-previous-section t)
-              (mentor-mark-item))))))))
+    (if (mentor-file-is-dir file)
+        (let* ((margin (make-string (+ 23 level) ? ))
+               (show (mentor-file-show file))
+               (symb (if show "\\ " "+ "))
+               (text (concat margin symb (mentor-file-name file))))
+          (insert (apply 'propertize text
+                         'item-start (+ 2 (point) (length margin))
+                         (mentor-file-properties file)) "\n")
+          (when show
+            (mentor-insert-dir-content file (+ level 1))
+            (insert margin "/\n")))
+      (mentor-insert-file file level))
+    (when (mentor-file-marked file)
+      (save-excursion
+        (mentor-previous-section t)
+        (mentor-mark-item)))))
 
 (defun mentor-details-redisplay ()
   (interactive)
-  (let ((inhibit-read-only t)
-        (pos (point))
-        (dir (cdr (assq 'files mentor-selected-torrent-info))))
+  (let* ((inhibit-read-only t)
+         (pos (point))
+         (root (cdr (assq 'root mentor-selected-torrent-info))))
     (erase-buffer)
-    (end-of-buffer)
     (mentor-reload-header-line)
-    (mentor-details-show-dir-content dir 0)
+    (mentor-insert-dir-content root 0)
     (goto-char pos)))
 
 ;; wrapping doesn't work for next-dir atm
@@ -1440,6 +1471,9 @@ point."
     (if (> num max)
         max
       num)))
+
+(defun mentor-concat-symbols (&rest symbols)
+  (intern (apply 'concat (mapcar 'symbol-name symbols))))
 
 (defun mentor-item-type ()
   (interactive)
