@@ -941,18 +941,31 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                 tor))
             value-list)))
 
+(put 'mentor-need-init
+     'error-conditions
+     '(error mentor-error mentor-need-init))
+
 (defun mentor-update-torrents ()
   (interactive)
   (message "Updating torrent list...")
-  (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
-         (torrents (mentor-rpc-d.multicall methods)))
-    (dolist (tor torrents)
-      (let* ((id (mentor-property 'local_id tor))
-             (tor^ (mentor-get-torrent id)))
-        (dolist (p tor)
-          (setcdr (assq (car p) tor^) (cdr p))))))
-  (mentor-update-custom-properties)
-  (message "Updating torrent list...DONE"))
+  (condition-case err
+      (progn
+        (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
+               (tors (mentor-rpc-d.multicall methods)))
+          (dolist (tor-result tors)
+            (let* ((id (mentor-property 'local_id tor-result))
+                   (tor (mentor-get-torrent id)))
+              (dolist (r tor-result)
+                (let* ((property (car r))
+                       (value (cdr r))
+                       (alist (assq property tor)))
+                  (if alist
+                      (setcdr alist value)
+                    (signal 'mentor-need-init `("No such torrent" ,id))))))))
+        (mentor-update-custom-properties)
+        (message "Updating torrent list...DONE"))
+    (mentor-need-init
+     (mentor-init-torrent-list))))
 
 (defun mentor-init-torrent-list ()
   "Initialize torrent list from rtorrent.
