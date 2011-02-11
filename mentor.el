@@ -413,10 +413,10 @@ functions"
         (erase-buffer)
         (mentor-insert-torrents)
         (end-of-buffer)
-        (insert (concat "\nmentor-" mentor-version " - rTorrent "
-                        mentor-rtorrent-client-version "/"
-                        mentor-rtorrent-library-version
-                        " (" mentor-rtorrent-name ")\n"))))))
+        (insert "\nmentor-" mentor-version " - rTorrent "
+                mentor-rtorrent-client-version "/"
+                mentor-rtorrent-library-version
+                " (" mentor-rtorrent-name ")\n")))))
 
 (defun mentor-insert-torrents ()
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
@@ -686,33 +686,36 @@ start point."
 
 ;;; Interactive torrent commands
 
-(defun mentor-change-target-directory
+(defun mentor-add-torrent ()
   (interactive)
-  (message "TODO"))
+  (message "TODO: mentor-add-torrent"))
 
-(defun mentor-erase-torrent (&optional tor)
+(defun mentor-erase-torrent (&optional tor no-redisplay)
   (interactive)
   (mentor-use-tor
    (let ((confirm (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))))
        (when confirm
          (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
          (remhash (mentor-property 'local_id tor) mentor-torrents))
-       confirm)))
+       confirm))
+  (when (not no-redisplay)
+    (mentor-redisplay)))
 
 (defun mentor-erase-torrent-and-data ()
   (interactive)
   (mentor-use-tor
    (mentor-torrent-get-file-list)
-   (when (mentor-erase-torrent tor)
-     (mentor-erase-data tor))))
+   (when (mentor-erase-torrent tor t)
+     (mentor-erase-data tor))
+   (mentor-redisplay)))
 
 (defun mentor-call-command (&optional tor)
   (interactive)
   (message "TODO"))
 
-(defun mentor-change-directory (&optional tor)
+(defun mentor-change-target-directory (&optional tor)
   (interactive)
-  (message "TODO"))
+  (message "TODO: change-target-directory"))
 
 (defun mentor-close-torrent (&optional tor)
   (interactive)
@@ -761,11 +764,11 @@ start point."
 
 (defun mentor-recreate-files (&optional tor)
   (interactive)
-  (message "TODO"))
+  (message "TODO: mentor-recreate-files"))
 
 (defun mentor-set-inital-seeding (&optional tor)
   (interactive)
-  (message "TODO"))
+  (message "TODO: set-inital-seeding"))
 
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
@@ -1058,6 +1061,7 @@ If `torrent' is nil, use torrent at point."
          (files (cdr-safe (assoc 'files tor))))
      (when (not files)
        (progn
+         (message "Receiving file list...")
          (setq files (mentor-rpc-command
                       "f.multicall" hash "" "f.get_path_components="))
          (setcdr tor (cons (cons 'files files) (cdr tor)))
