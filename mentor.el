@@ -765,7 +765,6 @@ start point."
   (interactive)
   (message "TODO"))
 
-;; TODO: go directly to file in the opened dired buffer
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
@@ -775,7 +774,10 @@ start point."
                    path
                  (file-name-directory path))))
      (if loc
-         (find-file loc)
+         (progn
+           (find-file loc)
+           (when (= is-multi-file 0)
+             (dired-goto-file path)))
        (message "Torrent has no data: %s" (mentor-property 'name))))))
 
 (defun mentor-start-torrent (&optional tor)
