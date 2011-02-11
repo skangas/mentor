@@ -376,7 +376,9 @@ functions"
   `(let ((torrent (mentor-torrent-at-point)))
      ,@body
      (if torrent
-         (mentor-goto-torrent (mentor-property 'local_id torrent))
+         (progn
+           (mentor-goto-torrent (mentor-property 'local_id torrent))
+           (recenter-top-bottom))
        (beginning-of-buffer))))
 
 (defun mentor-update ()
