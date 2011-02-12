@@ -32,7 +32,6 @@
 ;; ever again.
 
 ;; TODO:
-;; Make mentor-mode inherit special-mode
 ;; Support for categories
 ;; Filters
 ;; Marking torrents and executing commands over all marked torrents
@@ -244,10 +243,14 @@ connecting through scgi or http."
 (defvar mentor-priority-fun)
 (make-variable-buffer-local 'mentor-sub-mode)
 
-(defun mentor-mode ()
+(define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rtorrent from emacs
 
+Type \\[mentor] to start Mentor.
+
 \\{mentor-mode-map}"
+  (abbrev-mode 0)
+  (auto-fill-mode 0)
   (kill-all-local-variables)
   (setq major-mode 'mentor-mode
         mode-name "mentor"
@@ -257,6 +260,7 @@ connecting through scgi or http."
   (setq mentor-current-view mentor-default-view
         mentor-torrents (make-hash-table :test 'equal))
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
+  ;;(set (make-local-variable 'revert-buffer-function) 'mentor-revert)
   (use-local-map mentor-mode-map)
   (run-mode-hooks 'mentor-mode-hook)
   (if (and (not mentor-auto-update-timer) mentor-auto-update-interval)
