@@ -803,7 +803,7 @@ start point."
   (let ((calls nil))
     (if (not arg)
         (setq calls (list (funcall mentor-priority-fun val)))
-      (do-items
+      (mentor-do-items
        (when (mentor-item-is-marked)
          (let ((ret (funcall mentor-priority-fun val)))
            (when ret (push ret calls))))))
@@ -1086,7 +1086,7 @@ If `torrent' is nil, use torrent at point."
   (mentor-use-tor
    (let ((hash (mentor-property 'hash))
          (prio (mentor-property 'priority)))
-     (list "d.set_priority" hash (limit-num (+ prio val) 0 3)))))
+     (list "d.set_priority" hash (mentor-limit-num (+ prio val) 0 3)))))
 
 
 ;;; View functions
@@ -1272,7 +1272,7 @@ the integer index used by rtorrent to identify this file."
          (prio (mentor-file-priority file))
          (hash (mentor-property 'hash mentor-selected-torrent)))
     (when (not (mentor-file-is-dir file))
-      (list "f.set_priority" hash id (limit-num (+ prio val) 0 2)))))
+      (list "f.set_priority" hash id (mentor-limit-num (+ prio val) 0 2)))))
 
 (defun mentor-toggle-file (file)
   (interactive)
@@ -1489,7 +1489,7 @@ point."
 
 ;;; Utility functions
 
-(defmacro do-items (&rest body)
+(defmacro mentor-do-items (&rest body)
   `(save-excursion
      (goto-char (point-min))
      (when (not (mentor-item-type))
@@ -1498,7 +1498,7 @@ point."
        ,@body
        (mentor-next-section t))))
 
-(defun limit-num (num min max)
+(defun mentor-limit-num (num min max)
   (if (< num min)
       min
     (if (> num max)
@@ -1597,14 +1597,14 @@ item instead of jumping to next."
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
   (interactive)
-  (do-items
+  (mentor-do-items
    (when (not (eq (mentor-item-type) 'dir))
      (mentor-mark-item nil t))))
 
 (defun mentor-unmark-all ()
   "Unmark all visible items."
   (interactive)
-  (do-items
+  (mentor-do-items
    (when (mentor-item-is-marked)
      (mentor-unmark-item t))))
 
