@@ -659,29 +659,33 @@ start point."
 
 ;;; Torrent actions
 
-(defun mentor-erase-file (file)
+(defun mentor-delete-file (file)
   (let ((dired-recursive-deletes nil))
     (message "Deleting %s" file)
     (condition-case err
         (dired-delete-file file)
       (file-error nil))))
 
-(defun mentor-erase-data (tor)
-  (when (yes-or-no-p (concat "Remove data for " (mentor-property 'name tor) " "))
-    (let* ((hash (mentor-property 'hash tor))
+(defun mentor-do-erase-data (tor)
+  (let* ((hash (mentor-property 'hash tor))
            (base-path (mentor-property 'base_path tor))
            (files (mentor-torrent-get-file-list tor))
            (dirs nil))
       (if (= 0 (mentor-property 'is_multi_file tor))
-          (mentor-erase-file base-path)
+          (mentor-delete-file base-path)
         (progn
           (dolist (file files)
             (let* ((file (mapconcat 'identity (apply 'list base-path (car file)) "/"))
                    (dir (file-name-directory file)))
-              (mentor-erase-file file)
+              (mentor-delete-file file)
               (setq dirs (adjoin dir dirs :test 'equal))))
           (dolist (dir dirs)
-            (mentor-erase-file dir)))))))
+            (mentor-delete-file dir))))))
+
+(defun mentor-do-erase-torrent (tor)
+  (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
+  (remhash (mentor-property 'local_id tor) mentor-torrents)
+  (mentor-view-torrent-list-delete-all tor))
 
 
 ;;; Interactive torrent commands
@@ -690,24 +694,28 @@ start point."
   (interactive)
   (message "TODO: mentor-add-torrent"))
 
-(defun mentor-erase-torrent (&optional tor no-redisplay)
+(defun mentor-erase-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (let ((confirm (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))))
-       (when confirm
-         (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
-         (remhash (mentor-property 'local_id tor) mentor-torrents))
-       confirm))
-  (when (not no-redisplay)
-    (mentor-redisplay)))
+   (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
+     (mentor-do-erase-torrent tor)
+     (mentor-redisplay))))
 
 (defun mentor-erase-torrent-and-data ()
   (interactive)
   (mentor-use-tor
-   (mentor-torrent-get-file-list)
-   (when (mentor-erase-torrent tor t)
-     (mentor-erase-data tor))
-   (mentor-redisplay)))
+   (mentor-torrent-get-file-list) ;; populate it before erasing torrent
+   (let* ((name (mentor-property 'name tor))
+          (confirm-tor
+           (yes-or-no-p (concat "Remove torrent " name " ")))
+          (confirm-data
+           (and confirm-tor
+                (yes-or-no-p (concat "Remove data for " name " ")))))
+     (when confirm-tor
+       (mentor-do-erase-torrent tor))
+     (when confirm-data
+       (mentor-do-erase-data tor))))
+  (mentor-redisplay))
 
 (defun mentor-call-command (&optional tor)
   (interactive)
@@ -863,8 +871,18 @@ start point."
 (defun mentor-view-torrent-list-add (tor)
   (let* ((id (mentor-property 'local_id tor))
          (view (intern mentor-current-view))
-         (l (assq view mentor-view-torrent-list)))
-    (setcdr l (cons id (cdr l)))))
+         (list (assq view mentor-view-torrent-list)))
+    (push id (cdr list))))
+
+(defun mentor-view-torrent-list-delete (tor &optional view)
+  (let* ((id (mentor-property 'local_id tor))
+         (view (or view (intern mentor-current-view)))
+         (list (assq view mentor-view-torrent-list)))
+    (delete id list)))
+
+(defun mentor-view-torrent-list-delete-all (tor)
+  (dolist (view mentor-view-torrent-list)
+    (mentor-view-torrent-list-delete tor (car view))))
 
 (defun mentor-view-torrent-list-clear ()
   (let ((view (intern mentor-current-view)))
@@ -1135,14 +1153,14 @@ If `torrent' is nil, use torrent at point."
   (interactive)
   (when (null new)
     (setq new (mentor-prompt-complete 
-	       "Switch to view: " mentor-torrent-views 
+	       "Show view: " mentor-torrent-views 
 	       1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (mentor-get-custom-view-name new)))
   (when (not (equal new mentor-current-view))
     (mentor-set-view new)
     (mentor-update)
-    (message (concat "Switched to view " mentor-current-view))))
+    (message "Showing view \"%s\"" mentor-current-view)))
 
 (defun mentor-views-add (view)
   "Adds the specified view to rtorrents \"view_list\" and sets
