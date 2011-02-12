@@ -839,8 +839,6 @@ start point."
   "Hash table containing all torrents")
 (make-variable-buffer-local 'mentor-torrents)
 
-(defvar mentor-regexp-information-properties)
-
 (defvar mentor-d-interesting-methods
   '("d.get_bytes_done"
     "d.get_down_rate"
@@ -1015,9 +1013,6 @@ expensive operation."
   (mentor-update-custom-properties)
   (mentor-views-update-views)
   (message "Initializing torrent list... DONE"))
-  ;; (when (not mentor-regexp-information-properties)
-  ;;   (setq mentor-regexp-information-properties
-  ;;         (regexp-opt attributes 'words))))
 
 
 ;;; Torrent information
