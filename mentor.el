@@ -1399,43 +1399,52 @@ point."
   '((mentor-file-progress . -7) (mentor-file-prio-string . -7)
     (mentor-file-size . 6)))
 
-(defun mentor-insert-file (file level)
+(defun mentor-insert-file (file infix &optional last)
   (interactive)
-  (let ((margin (make-string level ? ))
-        (props (mentor-file-properties file))
-        (text nil))
-    (setq text (apply 'concat "  "
-                      (mapcar (lambda (col)
-                                (let* ((pfun (car col))
-                                       (len (cdr col))
-                                       (str (funcall pfun file)))
-                                  (mentor-enforce-length str len)))
-                              mentor-file-detail-columns)))
+  (let ((props (mentor-file-properties file))
+        (text (apply 'concat "  "
+                     (mapcar (lambda (col)
+                               (let* ((pfun (car col))
+                                      (len (cdr col))
+                                      (str (funcall pfun file)))
+                                 (mentor-enforce-length str len)))
+                             mentor-file-detail-columns))))
     (insert (apply 'propertize
-                   (concat text margin " |-- " (mentor-file-name file))
-                   (cons 'item-start (cons (+ level 5 (point) (length text))
+                   (concat text " " infix (if last "└── " "├── ")
+                           (mentor-file-name file))
+                   (cons 'item-start (cons (+ 5 (point) (length text) (length infix))
                                            props)))
             "\n")))
 
-(defun mentor-insert-dir-content (dir level)
+(defun mentor-insert-dir-content (dir &optional infix)
   (interactive)
-  (dolist (file (mentor-file-files dir))
-    (if (mentor-file-is-dir file)
-        (let* ((margin (make-string (+ 23 level) ? ))
-               (show (mentor-file-show file))
-               (symb (if show "\\ " "+ "))
-               (text (concat margin symb (mentor-file-name file))))
-          (insert (apply 'propertize text
-                         'item-start (+ 2 (point) (length margin))
-                         (mentor-file-properties file)) "\n")
-          (when show
-            (mentor-insert-dir-content file (+ level 1))
-            (insert margin "/\n")))
-      (mentor-insert-file file level))
-    (when (mentor-file-marked file)
-      (save-excursion
-        (mentor-previous-section t)
-        (mentor-mark-item)))))
+  (let* ((files (mentor-file-files dir))
+         (total (length files))
+         (infix (or infix ""))
+         (count 1))
+    (dolist (file files)
+      (if (mentor-file-is-dir file)
+          (let* ((show (mentor-file-show file))
+                 (symb (if show
+                           (if (= count total) "└── " "├── ")
+                         "+── "))
+                 (margin (concat (make-string 23 ? ) infix symb))
+                 (text (concat margin (mentor-file-name file)))
+                 (infix-next (concat infix
+                                      (if (= count total)
+                                          "    "
+                                        "│   "))))
+            (insert (apply 'propertize text
+                           'item-start (+ (point) (length margin))
+                           (mentor-file-properties file)) "\n")
+            (when show
+              (mentor-insert-dir-content file infix-next)))
+        (mentor-insert-file file infix (= count total)))
+      (when (mentor-file-marked file)
+        (save-excursion
+          (mentor-previous-section t)
+          (mentor-mark-item)))
+      (incf count))))
 
 (defun mentor-details-redisplay ()
   (interactive)
@@ -1444,7 +1453,7 @@ point."
          (root (cdr (assq 'root mentor-selected-torrent-info))))
     (erase-buffer)
     (mentor-reload-header-line)
-    (mentor-insert-dir-content root 0)
+    (mentor-insert-dir-content root)
     (goto-char pos)))
 
 ;; wrapping doesn't work for next-dir atm
