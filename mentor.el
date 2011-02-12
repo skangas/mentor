@@ -371,22 +371,25 @@ functions"
 
 ;; (defvar *mentor-update-time* (current-time))
 
-(defmacro mentor-keep-torrent-position (&rest body)
-  ""
-  `(let ((torrent (mentor-torrent-at-point)))
+(defmacro mentor-keep-position (&rest body)
+  "Keep the current position."
+  `(let ((kept-torrent (mentor-torrent-at-point))
+         (kept-point (point)))
      ,@body
-     (if torrent
-         (progn
-           (mentor-goto-torrent (mentor-property 'local_id torrent))
-           (recenter-top-bottom))
-       (beginning-of-buffer))))
+     (if kept-torrent
+         (condition-case err
+             (mentor-goto-torrent (mentor-property 'local_id kept-torrent))
+           (mentor-missing-torrent
+            (goto-char kept-point)))
+       (goto-char kept-point))
+     (recenter)))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
   (interactive)
   (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update))
         ((not mentor-sub-mode)
-         (mentor-keep-torrent-position
+         (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
           (mentor-update-torrents)
@@ -397,7 +400,7 @@ functions"
   (interactive)
   (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update t))
         ((not mentor-sub-mode)
-         (mentor-keep-torrent-position
+         (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
           (mentor-init-torrent-list)
@@ -418,6 +421,16 @@ functions"
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
 
+(defun mentor-insert-torrent (id torrent)
+  (let ((text (mentor-process-view-columns torrent))
+        (marked (mentor-property 'marked torrent)))
+    (insert (propertize text 'marked marked 'field id 'torrent-id id 
+                        'collapsed t 'type 'torrent) "\n")
+    (when marked
+      (save-excursion
+        (mentor-previous-section)
+        (mentor-mark-item)))))
+
 (defun mentor-insert-torrents ()
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
@@ -437,16 +450,6 @@ functions"
   (let ((buffer-read-only nil))
     (delete-region (mentor-get-item-beginning t) (mentor-get-item-end))
     (forward-char)))
-
-(defun mentor-insert-torrent (id torrent)
-  (let ((text (mentor-process-view-columns torrent))
-        (marked (mentor-property 'marked torrent)))
-    (insert (propertize text 'marked marked 'field id 'torrent-id id 
-                        'collapsed t 'type 'torrent) "\n")
-    (when marked
-      (save-excursion
-        (mentor-previous-section)
-        (mentor-mark-item)))))
 
 (defun mentor-process-view-columns (torrent)
   (apply 'concat "  "
@@ -495,7 +498,7 @@ functions"
 ;;; Sorting
 
 (defun mentor-do-sort (property &optional reverse)
-  (mentor-keep-torrent-position
+  (mentor-keep-position
    (goto-char (point-min))
    (save-excursion
      (let ((sort-fold-case t)
@@ -638,6 +641,10 @@ start point."
        (mentor-previous-section t))))
   (mentor-item-beginning t))
 
+(put 'mentor-missing-torrent
+     'error-conditions
+     '(error mentor-error mentor-missing-torrent))
+
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
                (beginning-of-buffer)
@@ -646,7 +653,8 @@ start point."
                  (mentor-next-section t))
                (point))))
     (if (not (= pos (point-max)))
-        (goto-char pos))))
+        (goto-char pos)
+      (signal 'mentor-missing-torrent `("No such torrent" ,id)))))
 
 ;; ??? what to do
 (defun mentor-toggle-object ()
@@ -694,29 +702,6 @@ start point."
   (interactive)
   (message "TODO: mentor-add-torrent"))
 
-(defun mentor-erase-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
-     (mentor-do-erase-torrent tor)
-     (mentor-redisplay))))
-
-(defun mentor-erase-torrent-and-data ()
-  (interactive)
-  (mentor-use-tor
-   (mentor-torrent-get-file-list) ;; populate it before erasing torrent
-   (let* ((name (mentor-property 'name tor))
-          (confirm-tor
-           (yes-or-no-p (concat "Remove torrent " name " ")))
-          (confirm-data
-           (and confirm-tor
-                (yes-or-no-p (concat "Remove data for " name " ")))))
-     (when confirm-tor
-       (mentor-do-erase-torrent tor))
-     (when confirm-data
-       (mentor-do-erase-data tor))))
-  (mentor-redisplay))
-
 (defun mentor-call-command (&optional tor)
   (interactive)
   (message "TODO"))
@@ -731,11 +716,53 @@ start point."
    (mentor-rpc-command "d.close" (mentor-property 'hash tor))
    (mentor-update)))
 
+(defun mentor-decrease-priority (arg)
+  (interactive "P")
+  (mentor-increase-priority arg -1))
+
+(defun mentor-erase-torrent (&optional tor)
+  (interactive)
+  (mentor-keep-position
+   (mentor-use-tor
+    (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
+      (mentor-do-erase-torrent tor)
+      (mentor-redisplay)))))
+
+(defun mentor-erase-torrent-and-data ()
+  (interactive)
+  (mentor-keep-position
+   (mentor-use-tor
+    (mentor-torrent-get-file-list) ;; populate it before erasing torrent
+    (let* ((name (mentor-property 'name tor))
+           (confirm-tor
+            (yes-or-no-p (concat "Remove torrent " name " ")))
+           (confirm-data
+            (and confirm-tor
+                 (yes-or-no-p (concat "Remove data for " name " ")))))
+      (when confirm-tor
+        (mentor-do-erase-torrent tor))
+      (when confirm-data
+        (mentor-do-erase-data tor))))
+   (mentor-redisplay)))
+
 (defun mentor-hash-check-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
    (mentor-update)))
+
+(defun mentor-increase-priority (arg &optional val)
+  (interactive "P")
+  (setq val (or val 1))
+  (let ((calls nil))
+    (if (not arg)
+        (setq calls (list (funcall mentor-priority-fun val)))
+      (mentor-do-items
+       (when (mentor-item-is-marked)
+         (let ((ret (funcall mentor-priority-fun val)))
+           (when ret (push ret calls))))))
+    (apply 'mentor-sys-multicall calls)
+    (mentor-update)))
 
 (defun mentor-move-torrent (&optional tor)
   (interactive)
@@ -778,6 +805,18 @@ start point."
   (interactive)
   (message "TODO: set-inital-seeding"))
 
+(defun mentor-start-torrent (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (mentor-rpc-command "d.start" (mentor-property 'hash tor))
+   (mentor-update)))
+
+(defun mentor-stop-torrent (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (mentor-rpc-command "d.stop" (mentor-property 'hash tor))
+   (mentor-update)))
+
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
@@ -792,35 +831,6 @@ start point."
            (when (= is-multi-file 0)
              (dired-goto-file path)))
        (message "Torrent has no data: %s" (mentor-property 'name))))))
-
-(defun mentor-start-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.start" (mentor-property 'hash tor))
-   (mentor-update)))
-
-(defun mentor-stop-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.stop" (mentor-property 'hash tor))
-   (mentor-update)))
-
-(defun mentor-increase-priority (arg &optional val)
-  (interactive "P")
-  (setq val (or val 1))
-  (let ((calls nil))
-    (if (not arg)
-        (setq calls (list (funcall mentor-priority-fun val)))
-      (mentor-do-items
-       (when (mentor-item-is-marked)
-         (let ((ret (funcall mentor-priority-fun val)))
-           (when ret (push ret calls))))))
-    (apply 'mentor-sys-multicall calls)
-    (mentor-update)))
-
-(defun mentor-decrease-priority (arg)
-  (interactive "P")
-  (mentor-increase-priority arg -1))
 
 
 ;;; Get data from rtorrent
