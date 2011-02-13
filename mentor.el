@@ -49,8 +49,8 @@
 
 ;;; Code:
 (eval-when-compile (require 'cl))
-(require 'xml-rpc)
 (require 'url-scgi)
+(require 'xml-rpc)
 
 
 ;;; configuration
@@ -111,9 +111,9 @@ connecting through scgi or http."
     (speed-up -6 "Up")
     (speed-down -6 "Down")
     (size -15 "     Size")
-    (tied_to_file -80 "Tied file name")
     (message -40 "Message")
-    (directory -100 "Directory"))
+    (directory -100 "Directory")
+    (tied_to_file -80 "Tied file name"))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(repeat (list symbol integer string)))
