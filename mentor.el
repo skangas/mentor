@@ -696,6 +696,12 @@ start point."
   (remhash (mentor-property 'local_id tor) mentor-torrents)
   (mentor-view-torrent-list-delete-all tor))
 
+(defun mentor-do-start-torrent (tor)
+  (mentor-rpc-command "d.start" (mentor-property 'hash tor)))
+
+(defun mentor-do-stop-torrent (tor)
+  (mentor-rpc-command "d.stop" (mentor-property 'hash tor)))
+
 
 ;;; Interactive torrent commands
 
@@ -767,20 +773,23 @@ start point."
 
 (defun mentor-move-torrent (&optional tor)
   (interactive)
-  (mentor-use-tor
-   (let* ((old (directory-file-name (mentor-property 'base_path tor)))
-          (old-prefixed (concat mentor-directory-prefix old))
-          (new (read-file-name "New location: " old-prefixed nil t)))
-     (if (condition-case err
-             (mentor-rpc-command "execute" "ls" "-d" new)
-           (error nil))
-         (progn
-           (mentor-stop-torrent tor)
-           (mentor-rpc-command "execute" "mv" "-n" (mentor-property 'base_path tor) new)
-           (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
-           (mentor-start-torrent tor)
-           (message (concat "Moved torrent to " new)))
-       (error "No such file or directory: " new)))))
+  (mentor-keep-position
+   (mentor-use-tor
+    (let* ((old (directory-file-name (mentor-property 'base_path tor)))
+           (old-prefixed (concat mentor-directory-prefix old))
+           (new (read-file-name "New location: " old-prefixed nil t)))
+      (if (condition-case err
+              (mentor-rpc-command "execute" "ls" "-d" new)
+            (error nil))
+          (progn
+            (mentor-do-stop-torrent tor)
+            (mentor-rpc-command "execute" "mv" "-n" (mentor-property 'base_path tor) new)
+            (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
+            (mentor-do-start-torrent tor)
+            (mentor-init-torrent-list)
+            (mentor-redisplay))
+        (message (concat "Moved torrent to " new)))
+      (error "No such file or directory: " new)))))
 
 (defun mentor-pause-torrent (&optional tor)
   "Pause torrent. This is probably not what you want, use
@@ -809,13 +818,13 @@ start point."
 (defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.start" (mentor-property 'hash tor))
+   (mentor-do-start-torrent tor)
    (mentor-update)))
 
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.stop" (mentor-property 'hash tor))
+   (mentor-do-stop-torrent)
    (mentor-update)))
 
 (defun mentor-view-in-dired (&optional tor)
