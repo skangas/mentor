@@ -702,6 +702,14 @@ start point."
 (defun mentor-do-stop-torrent (tor)
   (mentor-rpc-command "d.stop" (mentor-property 'hash tor)))
 
+(defun mentor-set-priority (val)
+  (setq val (or val 1))
+  (let (calls)
+    (mentor-do-marked
+     (let ((ret (funcall mentor-priority-fun val)))
+       (when ret (push ret calls))))
+    (apply 'mentor-sys-multicall calls)))
+
 
 ;;; Interactive torrent commands
 
@@ -723,9 +731,10 @@ start point."
    (mentor-rpc-command "d.close" (mentor-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-decrease-priority (arg)
-  (interactive "P")
-  (mentor-increase-priority arg -1))
+(defun mentor-decrease-priority (&optional tor)
+  (interactive)
+  (mentor-set-priority -1)
+  (mentor-update))
 
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
@@ -758,18 +767,10 @@ start point."
    (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
    (mentor-update)))
 
-(defun mentor-increase-priority (arg &optional val)
-  (interactive "P")
-  (setq val (or val 1))
-  (let ((calls nil))
-    (if (not arg)
-        (setq calls (list (funcall mentor-priority-fun val)))
-      (mentor-do-items
-       (when (mentor-item-is-marked)
-         (let ((ret (funcall mentor-priority-fun val)))
-           (when ret (push ret calls))))))
-    (apply 'mentor-sys-multicall calls)
-    (mentor-update)))
+(defun mentor-increase-priority (&optional tor)
+  (interactive)
+  (mentor-set-priority 1)
+  (mentor-update))
 
 (defun mentor-move-torrent (&optional tor)
   (interactive)
@@ -1530,6 +1531,15 @@ point."
      (while (mentor-item-type)
        ,@body
        (mentor-next-section t))))
+
+(defmacro mentor-do-marked (&rest body)
+  `(let ((none-marked? t))
+     (mentor-do-items
+      (when (mentor-item-is-marked)
+       (setq none-marked? nil)
+       ,@body))
+     (when none-marked?
+       ,@body)))
 
 (defun mentor-limit-num (num min max)
   (if (< num min)
