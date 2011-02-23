@@ -271,22 +271,20 @@ Type \\[mentor] to start Mentor.
 ;;;###autoload
 (defun mentor ()
   (interactive)
-  (if (mentor-not-connectable-p)
-      (message "Unable to connect")
-    (progn (switch-to-buffer (get-buffer-create "*mentor*"))
-           (mentor-mode)
-           (mentor-init-header-line)
-           (setq mentor-priority-fun 'mentor-torrent-priority-fun)
-           (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
-                 mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
-                 mentor-rtorrent-name (mentor-rpc-command "get_name"))
-           (mentor-set-view mentor-default-view)
-	   (when (equal mentor-current-view mentor-last-used-view)
-	     (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
-	   (mentor-init-torrent-list)
-	   (mentor-views-init)
-           (mentor-redisplay)
-           (beginning-of-buffer))))
+  (progn (switch-to-buffer (get-buffer-create "*mentor*"))
+         (mentor-mode)
+         (mentor-init-header-line)
+         (setq mentor-priority-fun 'mentor-torrent-priority-fun)
+         (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
+               mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
+               mentor-rtorrent-name (mentor-rpc-command "get_name"))
+         (mentor-set-view mentor-default-view)
+         (when (equal mentor-current-view mentor-last-used-view)
+           (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
+         (mentor-init-torrent-list)
+         (mentor-views-init)
+         (mentor-redisplay)
+         (beginning-of-buffer)))
 
 (defun mentor-post-command-hook ()
   (when mentor-highlight-enable
@@ -299,10 +297,6 @@ Type \\[mentor] to start Mentor.
                  (substring mentor-header-line
                             (min (length mentor-header-line)
                                  (window-hscroll)))))))
-
-(defun mentor-not-connectable-p ()
-  ;; TODO
-  nil)
 
 (defun mentor-auto-update-timer ()
   (dolist (buf (buffer-list))
@@ -329,8 +323,11 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call via SCGI or http."
-  (let ((url-http-response-status 200))
-    (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+  (let* ((url-http-response-status 200)
+         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+    (if (equal response '((nil . "URL/HTTP Error: 200")))
+        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
+      response)))
 
 (defun mentor-sys-multicall (&rest calls)
   "Perform a system.multicall with `calls'.  Every call should be
