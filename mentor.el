@@ -744,7 +744,7 @@ start point."
       (mentor-do-erase-torrent tor)
       (mentor-redisplay)))))
 
-(defun mentor-erase-torrent-and-data ()
+(defun mentor-erase-torrent-and-data (&optional tor)
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
