@@ -789,8 +789,8 @@ start point."
             (mentor-do-start-torrent tor)
             (mentor-init-torrent-list)
             (mentor-redisplay))
-        (message (concat "Moved torrent to " new)))
-      (error "No such file or directory: " new)))))
+        (error "No such file or directory: " new))
+      (message (concat "Moved torrent to " new))))))
 
 (defun mentor-pause-torrent (&optional tor)
   "Pause torrent. This is probably not what you want, use
