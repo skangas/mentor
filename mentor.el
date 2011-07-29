@@ -856,7 +856,9 @@ start point."
 (make-variable-buffer-local 'mentor-torrents)
 
 (defvar mentor-d-interesting-methods
-  '("d.get_bytes_done"
+  '("d.get_base_path"
+    "d.get_bytes_done"
+    "d.get_directory"
     "d.get_down_rate"
     "d.get_hashing"
     "d.get_hashing_failed"
