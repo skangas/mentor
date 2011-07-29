@@ -776,17 +776,22 @@ start point."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let* ((old (directory-file-name (mentor-property 'base_path tor)))
+    (let* ((was-started (= 1 (mentor-property 'is_active)))
+           (old (directory-file-name (or (mentor-property 'base_path tor)
+                                         (mentor-property 'directory tor))))
            (old-prefixed (concat mentor-directory-prefix old))
            (new (read-file-name "New location: " old-prefixed nil t)))
       (if (condition-case err
               (mentor-rpc-command "execute" "ls" "-d" new)
             (error nil))
           (progn
-            (mentor-do-stop-torrent tor)
-            (mentor-rpc-command "execute" "mv" "-n" (mentor-property 'base_path tor) new)
+            (when was-started
+              (mentor-do-stop-torrent tor))
+            (when (file-exists-p old)
+              (mentor-rpc-command "execute" "mv" "-n" old new))
             (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
-            (mentor-do-start-torrent tor)
+            (when was-started
+              (mentor-do-start-torrent tor))
             (mentor-init-torrent-list)
             (mentor-redisplay))
         (error "No such file or directory: " new))
