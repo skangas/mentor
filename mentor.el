@@ -830,7 +830,7 @@ start point."
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-do-stop-torrent)
+   (mentor-do-stop-torrent tor)
    (mentor-update)))
 
 (defun mentor-view-in-dired (&optional tor)
