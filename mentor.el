@@ -71,9 +71,9 @@
   :group 'mentor)
 
 (defcustom mentor-custom-views 
-  '((1 . "main") (2 . "started") (3 . "stopped")
-    (4 . "complete") (5 . "incomplete") (6 . "hashing")
-    (7 . "seeding") (8 . "active"))
+  '((1 . "main") (2 . "main") (3 . "started")
+    (4 . "stopped") (5 . "complete") (6 . "incomplete")
+    (7 . "hashing") (8 . "seeding") (9 . "active"))
   "A list of mappings \"(BINDING . VIEWNAME)\" where BINDING is
 the key to which the specified view will be bound to."
   :group 'mentor
