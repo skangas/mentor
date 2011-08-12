@@ -1063,12 +1063,9 @@ If `torrent' is nil, use torrent at point."
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
   (concat
-   (or (when (> (mentor-property 'hashing torrent) 0)
-         "H")
-       (if (not (= (mentor-property 'is_active torrent) 1))
-           "S" " ")) ;; 'is_stopped
-   (if (not (= (mentor-property 'is_open torrent) 1))
-       "C" " "))) ;; 'is_closed
+   (or (when (> (mentor-property 'hashing   torrent) 0) "H")
+       (if   (= (mentor-property 'is_active torrent) 1) " " "S"))
+   (if (= (mentor-property 'is_open torrent) 1) " " "C")))
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
