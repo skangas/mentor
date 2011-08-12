@@ -792,7 +792,7 @@ start point."
             (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
             (when was-started
               (mentor-do-start-torrent tor))
-            (mentor-init-torrent-list)
+            (mentor-set-property 'directory new)
             (mentor-redisplay))
         (error "No such file or directory: " new))
       (message (concat "Moved torrent to " new))))))
