@@ -828,8 +828,13 @@ start point."
 (defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-do-start-torrent tor)
-   (mentor-update)))
+   (mentor-keep-position
+    (mentor-do-start-torrent tor)
+    (mentor-set-property 'is_active 1)
+    (mentor-set-property 'is_open 1)
+    (mentor-set-property 'state 1)
+    (mentor-update-custom-properties)
+    (mentor-redisplay))))
 
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
