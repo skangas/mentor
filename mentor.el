@@ -758,8 +758,8 @@ start point."
       (when confirm-tor
         (mentor-do-erase-torrent tor))
       (when confirm-data
-        (mentor-do-erase-data tor))))
-   (mentor-redisplay)))
+        (mentor-do-erase-data tor)))))
+  (mentor-redisplay))
 
 (defun mentor-hash-check-torrent (&optional tor)
   (interactive)
