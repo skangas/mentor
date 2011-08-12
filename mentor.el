@@ -393,7 +393,7 @@ functions"
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
-          (mentor-update-torrents)
+          (mentor-update-interesting-torrent-data)
           (mentor-redisplay)))))
 
 (defun mentor-reload ()
@@ -994,7 +994,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
      'error-conditions
      '(error mentor-error mentor-need-init))
 
-(defun mentor-update-torrents ()
+(defun mentor-update-interesting-torrent-data ()
   (interactive)
   (message "Updating torrent list...")
   (condition-case err
