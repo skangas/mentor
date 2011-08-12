@@ -763,9 +763,13 @@ start point."
 
 (defun mentor-hash-check-torrent (&optional tor)
   (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
-   (mentor-update)))
+  (mentor-keep-position
+   (mentor-use-tor
+    (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
+    (mentor-set-property 'hashing 1)
+    (mentor-set-property 'is_open 1)
+    (mentor-update-custom-properties)
+    (mentor-redisplay))))
 
 (defun mentor-increase-priority (&optional tor)
   (interactive)
