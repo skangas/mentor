@@ -1050,7 +1050,8 @@ If `torrent' is nil, use torrent at point."
   (mentor-use-tor
    (let ((id (mentor-property 'local_id tor)))
      (assq-delete-all property tor)
-     (puthash id (cons (cons property val) tor) mentor-torrents))))
+     (let ((new-torrent (cons (cons property val) tor)))
+       (puthash id new-torrent mentor-torrents)))))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-property 'bytes_done torrent))
