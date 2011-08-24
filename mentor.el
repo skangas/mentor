@@ -790,12 +790,12 @@ start point."
              (was-started (= 1 (mentor-property 'is_active)))
              (old-prefixed (concat mentor-directory-prefix old))
              (new (read-file-name "New location: " old-prefixed nil t)))
+        (when (string-equal old new)
+          (error "Source and destination are the same"))
         (when (not (condition-case err
                        (mentor-rpc-command "execute" "ls" "-d" new)
                      (error nil)))
           (error "No such file or directory: " new))
-        (message new)
-        (message old)
         (when was-started
           (mentor-do-stop-torrent tor))
         (when (file-exists-p old)
