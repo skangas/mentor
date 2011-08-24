@@ -793,17 +793,19 @@ start point."
         (when (not (condition-case err
                        (mentor-rpc-command "execute" "ls" "-d" new)
                      (error nil)))
-          (error "No such file or directory: " new)))
-      (when was-started
-        (mentor-do-stop-torrent tor))
-      (when (file-exists-p old)
-        (mentor-rpc-command "execute" "mv" "-n" old new))
-      (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
-      (when was-started
-        (mentor-do-start-torrent tor))
-      (mentor-set-property 'directory new)
-      (mentor-redisplay)
-      (message (concat "Moved torrent to " new))))))
+          (error "No such file or directory: " new))
+        (message new)
+        (message old)
+        (when was-started
+          (mentor-do-stop-torrent tor))
+        (when (file-exists-p old)
+          (mentor-rpc-command "execute" "mv" "-n" old new))
+        (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
+        (when was-started
+          (mentor-do-start-torrent tor))
+        (mentor-set-property 'directory new)
+        (mentor-redisplay)
+        (message (concat "Moved torrent to " new)))))))
 
 (defun mentor-pause-torrent (&optional tor)
   "Pause torrent. This is probably not what you want, use
