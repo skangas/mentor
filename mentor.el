@@ -732,7 +732,7 @@ start point."
 (defun mentor-set-priority (val)
   (setq val (or val 1))
   (let (calls)
-    (mentor-do-marked
+    (mentor-do-items
      (let ((ret (funcall mentor-priority-fun val)))
        (when ret (push ret calls))))
     (apply 'mentor-sys-multicall calls)))
@@ -1574,7 +1574,7 @@ point."
 
 ;;; Utility functions
 
-(defmacro mentor-do-items (&rest body)
+(defmacro mentor-do-all-items (&rest body)
   `(save-excursion
      (goto-char (point-min))
      (when (not (mentor-item-type))
@@ -1582,15 +1582,6 @@ point."
      (while (mentor-item-type)
        ,@body
        (mentor-next-section t))))
-
-(defmacro mentor-do-marked (&rest body)
-  `(let ((none-marked? t))
-     (mentor-do-items
-      (when (mentor-item-is-marked)
-       (setq none-marked? nil)
-       ,@body))
-     (when none-marked?
-       ,@body)))
 
 (defun mentor-limit-num (num min max)
   (if (< num min)
@@ -1693,14 +1684,14 @@ item instead of jumping to next."
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
   (interactive)
-  (mentor-do-items
+  (mentor-do-all-items
    (when (not (eq (mentor-item-type) 'dir))
      (mentor-mark-item nil t))))
 
 (defun mentor-unmark-all ()
   "Unmark all visible items."
   (interactive)
-  (mentor-do-items
+  (mentor-do-all-items
    (when (mentor-item-is-marked)
      (mentor-unmark-item t))))
 
