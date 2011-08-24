@@ -152,7 +152,7 @@ connecting through scgi or http."
     (define-key map (kbd "DEL") 'mentor-add-torrent)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "M-g") 'mentor-update-torrent-and-redisplay)
+    (define-key map (kbd "M-g") 'mentor-update-torrent-data-and-redisplay)
 
     ;; navigation
     (define-key map (kbd "n") 'mentor-next-section)
@@ -411,7 +411,7 @@ functions"
           (mentor-redisplay)))))
 
 (defun mentor-redisplay ()
-  "Completely reload the mentor torrent view buffer."
+  "Redisplay the mentor torrent view buffer."
   (interactive)
   (mentor-reload-header-line)
   (when (equal major-mode 'mentor-mode)
@@ -448,12 +448,11 @@ functions"
         (id (mentor-id-at-point)))
     (mentor-remove-torrent-from-view torrent)
     (mentor-insert-torrent id torrent)
-    (mentor-previous-torrent)))
+    (mentor-previous-section)))
 
 (defun mentor-remove-torrent-from-view (torrent)
   (let ((buffer-read-only nil))
-    (delete-region (mentor-get-item-beginning t) (mentor-get-item-end))
-    (forward-char)))
+    (delete-region (mentor-get-item-beginning t) (+ 1 (mentor-get-item-end)))))
 
 (defun mentor-process-view-columns (torrent)
   (apply 'concat "  "
@@ -758,21 +757,19 @@ See also `mentor-move-torrent-data'."
     (let* ((new (mentor-get-new-torrent-path tor)))
       (mentor-do-stop-torrent tor)
       (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
-      ;;; FIXME: needs to update the data for this torrent from rtorrent
-      (mentor-set-property 'directory new)
-      (mentor-redisplay)
+      (mentor-update-torrent-data-and-redisplay)
       (message (concat "Changed target directory to " new))))))
 
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.close" (mentor-property 'hash tor))
-   (mentor-update)))
+   (mentor-update-torrent-data-and-redisplay)))
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
   (mentor-set-priority -1)
-  (mentor-update))
+  (mentor-update-torrent-data-and-redisplay))
 
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
@@ -780,7 +777,7 @@ See also `mentor-move-torrent-data'."
    (mentor-use-tor
     (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
       (mentor-do-erase-torrent tor)
-      (mentor-redisplay)))))
+      (mentor-update-torrent-data-and-redisplay)))))
 
 (defun mentor-erase-torrent-and-data (&optional tor)
   (interactive)
@@ -807,12 +804,12 @@ See also `mentor-move-torrent-data'."
     (mentor-set-property 'hashing 1)
     (mentor-set-property 'is_open 1)
     (mentor-update-custom-properties)
-    (mentor-redisplay))))
+    (mentor-update-torrent-data-and-redisplay))))
 
 (defun mentor-increase-priority (&optional tor)
   (interactive)
   (mentor-set-priority 1)
-  (mentor-update))
+  (mentor-update-torrent-data-and-redisplay))
 
 (defun mentor-copy-torrent-data (&optional tor)
   (interactive)
@@ -840,7 +837,7 @@ See also `mentor-move-torrent-data'."
         (mentor-do-start-torrent tor))
       ;;; FIXME: needs to update the data for this torrent from rtorrent
       (mentor-set-property 'directory new)
-      (mentor-redisplay)
+      (mentor-update-torrent-data-and-redisplay)
       (message (concat "Moved torrent data to " new))))))
 
 (defun mentor-pause-torrent (&optional tor)
@@ -849,7 +846,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.pause" (mentor-property 'hash tor))
-   (mentor-update)))
+   (mentor-update-torrent-data-and-redisplay)))
 
 (defun mentor-resume-torrent (&optional tor)
   "Resume torrent. This is probably not what you want, use
@@ -857,7 +854,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.resume" (mentor-property 'hash tor))
-   (mentor-update)))
+   (mentor-update-torrent-data-and-redisplay)))
 
 (defun mentor-recreate-files (&optional tor)
   (interactive)
@@ -872,17 +869,20 @@ See also `mentor-move-torrent-data'."
   (mentor-use-tor
    (mentor-keep-position
     (mentor-do-start-torrent tor)
-    (mentor-set-property 'is_active 1)
-    (mentor-set-property 'is_open 1)
-    (mentor-set-property 'state 1)
-    (mentor-update-custom-properties)
-    (mentor-redisplay))))
+    (mentor-update-torrent-data-and-redisplay))))
 
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-do-stop-torrent tor)
-   (mentor-update)))
+   (mentor-update-torrent-data-and-redisplay)))
+
+(defun mentor-update-torrent-data-and-redisplay (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (mentor-update-torrent-data tor))
+  (mentor-use-tor
+   (mentor-redisplay-torrent tor)))
 
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
@@ -931,19 +931,14 @@ See also `mentor-move-torrent-data'."
 
 ;; (defun mentor-property-to-rpc-method () nil)
 
-(defun mentor-update-torrent (torrent)
-  (let* ((hash (mentor-property 'hash torrent))
-         (id (mentor-property 'local_id torrent)))
+(defun mentor-update-torrent-data (tor)
+  (let* ((hash (mentor-property 'hash tor))
+         (id (mentor-property 'local_id tor)))
     (dolist (method mentor-d-interesting-methods)
       (let ((property (mentor-rpc-method-to-property method))
             (new-value (mentor-rpc-command method hash)))
-        (setcdr (assq property torrent) new-value)))))
-
-(defun mentor-update-torrent-and-redisplay (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-update)
-   (mentor-redisplay-torrent tor)))
+        (setcdr (assq property tor) new-value)))
+    (puthash id (mentor-add-custom-properties tor) mentor-torrents)))
 
 (defun mentor-view-torrent-list-add (tor)
   (let* ((id (mentor-property 'local_id tor))
