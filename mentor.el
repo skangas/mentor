@@ -781,10 +781,12 @@ start point."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let ((old (mentor-property 'base_path tor)))
-      (when (not old)
+    (let ((base_path (mentor-property 'base_path tor)))
+      (when (not base_path)
         (error "Unable to move closed torrent"))
-      (let* ((old (directory-file-name old))
+      (let* ((old (substring
+                   (directory-file-name base_path)
+                   0 (- (length (file-name-nondirectory base_path)))))
              (was-started (= 1 (mentor-property 'is_active)))
              (old-prefixed (concat mentor-directory-prefix old))
              (new (read-file-name "New location: " old-prefixed nil t)))
