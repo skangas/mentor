@@ -404,7 +404,7 @@ functions"
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
-          (setq mentor-torrents nil)
+          (setq mentor-torrents (make-hash-table :test 'equal))
           (mentor-init-torrent-list)
           (mentor-redisplay)))))
 
