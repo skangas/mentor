@@ -781,25 +781,26 @@ start point."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let* ((was-started (= 1 (mentor-property 'is_active)))
-           (old (directory-file-name (or (mentor-property 'base_path tor)
-                                         (mentor-property 'directory tor))))
-           (old-prefixed (concat mentor-directory-prefix old))
-           (new (read-file-name "New location: " old-prefixed nil t)))
-      (if (condition-case err
-              (mentor-rpc-command "execute" "ls" "-d" new)
-            (error nil))
-          (progn
-            (when was-started
-              (mentor-do-stop-torrent tor))
-            (when (file-exists-p old)
-              (mentor-rpc-command "execute" "mv" "-n" old new))
-            (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
-            (when was-started
-              (mentor-do-start-torrent tor))
-            (mentor-set-property 'directory new)
-            (mentor-redisplay))
-        (error "No such file or directory: " new))
+    (let ((old (mentor-property 'base_path tor)))
+      (when (not old)
+        (error "Unable to move closed torrent"))
+      (let* ((old (directory-file-name old))
+             (was-started (= 1 (mentor-property 'is_active)))
+             (old-prefixed (concat mentor-directory-prefix old))
+             (new (read-file-name "New location: " old-prefixed nil t)))
+        (when (not (condition-case err
+                       (mentor-rpc-command "execute" "ls" "-d" new)
+                     (error nil)))
+          (error "No such file or directory: " new)))
+      (when was-started
+        (mentor-do-stop-torrent tor))
+      (when (file-exists-p old)
+        (mentor-rpc-command "execute" "mv" "-n" old new))
+      (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
+      (when was-started
+        (mentor-do-start-torrent tor))
+      (mentor-set-property 'directory new)
+      (mentor-redisplay)
       (message (concat "Moved torrent to " new))))))
 
 (defun mentor-pause-torrent (&optional tor)
