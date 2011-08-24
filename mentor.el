@@ -155,8 +155,10 @@ connecting through scgi or http."
     (define-key map (kbd "M-g") 'mentor-update-torrent-data-and-redisplay)
 
     ;; navigation
-    (define-key map (kbd "n") 'mentor-next-section)
+    (define-key map (kbd "<up>") 'mentor-previous-section)
+    (define-key map (kbd "<down>") 'mentor-next-section)
     (define-key map (kbd "p") 'mentor-previous-section)
+    (define-key map (kbd "n") 'mentor-next-section)
 
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
