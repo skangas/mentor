@@ -243,7 +243,7 @@ connecting through scgi or http."
 (put 'mentor-sub-mode 'permanent-local t)
 
 (defvar mentor-priority-fun)
-(make-variable-buffer-local 'mentor-sub-mode)
+(make-variable-buffer-local 'mentor-priority-fun)
 
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rtorrent from emacs
