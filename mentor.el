@@ -1046,14 +1046,14 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (condition-case err
       (progn
         (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
-               (tors (mentor-rpc-d.multicall methods)))
-          (dolist (tor-result tors)
-            (let* ((id (mentor-property 'local_id tor-result))
-                   (tor (mentor-get-torrent id)))
-              (dolist (r tor-result)
-                (let* ((property (car r))
-                       (value (cdr r))
-                       (alist (assq property tor)))
+               (torrents (mentor-rpc-d.multicall methods)))
+          (dolist (tor-new torrents)
+            (let* ((id (mentor-property 'local_id tor-new))
+                   (tor-old (mentor-get-torrent id)))
+              (dolist (row tor-new)
+                (let* ((property (car row))
+                       (value (cdr row))
+                       (alist (assq property tor-old)))
                   (if alist
                       (setcdr alist value)
                     (signal 'mentor-need-init `("No such torrent" ,id))))))))
@@ -1635,12 +1635,14 @@ point."
         (number-to-string (/ bytes 1024)))
     ""))
 
+;;; FIXME: fails on "111 Years of Deutsche Grammophon111 Classic Tracks (2009) [FLAC]              "
 (defun mentor-enforce-length (str len)
   (if str
-      (substring (format (concat "%" (when (< len 0) "-")
-                                 (number-to-string (abs len)) "s")
-                         str)
-                 0 (abs len))
+      (substring
+       (format (concat "%" (when (< len 0) "-")
+                       (number-to-string (abs len)) "s")
+               str)
+       0 (abs len))
     (make-string (abs len) ? )))
 
 (defun mentor-trim-line (str)
