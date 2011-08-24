@@ -750,8 +750,18 @@ start point."
   (message "TODO"))
 
 (defun mentor-change-target-directory (&optional tor)
+  "Change torrents target directory without moving data.
+See also `mentor-move-torrent-data'."
   (interactive)
-  (message "TODO: change-target-directory"))
+  (mentor-keep-position
+   (mentor-use-tor
+    (let* ((new (mentor-get-new-torrent-path tor)))
+      (mentor-do-stop-torrent tor)
+      (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
+      ;;; FIXME: needs to update the data for this torrent from rtorrent
+      (mentor-set-property 'directory new)
+      (mentor-redisplay)
+      (message (concat "Changed target directory to " new))))))
 
 (defun mentor-close-torrent (&optional tor)
   (interactive)
