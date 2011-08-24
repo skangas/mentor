@@ -161,9 +161,11 @@ connecting through scgi or http."
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
     (define-key map (kbd "-") 'mentor-decrease-priority)
-    (define-key map (kbd "C") 'mentor-call-command)
+    ;; (define-key map (kbd "C") 'mentor-call-command)
+    (define-key map (kbd "C") 'mentor-copy-torrent-data)
     (define-key map (kbd "D") 'mentor-stop-all-torrents)
     (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
+    (define-key map (kbd "R") 'mentor-move-torrent-data)
     (define-key map (kbd "S") 'mentor-start-all-torrents)
     (define-key map (kbd "b") 'mentor-set-inital-seeding)
     (define-key map (kbd "c") 'mentor-close-torrent)
@@ -177,7 +179,6 @@ connecting through scgi or http."
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "R") 'mentor-move-torrent)
     (define-key map (kbd "m") 'mentor-mark-item)
     (define-key map (kbd "u") 'mentor-unmark-item)
     (define-key map (kbd "M") 'mentor-mark-all)
@@ -667,7 +668,7 @@ start point."
 	   (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
-;;; Torrent actions
+;;; Torrent actions and helper functions for interactive commands
 
 (defun mentor-delete-file (file)
   (let ((dired-recursive-deletes nil))
@@ -702,6 +703,27 @@ start point."
 
 (defun mentor-do-stop-torrent (tor)
   (mentor-rpc-command "d.stop" (mentor-property 'hash tor)))
+
+(defun mentor-get-old-torrent-path (tor)
+  (let ((path (mentor-property 'base_path tor)))
+    (when (not path)
+      (error "Unable to get path for closed torrent"))
+    (substring (directory-file-name path)
+               0 (- (length (file-name-nondirectory path))))))
+
+(defun mentor-get-new-torrent-path (tor)
+  "Helper function for `mentor-copy-torrent-data' and
+`mentor-move-torrent-data'"
+  (let* ((old (mentor-get-old-torrent-path tor))
+         (old-prefixed (concat mentor-directory-prefix old))
+         (new (read-file-name "New path: " old-prefixed nil t)))
+    (when (string-equal old new)
+      (error "Source and destination are the same"))
+    (when (not (condition-case err
+                   (mentor-rpc-command "execute" "ls" "-d" new)
+                 (error nil)))
+      (error "No such file or directory: " new))
+    new))
 
 (defun mentor-set-priority (val)
   (setq val (or val 1))
@@ -777,35 +799,34 @@ start point."
   (mentor-set-priority 1)
   (mentor-update))
 
-(defun mentor-move-torrent (&optional tor)
+(defun mentor-copy-torrent-data (&optional tor)
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let ((base_path (mentor-property 'base_path tor)))
-      (when (not base_path)
-        (error "Unable to move closed torrent"))
-      (let* ((old (substring
-                   (directory-file-name base_path)
-                   0 (- (length (file-name-nondirectory base_path)))))
-             (was-started (= 1 (mentor-property 'is_active)))
-             (old-prefixed (concat mentor-directory-prefix old))
-             (new (read-file-name "New location: " old-prefixed nil t)))
-        (when (string-equal old new)
-          (error "Source and destination are the same"))
-        (when (not (condition-case err
-                       (mentor-rpc-command "execute" "ls" "-d" new)
-                     (error nil)))
-          (error "No such file or directory: " new))
-        (when was-started
-          (mentor-do-stop-torrent tor))
-        (when (file-exists-p old)
-          (mentor-rpc-command "execute" "mv" "-n" old new))
-        (mentor-rpc-command "d.set_directory" (mentor-property 'hash tor) new)
-        (when was-started
-          (mentor-do-start-torrent tor))
-        (mentor-set-property 'directory new)
-        (mentor-redisplay)
-        (message (concat "Moved torrent to " new)))))))
+    (let* ((old (mentor-property 'base_path))
+           (new (mentor-get-new-torrent-path tor)))
+      (when (file-exists-p old)
+        (mentor-rpc-command "execute" "cp" "-Rn" old new))
+      (message (concat "Copied torrent data to " new))))))
+
+(defun mentor-move-torrent-data (&optional tor)
+  (interactive)
+  (mentor-keep-position
+   (mentor-use-tor
+    (let* ((old (mentor-property 'base_path))
+           (new (mentor-get-new-torrent-path tor))
+           (was-started (= 1 (mentor-property 'is_active))))
+      (when was-started
+        (mentor-do-stop-torrent tor))
+      (when (file-exists-p old)
+        (mentor-rpc-command "execute" "mv" "-n" old new))
+      (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
+      (when was-started
+        (mentor-do-start-torrent tor))
+      ;;; FIXME: needs to update the data for this torrent from rtorrent
+      (mentor-set-property 'directory new)
+      (mentor-redisplay)
+      (message (concat "Moved torrent data to " new))))))
 
 (defun mentor-pause-torrent (&optional tor)
   "Pause torrent. This is probably not what you want, use
