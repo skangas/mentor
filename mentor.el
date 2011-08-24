@@ -187,6 +187,7 @@ connecting through scgi or http."
 
     ;; sort functions
     (define-key map (kbd "t c") 'mentor-sort-by-state)
+    (define-key map (kbd "t d") 'mentor-sort-by-directory)
     (define-key map (kbd "t d") 'mentor-sort-by-download-speed)
     (define-key map (kbd "t n") 'mentor-sort-by-name)
     (define-key map (kbd "t p") 'mentor-sort-by-property-prompt)
@@ -532,6 +533,10 @@ according to several criteria."
     (let ((prop (car property))
           (rev (cdr property)))
       (mentor-do-sort prop rev))))
+
+(defun mentor-sort-by-directory (append)
+  (interactive "P")
+  (mentor-sort 'directory nil append))
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
@@ -1032,7 +1037,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 (defun mentor-update-interesting-torrent-data ()
   (interactive)
-  (message "Updating torrent list...")
+  (message "Updating torrent data...")
   (condition-case err
       (progn
         (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
@@ -1048,7 +1053,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                       (setcdr alist value)
                     (signal 'mentor-need-init `("No such torrent" ,id))))))))
         (mentor-update-custom-properties)
-        (message "Updating torrent list...DONE"))
+        (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-init-torrent-list))))
 
