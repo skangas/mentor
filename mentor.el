@@ -488,14 +488,14 @@ functions"
   (when (not mentor-highlight-overlay)
     (setq mentor-highlight-overlay (make-overlay 1 10))
     (overlay-put mentor-highlight-overlay 
-  		 'face 'mentor-highlight-face))
+                 'face 'mentor-highlight-face))
   (if mentor-current-id
       (when (not (equal mentor-current-id mentor-highlighted-torrent))
-	(setq mentor-highlighted-torrent mentor-current-id)
-	(move-overlay mentor-highlight-overlay
-		      (mentor-get-item-beginning)
-		      (mentor-get-item-end)
-		      (current-buffer)))
+        (setq mentor-highlighted-torrent mentor-current-id)
+        (move-overlay mentor-highlight-overlay
+                      (mentor-get-item-beginning)
+                      (mentor-get-item-end)
+                      (current-buffer)))
     (delete-overlay mentor-highlight-overlay)
     (setq mentor-highlighted-torrent nil)))
 
@@ -669,9 +669,9 @@ start point."
 (defun mentor-toggle-object ()
   (interactive)
   (let ((type (get-text-property (point) 'type))
-	(props (text-properties-at (point))))
+        (props (text-properties-at (point))))
     (cond ((eq type 'dir) 
-	   (mentor-toggle-file (get-text-property (point) 'file))))))
+           (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
 ;;; Torrent actions and helper functions for interactive commands
@@ -1179,9 +1179,9 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-add-torrent-to-view (view &optional tor)
   (interactive 
    (list (mentor-prompt-complete "Add torrent to view: " 
-				 (remove-if-not 'mentor-views-is-custom-view 
-						mentor-torrent-views)
-				 nil mentor-current-view)))
+                                 (remove-if-not 'mentor-views-is-custom-view 
+                                                mentor-torrent-views)
+                                 nil mentor-current-view)))
   (mentor-use-tor
    (when (not (mentor-views-is-custom-view view))
      (setq view (concat mentor-custom-view-prefix view)))
@@ -1220,8 +1220,8 @@ If `torrent' is nil, use torrent at point."
   (interactive)
   (when (null new)
     (setq new (mentor-prompt-complete 
-	       "Show view: " mentor-torrent-views 
-	       1 mentor-last-used-view)))
+               "Show view: " mentor-torrent-views 
+               1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (mentor-get-custom-view-name new)))
   (when (not (equal new mentor-current-view))
@@ -1246,10 +1246,10 @@ already in view_list and sets all new view_filters."
   (maphash 
    (lambda (id torrent)
      (mapcar (lambda (view) 
-	       (when (and (mentor-views-is-custom-view view)
-			  (not (mentor-views-is-view-defined view)))
-		 (mentor-views-add view)))
-	     (cdr (assoc 'views torrent))))
+               (when (and (mentor-views-is-custom-view view)
+                          (not (mentor-views-is-view-defined view)))
+                 (mentor-views-add view)))
+             (cdr (assoc 'views torrent))))
    mentor-torrents))
 
 (defun mentor-views-update-views ()
@@ -1263,14 +1263,14 @@ this everytime you add/remove a torrent to a view since
 rtorrent (atleast as of 0.8.6) does not add/remove new torrents
 to a view unless the filter is updated."
   (mentor-rpc-command "view_filter" view
-  		      (concat "d.views.has=" view)))
+                      (concat "d.views.has=" view)))
 
 (defun mentor-views-update-filters ()
   "Updates all view_filters for custom views in rtorrent."
   (mapc (lambda (view)
-	  (when (mentor-views-is-custom-view  view)
-	    (mentor-views-update-filter view)))
-	mentor-torrent-views))
+          (when (mentor-views-is-custom-view  view)
+            (mentor-views-update-filter view)))
+        mentor-torrent-views))
 
 (defun mentor-views-is-view-defined (view)
   (member view mentor-torrent-views))
@@ -1609,7 +1609,7 @@ point."
 
 (defun mentor-prompt-complete (prompt list require-match default)
   (completing-read prompt list nil require-match nil nil
-		   mentor-last-used-view))
+                   mentor-last-used-view))
 
 (defun mentor-get-custom-view-name (view-id)
   (cdr (assoc view-id mentor-custom-views)))
@@ -1650,7 +1650,7 @@ point."
   (if (string= str "")
       nil
     (if (equal (elt str (- (length str) 1)) ?\n)
-	(substring str 0 (- (length str) 1))
+        (substring str 0 (- (length str) 1))
       str)))
 
 (defun mentor-item-is-marked ()
