@@ -1585,6 +1585,16 @@ point."
        ,@body
        (mentor-next-section t))))
 
+(defmacro mentor-do-marked (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (when (not (mentor-item-type))
+       (mentor-next-section t))
+     (while (mentor-item-type)
+       (when (mentor-item-is-marked)
+         ,@body)
+       (mentor-next-section t))))
+
 (defun mentor-limit-num (num min max)
   (if (< num min)
       min
