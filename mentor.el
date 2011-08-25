@@ -32,13 +32,10 @@
 ;; ever again.
 
 ;; TODO:
-;; Support for categories
 ;; Filters
-;; Marking torrents and executing commands over all marked torrents
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
 ;; Torrent detail screen
-;; Completion for (mentor-set-view) and (mentor-torrent-add-view-prompt)
 ;; Save cache to disk
 
 ;; Bug reports, comments, and suggestions are welcome!
