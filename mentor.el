@@ -614,7 +614,7 @@ that point. Otherwise goto the real start point."
 
 (defun mentor-get-item-beginning (&optional real-start)
   "If real-start is nil and the item at point has a item-start
-property defined return that point. Otherwise returt the real
+property defined return that point. Otherwise return the real
 start point."
   (save-excursion
     (mentor-item-beginning real-start)
