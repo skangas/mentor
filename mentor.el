@@ -733,11 +733,7 @@ start point."
 
 (defun mentor-set-priority (val)
   (setq val (or val 1))
-  (let (calls)
-    (mentor-do-items
-     (let ((ret (funcall mentor-priority-fun val)))
-       (when ret (push ret calls))))
-    (apply 'mentor-sys-multicall calls)))
+  (apply 'mentor-rpc-command (funcall mentor-priority-fun val)))
 
 
 ;;; Interactive torrent commands
@@ -770,8 +766,15 @@ See also `mentor-move-torrent-data'."
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
-  (mentor-set-priority -1)
-  (mentor-update-torrent-data-and-redisplay))
+  (mentor-do-marked
+   (mentor-set-priority -1)
+   (mentor-update-torrent-data-and-redisplay)))
+
+(defun mentor-increase-priority (&optional tor)
+  (interactive)
+  (mentor-do-marked
+   (mentor-set-priority 1)
+   (mentor-update-torrent-data-and-redisplay)))
 
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
@@ -807,11 +810,6 @@ See also `mentor-move-torrent-data'."
     (mentor-set-property 'is_open 1)
     (mentor-update-custom-properties)
     (mentor-update-torrent-data-and-redisplay))))
-
-(defun mentor-increase-priority (&optional tor)
-  (interactive)
-  (mentor-set-priority 1)
-  (mentor-update-torrent-data-and-redisplay))
 
 (defun mentor-copy-torrent-data (&optional tor)
   (interactive)
