@@ -28,8 +28,7 @@
 ;;; Commentary:
 
 ;; This code plugs the bittorrent client rtorrent into GNU Emacs using XML-RPC.
-;; The current goal is to never have to touch the standard ncurses interface
-;; ever again.
+;; The goal is to never again have to touch the standard ncurses interface.
 
 ;; TODO:
 ;; Filters
