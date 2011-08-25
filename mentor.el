@@ -1537,7 +1537,6 @@ point."
     (mentor-insert-dir-content root)
     (goto-char pos)))
 
-;; wrapping doesn't work for next-dir atm
 (defun mentor-details-next-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
