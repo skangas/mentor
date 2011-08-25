@@ -319,26 +319,8 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
            (if mentor-auto-update-flag "enabled" "disabled")))
 
 
-;;; Run XML-RPC calls
+;;; XML-RPC calls
 
-(defun mentor-rpc-command (&rest args)
-  "Run command as an XML-RPC call via SCGI or http."
-  (let* ((url-http-response-status 200)
-         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
-    (if (equal response '((nil . "URL/HTTP Error: 200")))
-        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
-      response)))
-
-(defun mentor-sys-multicall (&rest calls)
-  "Perform a system.multicall with `calls'.  Every call should be
-a list where the first element is the method name and all
-consecutive elements is its arguments."
-  (mentor-rpc-command
-   "system.multicall"
-   (mapcar (lambda (c)
-             (apply 'mentor-multicall-string 
-                    (car c) (cdr c))) calls)))
-  
 ;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
@@ -364,8 +346,26 @@ functions"
                         mentor-rtorrent-rpc-methods))
     mentor-rtorrent-rpc-methods))
 
+(defun mentor-rpc-command (&rest args)
+  "Run command as an XML-RPC call via SCGI or http."
+  (let* ((url-http-response-status 200)
+         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+    (if (equal response '((nil . "URL/HTTP Error: 200")))
+        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
+      response)))
+
 (defun mentor-multicall-string (method &rest args)
   (list (cons "methodName" method) (cons "params" args)))
+
+(defun mentor-sys-multicall (&rest calls)
+  "Perform a system.multicall with `calls'.  Every call should be
+a list where the first element is the method name and all
+consecutive elements is its arguments."
+  (mentor-rpc-command
+   "system.multicall"
+   (mapcar (lambda (c)
+             (apply 'mentor-multicall-string 
+                    (car c) (cdr c))) calls)))
 
 
 ;;; Main view
@@ -441,16 +441,16 @@ functions"
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
+(defun mentor-remove-torrent-from-view (torrent)
+  (let ((buffer-read-only nil))
+    (delete-region (mentor-get-item-beginning t) (+ 1 (mentor-get-item-end)))))
+
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
         (id (mentor-id-at-point)))
     (mentor-remove-torrent-from-view torrent)
     (mentor-insert-torrent id torrent)
     (mentor-previous-section)))
-
-(defun mentor-remove-torrent-from-view (torrent)
-  (let ((buffer-read-only nil))
-    (delete-region (mentor-get-item-beginning t) (+ 1 (mentor-get-item-end)))))
 
 (defun mentor-process-view-columns (torrent)
   (apply 'concat "  "
