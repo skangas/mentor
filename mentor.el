@@ -189,7 +189,7 @@ connecting through scgi or http."
 
     ;; sort functions
     (define-key map (kbd "t c") 'mentor-sort-by-state)
-    (define-key map (kbd "t d") 'mentor-sort-by-directory)
+    (define-key map (kbd "t D") 'mentor-sort-by-directory)
     (define-key map (kbd "t d") 'mentor-sort-by-download-speed)
     (define-key map (kbd "t n") 'mentor-sort-by-name)
     (define-key map (kbd "t p") 'mentor-sort-by-property-prompt)
