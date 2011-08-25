@@ -321,6 +321,10 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 
 ;;; XML-RPC calls
 
+(defun mentor-rpc-method-to-property (name)
+  (intern
+   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" name)))
+
 ;; Do not try methods that makes rtorrent crash
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
 
@@ -896,7 +900,7 @@ See also `mentor-move-torrent-data'."
        (message "Torrent has no data: %s" (mentor-property 'name))))))
 
 
-;;; Get data from rtorrent
+;;; Get torrent data from rtorrent
 
 (defvar mentor-torrents nil
   "Hash table containing all torrents")
@@ -920,10 +924,6 @@ See also `mentor-move-torrent-data'."
     "d.is_hash_checking"
     "d.is_open"
     "d.is_pex_active"))
-
-(defun mentor-rpc-method-to-property (name)
-  (intern
-   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" name)))
 
 ;; (defun mentor-property-to-rpc-method () nil)
 
