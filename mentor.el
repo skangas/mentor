@@ -595,7 +595,7 @@ the torrent at point."
 
 ;;; Navigation
 
-(defmacro while-same-item (skip-blanks condition &rest body)
+(defmacro mentor-while-same-item (skip-blanks condition &rest body)
   `(let* ((item (mentor-item-id-at-point)))
      (while (and ,condition
                  (or (and ,skip-blanks
@@ -615,14 +615,14 @@ that point. Otherwise goto the real start point."
   ;; (let ((start (get-text-property (point) 'item-start)))
   ;;   (if (and start (not real-start))
   ;;       (goto-char start)
-  ;;     (while-same-item nil (> (point) (point-min)) (backward-char))
+  ;;     (mentor-while-same-item nil (> (point) (point-min)) (backward-char))
   ;;     (when (not (eq (point) (point-min)))
   ;;       (forward-char)))))
 
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
-  (while-same-item nil (< (point) (point-max)) (forward-char)))
+  (mentor-while-same-item nil (< (point) (point-max)) (forward-char)))
 
 (defun mentor-get-item-beginning (&optional real-start)
   "If real-start is nil and the item at point has a item-start
@@ -640,7 +640,7 @@ start point."
 (defun mentor-next-item (&optional no-wrap)
   (interactive)
   (condition-case err
-      (while-same-item t t (forward-char))
+      (mentor-while-same-item t t (forward-char))
     (end-of-buffer
      (when (not no-wrap)
        (goto-char (point-min))
@@ -651,7 +651,7 @@ start point."
 (defun mentor-previous-item (&optional no-wrap)
   (interactive)
   (condition-case err
-      (while-same-item t t (backward-char))
+      (mentor-while-same-item t t (backward-char))
     (beginning-of-buffer
      (when (not no-wrap)
        (goto-char (point-max))
@@ -1561,7 +1561,7 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t t (forward-char)))
+    (mentor-while-same-item t t (forward-char)))
   (mentor-beginning-of-item))
 
 (defun mentor-details-previous-directory ()
@@ -1569,7 +1569,7 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (while-same-item t t (backward-char))
+    (mentor-while-same-item t t (backward-char))
     (mentor-beginning-of-item)))
 
 (defun mentor-mark-dir (file &optional clear-mark no-redisplay)
