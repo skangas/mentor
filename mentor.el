@@ -522,7 +522,7 @@ consecutive elements is its arguments."
            (inhibit-read-only t))
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-item t)))
-                  (lambda () (ignore-errors (mentor-item-end)))
+                  (lambda () (ignore-errors (mentor-end-of-item)))
                   (lambda () (mentor-property property)))))))
 
 (defun mentor-sort (&optional property reverse append)
@@ -603,7 +603,7 @@ the torrent at point."
                      (equal item (mentor-item-id-at-point))))
        ,@body)))
 
-(defun mentor-item-beginning (&optional real-start)
+(defun mentor-beginning-of-item (&optional real-start)
   "Goto the beginning of the item at point. If the item at point
 has an item-start property defined and real-start is nil goto
 that point. Otherwise goto the real start point."
@@ -619,7 +619,7 @@ that point. Otherwise goto the real start point."
   ;;     (when (not (eq (point) (point-min)))
   ;;       (forward-char)))))
 
-(defun mentor-item-end ()
+(defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
   (while-same-item nil (< (point) (point-max)) (forward-char)))
@@ -629,12 +629,12 @@ that point. Otherwise goto the real start point."
 property defined return that point. Otherwise return the real
 start point."
   (save-excursion
-    (mentor-item-beginning real-start)
+    (mentor-beginning-of-item real-start)
     (point)))
 
 (defun mentor-get-item-end ()
   (save-excursion
-    (mentor-item-end)
+    (mentor-end-of-item)
     (point)))
 
 (defun mentor-next-item (&optional no-wrap)
@@ -646,7 +646,7 @@ start point."
        (goto-char (point-min))
        (when (not (mentor-item-type))
          (mentor-next-item t)))))
-  (mentor-item-beginning))
+  (mentor-beginning-of-item))
 
 (defun mentor-previous-item (&optional no-wrap)
   (interactive)
@@ -656,7 +656,7 @@ start point."
      (when (not no-wrap)
        (goto-char (point-max))
        (mentor-previous-item t))))
-  (mentor-item-beginning t))
+  (mentor-beginning-of-item t))
 
 (put 'mentor-missing-torrent
      'error-conditions
@@ -1427,7 +1427,7 @@ point."
    (mentor-details-redisplay)
    (if (not (mentor-item-type))
        (mentor-next-item t)
-     (mentor-item-beginning))))
+     (mentor-beginning-of-item))))
 
 (defun mentor-details-add-files (name-list)
   (let ((root (make-mentor-file :name "/" :type 'dir :id -1 :show t))
@@ -1562,7 +1562,7 @@ point."
     (mentor-next-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
     (while-same-item t t (forward-char)))
-  (mentor-item-beginning))
+  (mentor-beginning-of-item))
 
 (defun mentor-details-previous-directory ()
   (interactive)
@@ -1570,7 +1570,7 @@ point."
     (mentor-previous-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
     (while-same-item t t (backward-char))
-    (mentor-item-beginning)))
+    (mentor-beginning-of-item)))
 
 (defun mentor-mark-dir (file &optional clear-mark no-redisplay)
   (interactive)
