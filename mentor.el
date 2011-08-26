@@ -152,10 +152,10 @@ connecting through scgi or http."
     (define-key map (kbd "M-g") 'mentor-update-torrent-data-and-redisplay)
 
     ;; navigation
-    (define-key map (kbd "<up>") 'mentor-previous-section)
-    (define-key map (kbd "<down>") 'mentor-next-section)
-    (define-key map (kbd "p") 'mentor-previous-section)
-    (define-key map (kbd "n") 'mentor-next-section)
+    (define-key map (kbd "<up>") 'mentor-previous-item)
+    (define-key map (kbd "<down>") 'mentor-next-item)
+    (define-key map (kbd "p") 'mentor-previous-item)
+    (define-key map (kbd "n") 'mentor-next-item)
 
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
@@ -435,7 +435,7 @@ consecutive elements is its arguments."
                         'collapsed t 'type 'torrent) "\n")
     (when marked
       (save-excursion
-        (mentor-previous-section)
+        (mentor-previous-item)
         (mentor-mark-item)))))
 
 (defun mentor-insert-torrents ()
@@ -451,7 +451,7 @@ consecutive elements is its arguments."
         (id (mentor-id-at-point)))
     (mentor-remove-item-from-view)
     (mentor-insert-torrent id torrent)
-    (mentor-previous-section)))
+    (mentor-previous-item)))
 
 (defun mentor-process-view-columns (torrent)
   (apply 'concat "  "
@@ -506,7 +506,7 @@ consecutive elements is its arguments."
      (let ((sort-fold-case t)
            (inhibit-read-only t))
        (sort-subr reverse
-                  (lambda () (ignore-errors (mentor-next-section t)))
+                  (lambda () (ignore-errors (mentor-next-item t)))
                   (lambda () (ignore-errors (mentor-item-end)))
                   (lambda () (mentor-property property)))))))
 
@@ -626,7 +626,7 @@ start point."
     (mentor-item-end)
     (point)))
 
-(defun mentor-next-section (&optional no-wrap)
+(defun mentor-next-item (&optional no-wrap)
   (interactive)
   (condition-case err
       (while-same-item t t (forward-char))
@@ -634,17 +634,17 @@ start point."
      (when (not no-wrap)
        (goto-char (point-min))
        (when (not (mentor-item-type))
-         (mentor-next-section t)))))
+         (mentor-next-item t)))))
   (mentor-item-beginning))
 
-(defun mentor-previous-section (&optional no-wrap)
+(defun mentor-previous-item (&optional no-wrap)
   (interactive)
   (condition-case err
       (while-same-item t t (backward-char))
     (beginning-of-buffer
      (when (not no-wrap)
        (goto-char (point-max))
-       (mentor-previous-section t))))
+       (mentor-previous-item t))))
   (mentor-item-beginning t))
 
 (put 'mentor-missing-torrent
@@ -661,7 +661,7 @@ start point."
                (beginning-of-buffer)
                (while (and (not (equal id (mentor-id-at-point)))
                            (not (= (point) (point-max))))
-                 (mentor-next-section t))
+                 (mentor-next-item t))
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos)
@@ -1409,7 +1409,7 @@ point."
    (mentor-details-files-update t)
    (mentor-details-redisplay)
    (if (not (mentor-item-type))
-       (mentor-next-section t)
+       (mentor-next-item t)
      (mentor-item-beginning))))
 
 (defun mentor-details-add-files (name-list)
@@ -1525,7 +1525,7 @@ point."
         (mentor-insert-file file infix (= count total)))
       (when (mentor-file-marked file)
         (save-excursion
-          (mentor-previous-section t)
+          (mentor-previous-item t)
           (mentor-mark-item)))
       (incf count))))
 
@@ -1542,7 +1542,7 @@ point."
 (defun mentor-details-next-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
-    (mentor-next-section))
+    (mentor-next-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
     (while-same-item t t (forward-char)))
   (mentor-item-beginning))
@@ -1550,7 +1550,7 @@ point."
 (defun mentor-details-previous-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
-    (mentor-previous-section))
+    (mentor-previous-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
     (while-same-item t t (backward-char))
     (mentor-item-beginning)))
@@ -1602,7 +1602,7 @@ item instead of jumping to next."
              (setf (mentor-file-marked (mentor-file-at-point)) new-mark))
             ((eq type 'dir) (mentor-mark-dir (mentor-file-at-point) clear-mark)))
       (when (and (not no-jump) (not (eq type 'dir)))
-        (mentor-next-section t)))))
+        (mentor-next-item t)))))
 
 (defun mentor-unmark-item (&optional no-jump)
   "Unmark the item at point."
@@ -1630,20 +1630,20 @@ item instead of jumping to next."
   `(save-excursion
      (goto-char (point-min))
      (when (not (mentor-item-type))
-       (mentor-next-section t))
+       (mentor-next-item t))
      (while (mentor-item-type)
        ,@body
-       (mentor-next-section t))))
+       (mentor-next-item t))))
 
 (defmacro mentor-do-marked (&rest body)
   `(save-excursion
      (goto-char (point-min))
      (when (not (mentor-item-type))
-       (mentor-next-section t))
+       (mentor-next-item t))
      (while (mentor-item-type)
        (when (mentor-item-is-marked)
          ,@body)
-       (mentor-next-section t))))
+       (mentor-next-item t))))
 
 (defun mentor-limit-num (num min max)
   (if (< num min)
