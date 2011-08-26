@@ -475,7 +475,7 @@ consecutive elements is its arguments."
 
 (defun mentor-reload-header-line ()
   (cond ((eq mentor-sub-mode 'file-details)
-         (setq mentor-header-line "Progr  Prio   Size     Filename"))
+         (setq mentor-header-line "Cmp  Pri  Size     Filename"))
         ((not mentor-sub-mode)
          (setq mentor-header-line
                (apply 'concat
@@ -1330,15 +1330,15 @@ the integer index used by rtorrent to identify this file."
 (defun mentor-file-prio-string (file)
   (let ((prio (mentor-file-priority file)))
     (cond ((eq prio 0) "off")
-          ((eq prio 1) "normal")
-          ((eq prio 2) "high"))))
+          ((eq prio 1) "")
+          ((eq prio 2) "hig"))))
 
 (defun mentor-file-progress (file)
   (let* ((chunk-size (mentor-property
                      'chunk_size mentor-selected-torrent))
          (done (mentor-file-completed_chunks file))
          (size (mentor-file-size_chunks file)))
-    (format "%d%s" (* 100 (/ (+ 0.0 done) size)) "%")))
+    (format "%d" (* 100 (/ (+ 0.0 done) size)))))
 
 (defun mentor-file-size (file)
   (let* ((chunk-size (mentor-property
@@ -1478,7 +1478,7 @@ point."
   (mentor-details-redisplay))
 
 (defvar mentor-file-detail-columns
-  '((mentor-file-progress . -7) (mentor-file-prio-string . -7)
+  '((mentor-file-progress . -5) (mentor-file-prio-string . -5)
     (mentor-file-size . 6)))
 
 (defun mentor-insert-file (file infix &optional last)
