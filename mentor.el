@@ -386,12 +386,12 @@ consecutive elements is its arguments."
 
 (defmacro mentor-keep-position (&rest body)
   "Keep the current position."
-  `(let ((kept-torrent (mentor-torrent-at-point))
+  `(let ((kept-torrent-id (mentor-item-id-at-point))
          (kept-point (point)))
      ,@body
-     (if kept-torrent
+     (if kept-torrent-id
          (condition-case err
-             (mentor-goto-torrent (mentor-property 'local_id kept-torrent))
+             (mentor-goto-torrent kept-torrent-id)
            (mentor-missing-torrent
             (goto-char kept-point)))
        (goto-char kept-point))
@@ -580,7 +580,7 @@ according to several criteria."
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
   `(let ((tor (or (when (boundp 'tor) tor)
-                  (mentor-torrent-at-point)
+                  (mentor-get-torrent (mentor-item-id-at-point))
                   (error "no torrent"))))
      ,@body))
 
@@ -1080,9 +1080,6 @@ expensive operation."
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
-
-(defun mentor-torrent-at-point ()
-  (mentor-get-torrent (mentor-item-id-at-point)))
 
 (defun mentor-property (property &optional tor)
   "Get property for a torrent.
