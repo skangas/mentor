@@ -446,14 +446,10 @@ consecutive elements is its arguments."
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
-(defun mentor-remove-torrent-from-view (torrent)
-  (let ((buffer-read-only nil))
-    (delete-region (mentor-get-item-beginning t) (+ 1 (mentor-get-item-end)))))
-
 (defun mentor-redisplay-torrent (torrent)
   (let ((buffer-read-only nil)
         (id (mentor-id-at-point)))
-    (mentor-remove-torrent-from-view torrent)
+    (mentor-remove-item-from-view)
     (mentor-insert-torrent id torrent)
     (mentor-previous-section)))
 
@@ -654,6 +650,11 @@ start point."
 (put 'mentor-missing-torrent
      'error-conditions
      '(error mentor-error mentor-missing-torrent))
+
+(defun mentor-remove-item-from-view ()
+  (let ((buffer-read-only nil))
+    (delete-region (mentor-get-item-beginning t)
+                   (+ 1 (mentor-get-item-end)))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
