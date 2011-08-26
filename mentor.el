@@ -1687,15 +1687,18 @@ item instead of jumping to next."
         (number-to-string (/ bytes 1024)))
     ""))
 
-;;; FIXME: fails on "111 Years of Deutsche Grammophon111 Classic Tracks (2009) [FLAC]              "
-(defun mentor-enforce-length (str len)
-  (if str
-      (substring
-       (format (concat "%" (when (< len 0) "-")
-                       (number-to-string (abs len)) "s")
-               str)
-       0 (abs len))
-    (make-string (abs len) ? )))
+(defun mentor-enforce-length (str maxlen)
+  (if (not str)
+      (make-string (abs maxlen) ? )
+    (format (concat "%"
+                    (when (< maxlen 0)
+                      "-")
+                    (number-to-string
+                     (abs maxlen))
+                    "s")
+            (substring str
+                       0 (min (length str)
+                              (abs maxlen))))))
 
 (defun mentor-trim-line (str)
   (if (string= str "")
