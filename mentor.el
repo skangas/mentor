@@ -477,24 +477,27 @@ consecutive elements is its arguments."
                               mentor-view-columns))))))
 
 (defvar mentor-highlight-overlay nil)
+(make-variable-buffer-local 'mentor-highlight-overlay)
+
 (defvar mentor-highlighted-torrent nil)
-(defvar mentor-current-id)
+(make-variable-buffer-local 'mentor-highlighted-torrent)
 
 (defun mentor-highlight-torrent ()
-  (setq mentor-current-id (mentor-id-at-point))
-  (when (not mentor-highlight-overlay)
-    (setq mentor-highlight-overlay (make-overlay 1 10))
-    (overlay-put mentor-highlight-overlay 
-                 'face 'mentor-highlight-face))
-  (if mentor-current-id
-      (when (not (equal mentor-current-id mentor-highlighted-torrent))
-        (setq mentor-highlighted-torrent mentor-current-id)
-        (move-overlay mentor-highlight-overlay
-                      (mentor-get-item-beginning)
-                      (mentor-get-item-end)
-                      (current-buffer)))
-    (delete-overlay mentor-highlight-overlay)
-    (setq mentor-highlighted-torrent nil)))
+  (let ((cur (mentor-id-at-point)))
+    (when (not mentor-highlight-overlay)
+      (setq mentor-highlight-overlay (make-overlay 1 10))
+      (overlay-put mentor-highlight-overlay 
+                   'face 'mentor-highlight-face))
+    (if cur
+        (when (not (equal cur mentor-highlighted-torrent))
+          (setq mentor-highlighted-torrent cur)
+          (move-overlay mentor-highlight-overlay
+                        (mentor-get-item-beginning)
+                        (mentor-get-item-end)
+                        (current-buffer)))
+      (delete-overlay mentor-highlight-overlay)
+      (setq mentor-highlighted-torrent nil))))
+
 
 
 ;;; Sorting
