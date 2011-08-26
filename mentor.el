@@ -326,6 +326,7 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
   (message "Mentor auto update %s"
            (if mentor-auto-update-flag "enabled" "disabled")))
 
+
 
 ;;; XML-RPC calls
 
@@ -1542,7 +1543,7 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-next-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (mentor-while-same-item t t (forward-char)))
+    (mentor-next-item))
   (mentor-beginning-of-item))
 
 (defun mentor-details-previous-directory ()
@@ -1550,7 +1551,7 @@ point."
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-item))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (mentor-while-same-item t t (backward-char))
+    (mentor-previous-item)
     (mentor-beginning-of-item)))
 
 (defun mentor-mark-dir (file &optional clear-mark no-redisplay)
