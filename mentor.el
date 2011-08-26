@@ -612,12 +612,6 @@ that point. Otherwise goto the real start point."
                    (field-beginning nil nil (point-at-bol)))))
     (when start
       (goto-char start))))
-  ;; (let ((start (get-text-property (point) 'item-start)))
-  ;;   (if (and start (not real-start))
-  ;;       (goto-char start)
-  ;;     (mentor-while-same-item nil (> (point) (point-min)) (backward-char))
-  ;;     (when (not (eq (point) (point-min)))
-  ;;       (forward-char)))))
 
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
