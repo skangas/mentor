@@ -438,7 +438,7 @@ consecutive elements is its arguments."
 
 (defun mentor-insert-torrent (id)
   (let* ((torrent (mentor-get-torrent id))
-         (text (mentor-process-view-columns torrent))
+         (text (mentor-process-view-columns torrent mentor-view-columns))
          (marked (mentor-property 'marked torrent)))
     (insert (propertize text
                         'marked marked
@@ -465,14 +465,16 @@ consecutive elements is its arguments."
     (mentor-insert-torrent id)
     (mentor-previous-item)))
 
-(defun mentor-process-view-columns (torrent)
+(defun mentor-process-view-columns (item columns)
   (apply 'concat "  "
-         (mapcar (lambda (col)
-                   (let* ((pname (car col))
-                          (len (cadr col))
-                          (str (cdr (assq pname torrent))))
+         (mapcar (lambda (column)
+                   (let* ((prop (car column))
+                          (len (cadr column))
+                          (str (if (listp prop)
+                                  (apply (car prop) item (cdr prop))
+                                 (mentor-property prop item))))
                      (concat (mentor-enforce-length str len) " ")))
-                 mentor-view-columns)))
+                 columns)))
 
 (defun mentor-reload-header-line ()
   (cond ((eq mentor-sub-mode 'file-details)
@@ -1479,19 +1481,15 @@ point."
   (mentor-details-redisplay))
 
 (defvar mentor-file-detail-columns
-  '((mentor-file-progress . -5) (mentor-file-prio-string . -5)
-    (mentor-file-size . 6)))
+  '(((mentor-file-progress) -5 "Cmp")
+    ((mentor-file-prio-string) -5 "Pri")
+    ((mentor-file-size) 6 "Size")))
+(defvar mentor-file-detail-width 19)
 
 (defun mentor-insert-file (file infix &optional last)
   (interactive)
   (let ((props (mentor-file-properties file))
-        (text (apply 'concat "  "
-                     (mapcar (lambda (col)
-                               (let* ((pfun (car col))
-                                      (len (cdr col))
-                                      (str (funcall pfun file)))
-                                 (mentor-enforce-length str len)))
-                             mentor-file-detail-columns))))
+        (text (mentor-process-view-columns file mentor-file-detail-columns)))
     (insert (apply 'propertize
                    (concat text " " infix (if last "└── " "├── ")
                            (mentor-file-name file))
@@ -1511,7 +1509,9 @@ point."
                  (symb (if show
                            (if (= count total) "└── " "├── ")
                          "+── "))
-                 (margin (concat (make-string 23 ? ) infix symb))
+                 (margin (concat (make-string mentor-file-detail-width ? )
+                                 infix
+                                 symb))
                  (text (concat margin (mentor-file-name file)))
                  (infix-next (concat infix
                                       (if (= count total)
