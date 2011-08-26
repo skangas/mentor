@@ -245,9 +245,6 @@ connecting through scgi or http."
 (make-variable-buffer-local 'mentor-sub-mode)
 (put 'mentor-sub-mode 'permanent-local t)
 
-(defvar mentor-item-id-at-point-fun)
-(make-variable-buffer-local 'mentor-item-id-at-point-fun)
-
 (defvar mentor-priority-fun)
 (make-variable-buffer-local 'mentor-priority-fun)
 
@@ -287,7 +284,6 @@ Type \\[mentor] to start Mentor.
          (mentor-mode)
          (mentor-init-header-line)
          (setq mentor-priority-fun 'mentor-torrent-priority-fun)
-         (setq mentor-item-id-at-point-fun 'mentor-torrent-id-at-point)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
                mentor-rtorrent-name (mentor-rpc-command "get_name"))
@@ -443,8 +439,11 @@ consecutive elements is its arguments."
 (defun mentor-insert-torrent (id torrent)
   (let ((text (mentor-process-view-columns torrent))
         (marked (mentor-property 'marked torrent)))
-    (insert (propertize text 'marked marked 'field id 'torrent-id id 
-                        'collapsed t 'type 'torrent) "\n")
+    (insert (propertize text
+                        'marked marked
+                        'field id
+                        'collapsed t
+                        'type 'torrent) "\n")
     (when marked
       (save-excursion
         (mentor-previous-item)
@@ -459,8 +458,8 @@ consecutive elements is its arguments."
       (mentor-sort))))
 
 (defun mentor-redisplay-torrent (torrent)
-  (let ((buffer-read-only nil)
-        (id (mentor-id-at-point)))
+  (let ((inhibit-read-only t)
+        (id (mentor-item-id-at-point)))
     (mentor-remove-item-from-view)
     (mentor-insert-torrent id torrent)
     (mentor-previous-item)))
@@ -495,7 +494,7 @@ consecutive elements is its arguments."
 (make-variable-buffer-local 'mentor-highlighted-torrent)
 
 (defun mentor-highlight-torrent ()
-  (let ((cur (mentor-id-at-point)))
+  (let ((cur (mentor-item-id-at-point)))
     (when (not mentor-highlight-overlay)
       (setq mentor-highlight-overlay (make-overlay 1 10))
       (overlay-put mentor-highlight-overlay 
@@ -578,12 +577,6 @@ according to several criteria."
 
 ;;; Get torrent
 
-(defun mentor-item-id-at-point ()
-  (funcall mentor-item-id-at-point-fun))
-
-(defun mentor-id-at-point ()
-  (get-text-property (point) 'torrent-id))
-
 (defmacro mentor-use-tor (&rest body)
   "Convenience macro to use either the defined `torrent' value or
 the torrent at point."
@@ -594,6 +587,9 @@ the torrent at point."
 
 
 ;;; Navigation
+
+(defun mentor-item-id-at-point ()
+  (get-text-property (point) 'field))
 
 (defmacro mentor-while-same-item (skip-blanks condition &rest body)
   `(let* ((item (mentor-item-id-at-point)))
@@ -664,7 +660,7 @@ start point."
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
                (beginning-of-buffer)
-               (while (and (not (equal id (mentor-id-at-point)))
+               (while (and (not (equal id (mentor-item-id-at-point)))
                            (not (= (point) (point-max))))
                  (mentor-next-item t))
                (point))))
@@ -1086,11 +1082,8 @@ expensive operation."
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
 
-(defun mentor-torrent-id-at-point ()
-  (get-text-property (point) 'torrent-id))
-
 (defun mentor-torrent-at-point ()
-  (mentor-get-torrent (mentor-id-at-point)))
+  (mentor-get-torrent (mentor-item-id-at-point)))
 
 (defun mentor-property (property &optional tor)
   "Get property for a torrent.
@@ -1331,9 +1324,6 @@ the integer index used by rtorrent to identify this file."
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
 
-(defun mentor-file-id-at-point ()
-  (get-text-property (point) 'file-id))
-
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
 
@@ -1397,7 +1387,7 @@ the integer index used by rtorrent to identify this file."
                 nil)))
     (list 'face face
           'type (mentor-file-type file)
-          'file-id (mentor-file-id file)
+          'field (mentor-file-id file)
           'file file
           'show (mentor-file-show file))))
 
@@ -1411,7 +1401,6 @@ point."
    (mentor-mode)
    (mentor-init-header-line)
    (setq mentor-priority-fun 'mentor-file-priority-fun)
-   (setq mentor-item-id-at-point-fun 'mentor-file-id-at-point)
    (setq mentor-custom-properties '((prio . mentor-file-prio-string)
                                     (progress . mentor-file-progress)
                                     (size . mentor-file-size)))
