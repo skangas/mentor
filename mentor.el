@@ -436,9 +436,10 @@ consecutive elements is its arguments."
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
 
-(defun mentor-insert-torrent (id torrent)
-  (let ((text (mentor-process-view-columns torrent))
-        (marked (mentor-property 'marked torrent)))
+(defun mentor-insert-torrent (id)
+  (let* ((torrent (mentor-get-torrent id))
+         (text (mentor-process-view-columns torrent))
+         (marked (mentor-property 'marked torrent)))
     (insert (propertize text
                         'marked marked
                         'field id
@@ -453,15 +454,15 @@ consecutive elements is its arguments."
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
-      (mentor-insert-torrent id (mentor-get-torrent id)))
+      (mentor-insert-torrent id))
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
-(defun mentor-redisplay-torrent (torrent)
+(defun mentor-redisplay-torrent ()
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
     (mentor-remove-item-from-view)
-    (mentor-insert-torrent id torrent)
+    (mentor-insert-torrent id)
     (mentor-previous-item)))
 
 (defun mentor-process-view-columns (torrent)
@@ -653,7 +654,7 @@ start point."
      '(error mentor-error mentor-missing-torrent))
 
 (defun mentor-remove-item-from-view ()
-  (let ((buffer-read-only nil))
+  (let ((inhibit-read-only t))
     (delete-region (mentor-get-item-beginning t)
                    (+ 1 (mentor-get-item-end)))))
 
@@ -884,7 +885,7 @@ See also `mentor-move-torrent-data'."
   (mentor-use-tor
    (mentor-update-torrent-data tor))
   (mentor-use-tor
-   (mentor-redisplay-torrent tor)))
+   (mentor-redisplay-torrent)))
 
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
