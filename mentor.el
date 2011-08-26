@@ -236,13 +236,24 @@ connecting through scgi or http."
 (defvar mentor-view-torrent-list nil
   "alist of torrents in given views")
 
+
+
+;; Variables that should be changed by sub-modes
+
 (defvar mentor-sub-mode nil
   "The submode which is currently active")
 (make-variable-buffer-local 'mentor-sub-mode)
 (put 'mentor-sub-mode 'permanent-local t)
 
+(defvar mentor-item-id-at-point-fun)
+(make-variable-buffer-local 'mentor-item-id-at-point-fun)
+
 (defvar mentor-priority-fun)
 (make-variable-buffer-local 'mentor-priority-fun)
+
+
+
+;; Mentor major-mode
 
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rtorrent from emacs
@@ -276,6 +287,7 @@ Type \\[mentor] to start Mentor.
          (mentor-mode)
          (mentor-init-header-line)
          (setq mentor-priority-fun 'mentor-torrent-priority-fun)
+         (setq mentor-item-id-at-point-fun 'mentor-torrent-id-at-point)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
                mentor-rtorrent-name (mentor-rpc-command "get_name"))
@@ -566,11 +578,11 @@ according to several criteria."
 
 ;;; Get torrent
 
+(defun mentor-item-id-at-point ()
+  (funcall mentor-item-id-at-point-fun))
+
 (defun mentor-id-at-point ()
   (get-text-property (point) 'torrent-id))
-
-(defun mentor-torrent-at-point ()
-  (mentor-get-torrent (mentor-id-at-point)))
 
 (defmacro mentor-use-tor (&rest body)
   "Convenience macro to use either the defined `torrent' value or
@@ -584,15 +596,11 @@ the torrent at point."
 ;;; Navigation
 
 (defmacro while-same-item (skip-blanks condition &rest body)
-  `(let* ((item-fun (cond ((not mentor-sub-mode)
-                           'mentor-id-at-point)
-                          ((eq mentor-sub-mode 'file-details)
-                           'mentor-file-id-at-point)))
-          (item (funcall item-fun)))
+  `(let* ((item (mentor-item-id-at-point)))
      (while (and ,condition
                  (or (and ,skip-blanks
-                          (not (funcall item-fun)))
-                     (equal item (funcall item-fun))))
+                          (not (mentor-item-id-at-point)))
+                     (equal item (mentor-item-id-at-point))))
        ,@body)))
 
 (defun mentor-item-beginning (&optional real-start)
@@ -763,11 +771,10 @@ See also `mentor-move-torrent-data'."
       (mentor-update-torrent-data-and-redisplay)
       (message (concat "Changed target directory to " new))))))
 
+;; FIXME: remove torrent from view
 (defun mentor-close-torrent (&optional tor)
   (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.close" (mentor-property 'hash tor))
-   (mentor-update-torrent-data-and-redisplay)))
+  (mentor-rpc-command "d.close" (mentor-property 'hash tor)))
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
@@ -1084,6 +1091,12 @@ expensive operation."
 
 (defun mentor-get-torrent (id)
   (gethash id mentor-torrents))
+
+(defun mentor-torrent-id-at-point ()
+  (get-text-property (point) 'torrent-id))
+
+(defun mentor-torrent-at-point ()
+  (mentor-get-torrent (mentor-id-at-point)))
 
 (defun mentor-property (property &optional tor)
   "Get property for a torrent.
@@ -1404,6 +1417,7 @@ point."
    (mentor-mode)
    (mentor-init-header-line)
    (setq mentor-priority-fun 'mentor-file-priority-fun)
+   (setq mentor-item-id-at-point-fun 'mentor-file-id-at-point)
    (setq mentor-custom-properties '((prio . mentor-file-prio-string)
                                     (progress . mentor-file-progress)
                                     (size . mentor-file-size)))
