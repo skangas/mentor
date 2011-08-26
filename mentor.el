@@ -1406,7 +1406,7 @@ the integer index used by rtorrent to identify this file."
 point."
   (interactive)
   (mentor-use-tor
-   (switch-to-buffer "*mentor: details*")
+   (switch-to-buffer "*mentor: torrent details*")
    (setq mentor-sub-mode 'file-details)
    (mentor-mode)
    (mentor-init-header-line)
@@ -1419,6 +1419,8 @@ point."
    (setq mentor-selected-torrent tor)
    (mentor-details-files-update t)
    (mentor-details-redisplay)
+   (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
+                                                 (mentor-property 'name tor)))
    (if (not (mentor-item-type))
        (mentor-next-item t)
      (mentor-beginning-of-item))))
