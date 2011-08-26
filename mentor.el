@@ -35,7 +35,6 @@
 ;; Filters
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
-;; Torrent detail screen
 ;; Save cache to disk
 
 ;; Bug reports, comments, and suggestions are welcome!
