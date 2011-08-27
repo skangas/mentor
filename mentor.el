@@ -161,10 +161,8 @@ connecting through scgi or http."
     (define-key map (kbd "-") 'mentor-decrease-priority)
     ;; (define-key map (kbd "C") 'mentor-call-command)
     (define-key map (kbd "C") 'mentor-copy-torrent-data)
-    (define-key map (kbd "D") 'mentor-stop-all-torrents)
     (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
     (define-key map (kbd "R") 'mentor-move-torrent-data)
-    (define-key map (kbd "S") 'mentor-start-all-torrents)
     (define-key map (kbd "b") 'mentor-set-inital-seeding)
     (define-key map (kbd "c") 'mentor-close-torrent)
     (define-key map (kbd "e") 'mentor-recreate-files) ;; Set the 'create/resize queued' flags on all files in a torrent.
