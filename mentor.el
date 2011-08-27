@@ -164,7 +164,6 @@ connecting through scgi or http."
     (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
     (define-key map (kbd "R") 'mentor-move-torrent-data)
     (define-key map (kbd "b") 'mentor-set-inital-seeding)
-    (define-key map (kbd "c") 'mentor-close-torrent)
     (define-key map (kbd "e") 'mentor-recreate-files) ;; Set the 'create/resize queued' flags on all files in a torrent.
     (define-key map (kbd "o") 'mentor-change-target-directory)
     (define-key map (kbd "d") 'mentor-stop-torrent)
@@ -873,7 +872,6 @@ See also `mentor-move-torrent-data'."
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-do-stop-torrent tor)
    (mentor-rpc-command "d.close" (mentor-property 'hash tor))
    (mentor-update-torrent-data-and-redisplay)))
 
