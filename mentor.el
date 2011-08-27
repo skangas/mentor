@@ -1181,7 +1181,7 @@ If `torrent' is nil, use torrent at point."
       (setq mentor-last-used-view mentor-current-view)
     (setq mentor-last-used-view mentor-default-view))
   (setq mentor-current-view new)
-  (setq mode-line-buffer-identification (concat "*mentor " mentor-current-view "*")))
+  (setq mode-line-buffer-identification (concat "*mentor* " mentor-current-view)))
 
 (defun mentor-switch-to-view (&optional new)
   (interactive)
