@@ -100,13 +100,13 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '((prio -6 "Prio")
-    (progress -5 "Progress")
-    (state-desc -3 "State")
+  '(((mentor-torrent-get-prio-string) -6 "Prio")
+    ((mentor-torrent-get-progress) -5 "Progress")
+    ((mentor-torrent-get-state) -3 "State")
     (name -80 "Name")
-    (speed-up -6 "Up")
-    (speed-down -6 "Down")
-    (size -15 "     Size")
+    ((mentor-torrent-get-speed-up) -6 "Up")
+    ((mentor-torrent-get-speed-down) -6 "Down")
+    ((mentor-torrent-get-size) -15 "     Size")
     (message -40 "Message")
     (directory -100 "Directory")
     (tied_to_file -80 "Tied file name"))
@@ -813,7 +813,6 @@ See also `mentor-move-torrent-data'."
     (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
     (mentor-set-property 'hashing 1)
     (mentor-set-property 'is_open 1)
-    (mentor-update-custom-properties)
     (mentor-update-torrent-data-and-redisplay))))
 
 (defun mentor-copy-torrent-data (&optional tor)
@@ -939,7 +938,7 @@ See also `mentor-move-torrent-data'."
       (let ((property (mentor-rpc-method-to-property method))
             (new-value (mentor-rpc-command method hash)))
         (setcdr (assq property tor) new-value)))
-    (puthash id (mentor-add-custom-properties tor) mentor-torrents)))
+    (puthash id tor mentor-torrents)))
 
 (defun mentor-view-torrent-list-add (tor)
   (let* ((id (mentor-property 'local_id tor))
@@ -963,41 +962,6 @@ See also `mentor-move-torrent-data'."
           (assq-delete-all view mentor-view-torrent-list))
     (setq mentor-view-torrent-list
           (cons (list view) mentor-view-torrent-list))))
-
-(defvar mentor-custom-properties
-  '((progress . mentor-torrent-get-progress)
-    (state-desc . mentor-torrent-get-state)
-    (speed-up . mentor-torrent-get-speed-up)
-    (speed-down . mentor-torrent-get-speed-down)
-    (size . mentor-torrent-get-size)
-    (prio . mentor-torrent-get-prio-string)))
-(make-variable-buffer-local 'mentor-custom-properties)
-
-(defun mentor-add-custom-properties (item)
-  (dolist (prop mentor-custom-properties item)
-    (let ((pnam (car prop))
-          (pfun (cdr prop)))
-      (cond ((eq mentor-sub-mode 'file-details)
-             (let ((file-fun (mentor-concat-symbols
-                              'mentor-file- pnam)))
-               (eval `(setf ,file-fun (funcall pfun item)))))
-            ((not mentor-sub-mode)
-             (assq-delete-all pnam item)
-             (if (assq pnam mentor-view-columns)
-                 (setq item
-                       (cons (cons pnam (funcall pfun item)) item))))))))
-
-(defun mentor-update-custom-properties ()
-  (cond ((eq mentor-sub-mode 'file-details)
-         (mapc
-          (lambda (file)
-            (mentor-add-custom-properties file))
-          (cdr (assq 'files mentor-selected-torrent-info))))
-        ((not mentor-sub-mode)
-         (maphash
-          (lambda (id tor)
-            (puthash id (mentor-add-custom-properties tor) mentor-torrents))
-          mentor-torrents))))
 
 (defconst mentor-methods-to-prefix-with-cat
   (regexp-opt '("bytes_done" "completed_bytes"
@@ -1058,7 +1022,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                   (if alist
                       (setcdr alist value)
                     (signal 'mentor-need-init `("No such torrent" ,id))))))))
-        (mentor-update-custom-properties)
         (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-init-torrent-list))))
@@ -1075,7 +1038,6 @@ expensive operation."
       (let ((id (mentor-property 'local_id tor)))
         (mentor-set-property 'marked nil tor)
         (puthash id tor mentor-torrents))))
-  (mentor-update-custom-properties)
   (mentor-views-update-views)
   (message "Initializing torrent list... DONE"))
 
@@ -1401,9 +1363,6 @@ point."
    (mentor-mode)
    (mentor-init-header-line)
    (setq mentor-priority-fun 'mentor-file-priority-fun)
-   (setq mentor-custom-properties '((prio . mentor-file-prio-string)
-                                    (progress . mentor-file-progress)
-                                    (size . mentor-file-size)))
    (mentor-torrent-details-mode t)
    (setq mentor-selected-torrent tor)
    (mentor-details-files-update t)
@@ -1476,8 +1435,7 @@ point."
                                   (string-to-number (pop values))
                                 (pop values))))
                     (eval `(setf (,file-fun file) ,val))))
-                properties)
-          (setq file (mentor-add-custom-properties file))))))
+                properties)))))
   (mentor-details-redisplay))
 
 (defvar mentor-file-detail-columns
