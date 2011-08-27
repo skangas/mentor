@@ -100,8 +100,8 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '(((mentor-torrent-get-prio-string) -6 "Prio")
-    ((mentor-torrent-get-progress) -5 "Progress")
+  '(((mentor-torrent-get-prio) -5 "Pri")
+    ((mentor-torrent-get-progress) -5 "Cmp")
     ((mentor-torrent-get-state) -3 "State")
     (name -80 "Name")
     ((mentor-torrent-get-speed-up) -6 "Up")
@@ -1068,7 +1068,9 @@ If `torrent' is nil, use torrent at point."
          (done (abs (or donev 0)))
          (total (abs (or totalv 1)))
          (percent (* 100 (/ (+ 0.0 done) total))))
-    (format "%3d%s" percent "%")))
+    (if (= (truncate percent) 100)
+        ""
+      (format "[%2d%%]" percent))))
 
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
@@ -1123,12 +1125,12 @@ If `torrent' is nil, use torrent at point."
 (defun mentor-torrent-get-views (tor)
   (mentor-property 'views tor))
 
-(defun mentor-torrent-get-prio-string (tor)
+(defun mentor-torrent-get-prio (tor)
   (let ((prio (mentor-property 'priority tor)))
     (cond ((= 0 prio) "off")
           ((= 1 prio) "low")
-          ((= 2 prio) "normal")
-          ((= 3 prio) "high"))))
+          ((= 2 prio) "")
+          ((= 3 prio) "hig"))))
 
 (defun mentor-torrent-priority-fun (val)
   (mentor-use-tor
