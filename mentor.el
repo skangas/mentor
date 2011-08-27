@@ -481,7 +481,7 @@ consecutive elements is its arguments."
   (apply 'concat " "
          (mentor-process-columns-helper
           cols
-          (lambda (col) (cadr column))
+          (lambda (col) (cadr col))
           (lambda (col)
             (let ((prop (car col)))
               (if (not prop)
