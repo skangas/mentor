@@ -462,30 +462,35 @@ consecutive elements is its arguments."
     (mentor-insert-torrent id)
     (mentor-previous-item)))
 
+(defun mentor-process-view-header-columns (columns)
+  (apply 'concat
+         (mapcar (lambda (column)
+                   (let* ((len (or (cadddr column)
+                                   (cadr column)))
+                          (str (caddr column)))
+                     (concat (mentor-enforce-length str len) " ")))
+                 columns)))
+
 (defun mentor-process-view-columns (item columns)
   (apply 'concat "  "
          (mapcar (lambda (column)
                    (let* ((prop (car column))
                           (len (cadr column))
-                          (str (if (listp prop)
-                                  (apply (car prop) item (cdr prop))
-                                 (mentor-property prop item))))
+                          (str (if (not prop)
+                                   ""
+                                 (if (listp prop)
+                                     (apply (car prop) item (cdr prop))
+                                   (mentor-property prop item)))))
                      (concat (mentor-enforce-length str len) " ")))
                  columns)))
 
 (defun mentor-reload-header-line ()
   (cond ((eq mentor-sub-mode 'file-details)
-         (setq mentor-header-line "Cmp  Pri  Size     Filename"))
+         (setq mentor-header-line
+               (mentor-process-view-header-columns mentor-file-detail-columns)))
         ((not mentor-sub-mode)
          (setq mentor-header-line
-               (apply 'concat
-                      (mapcar (lambda (col)
-                                (let* ((str (caddr col))
-                                       (len (or (cadddr col)
-                                                (cadr col))))
-                                  (concat (mentor-enforce-length str len)
-                                          " ")))
-                              mentor-view-columns))))))
+               (mentor-process-view-header-columns mentor-view-columns)))))
 
 (defvar mentor-highlight-overlay nil)
 (make-variable-buffer-local 'mentor-highlight-overlay)
@@ -1445,7 +1450,8 @@ point."
 (defvar mentor-file-detail-columns
   '(((mentor-file-progress) -5 "Cmp")
     ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-size) 6 "Size")))
+    ((mentor-file-size) 6 "Size")
+    (nil 0 "File" 6)))
 (defvar mentor-file-detail-width 22)
 
 (defun mentor-insert-file (file infix &optional last)
