@@ -778,28 +778,26 @@ See also `mentor-move-torrent-data'."
 
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
-      (mentor-do-erase-torrent tor)
-      (mentor-update-torrent-data-and-redisplay)))))
+  (mentor-use-tor
+   (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
+     (mentor-do-erase-torrent tor)
+     (mentor-remove-item-from-view))))
 
 (defun mentor-erase-torrent-and-data (&optional tor)
   (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (mentor-torrent-get-file-list) ;; populate it before erasing torrent
-    (let* ((name (mentor-property 'name tor))
-           (confirm-tor
-            (yes-or-no-p (concat "Remove torrent " name " ")))
-           (confirm-data
-            (and confirm-tor
-                 (yes-or-no-p (concat "Remove data for " name " ")))))
-      (when confirm-tor
-        (mentor-do-erase-torrent tor))
-      (when confirm-data
-        (mentor-do-erase-data tor)))))
-  (mentor-redisplay))
+  (mentor-use-tor
+   (mentor-torrent-get-file-list) ;; populate it before erasing torrent
+   (let* ((name (mentor-property 'name tor))
+          (confirm-tor
+           (yes-or-no-p (concat "Remove torrent " name " ")))
+          (confirm-data
+           (and confirm-tor
+                (yes-or-no-p (concat "Remove data for " name " ")))))
+     (when confirm-tor
+       (mentor-do-erase-torrent tor)
+       (mentor-remove-item-from-view))
+     (when confirm-data
+       (mentor-do-erase-data tor)))))
 
 (defun mentor-hash-check-torrent (&optional tor)
   (interactive)
