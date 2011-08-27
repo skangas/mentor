@@ -764,11 +764,6 @@ See also `mentor-move-torrent-data'."
       (mentor-update-torrent-data-and-redisplay)
       (message (concat "Changed target directory to " new))))))
 
-;; FIXME: remove torrent from view
-(defun mentor-close-torrent (&optional tor)
-  (interactive)
-  (mentor-rpc-command "d.close" (mentor-property 'hash tor)))
-
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
   (mentor-do-marked
@@ -860,14 +855,6 @@ See also `mentor-move-torrent-data'."
    (mentor-rpc-command "d.resume" (mentor-property 'hash tor))
    (mentor-update-torrent-data-and-redisplay)))
 
-(defun mentor-recreate-files (&optional tor)
-  (interactive)
-  (message "TODO: mentor-recreate-files"))
-
-(defun mentor-set-inital-seeding (&optional tor)
-  (interactive)
-  (message "TODO: set-inital-seeding"))
-
 (defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
@@ -880,6 +867,21 @@ See also `mentor-move-torrent-data'."
   (mentor-use-tor
    (mentor-do-stop-torrent tor)
    (mentor-update-torrent-data-and-redisplay)))
+
+(defun mentor-close-torrent (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (mentor-do-stop-torrent tor)
+   (mentor-rpc-command "d.close" (mentor-property 'hash tor))
+   (mentor-update-torrent-data-and-redisplay)))
+
+(defun mentor-recreate-files (&optional tor)
+  (interactive)
+  (message "TODO: mentor-recreate-files"))
+
+(defun mentor-set-inital-seeding (&optional tor)
+  (interactive)
+  (message "TODO: set-inital-seeding"))
 
 (defun mentor-update-torrent-data-and-redisplay (&optional tor)
   (interactive)
