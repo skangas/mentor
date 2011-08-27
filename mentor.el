@@ -864,6 +864,12 @@ See also `mentor-move-torrent-data'."
    (mentor-do-stop-torrent tor)
    (mentor-update-torrent-data-and-redisplay)))
 
+(defun mentor-open-torrent (&optional tor)
+  (interactive)
+  (mentor-use-tor
+   (mentor-rpc-command "d.open" (mentor-property 'hash tor))
+   (mentor-update-torrent-data-and-redisplay)))
+
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
