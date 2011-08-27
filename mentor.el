@@ -1444,7 +1444,7 @@ point."
   '(((mentor-file-progress) -5 "Cmp")
     ((mentor-file-prio-string) -5 "Pri")
     ((mentor-file-size) 6 "Size")))
-(defvar mentor-file-detail-width 19)
+(defvar mentor-file-detail-width 22)
 
 (defun mentor-insert-file (file infix &optional last)
   (interactive)
