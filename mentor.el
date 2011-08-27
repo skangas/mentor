@@ -462,27 +462,33 @@ consecutive elements is its arguments."
     (mentor-insert-torrent id)
     (mentor-previous-item)))
 
-(defun mentor-process-view-header-columns (columns)
-  (apply 'concat
-         (mapcar (lambda (column)
-                   (let* ((len (or (cadddr column)
-                                   (cadr column)))
-                          (str (caddr column)))
-                     (concat (mentor-enforce-length str len) " ")))
-                 columns)))
+(defun mentor-process-columns-helper (cols lenfun strfun)
+  (mapcar (lambda (column)
+            (let* ((len (funcall lenfun column))
+                   (str (funcall strfun column)))
+              (concat (mentor-enforce-length str len) " ")))
+          cols))
 
-(defun mentor-process-view-columns (item columns)
-  (apply 'concat "  "
-         (mapcar (lambda (column)
-                   (let* ((prop (car column))
-                          (len (cadr column))
-                          (str (if (not prop)
-                                   ""
-                                 (if (listp prop)
-                                     (apply (car prop) item (cdr prop))
-                                   (mentor-property prop item)))))
-                     (concat (mentor-enforce-length str len) " ")))
-                 columns)))
+(defun mentor-process-view-header-columns (cols)
+  (apply 'concat
+         (mentor-process-columns-helper
+          cols
+          (lambda (col) (or (cadddr col)
+                            (cadr col)))
+          (lambda (col) (caddr column)))))
+
+(defun mentor-process-view-columns (item cols)
+  (apply 'concat " "
+         (mentor-process-columns-helper
+          cols
+          (lambda (col) (cadr column))
+          (lambda (col)
+            (let ((prop (car col)))
+              (if (not prop)
+                  ""
+                (if (listp prop)
+                    (apply (car prop) item (cdr prop))
+                  (mentor-property prop item))))))))
 
 (defun mentor-reload-header-line ()
   (cond ((eq mentor-sub-mode 'file-details)
