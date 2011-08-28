@@ -4,11 +4,11 @@
 ;; Copyright (C) 2011 David Spångberg.
 
 ;; Author: Stefan Kangas <skangas@skangas.se>
-;; Version: 0.0.1
+;; Version: 0.1
 ;; Keywords: bittorrent, rtorrent
 
-(defconst mentor-version "0.0.1"
-  "Current version of mentor.el")
+(defconst mentor-version "0.1"
+  "The version of Mentor that you're using.")
 
 ;; This file is NOT part of GNU Emacs.
 
