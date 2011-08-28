@@ -1543,17 +1543,14 @@ point."
 (defun mentor-item-is-marked ()
   (get-text-property (point) 'marked))
 
-(defun mentor-mark-item (&optional clear-mark no-jump)
-  "Mark the item at point unless `clear-mark' is non nil then
-unmark the item instead. If `no-jump' is non nil stay at current
-item instead of jumping to next."
+(defun mentor-set-mark (new-mark)
+  "Set the mark for item at point."
   (interactive)
   (let* ((type (get-text-property (point) 'type))
          (inhibit-read-only t)
-         (new-mark (if clear-mark nil t))
          (new-face (if new-mark mentor-marked-item-face
                  (assq (mentor-item-type) mentor-default-item-faces)))
-         (mark-char (if clear-mark " " ?*))
+         (mark-char (if new-mark ?* ? ))
          (start-point (point)))
     (when type
       (when (not (eq type 'dir))
@@ -1569,28 +1566,36 @@ item instead of jumping to next."
              (mentor-set-property 'marked new-mark))
             ((eq type 'file)
              (setf (mentor-file-marked (mentor-file-at-point)) new-mark))
-            ((eq type 'dir) (mentor-mark-dir (mentor-file-at-point) clear-mark)))
-      (when (and (not no-jump) (not (eq type 'dir)))
-        (mentor-next-item t)))))
+            ((eq type 'dir)
+             (mentor-mark-dir (mentor-file-at-point) (not new-mark)))))))
 
-(defun mentor-unmark-item (&optional no-jump)
+(defun mentor-mark-item ()
+  "Mark the item at point."
+  (interactive)
+  (mentor-set-mark t)
+  (when (not (eq (get-text-property (point) 'type) 'dir))
+    (mentor-next-item t)))
+
+(defun mentor-unmark-item ()
   "Unmark the item at point."
   (interactive)
-  (mentor-mark-item t no-jump))
+  (mentor-set-mark nil)
+  (when (not (eq (get-text-property (point) 'type) 'dir))
+    (mentor-next-item t)))
 
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
   (interactive)
   (mentor-do-all-items
    (when (not (eq (mentor-item-type) 'dir))
-     (mentor-mark-item nil t))))
+     (mentor-set-mark t))))
 
 (defun mentor-unmark-all ()
   "Unmark all visible items."
   (interactive)
   (mentor-do-all-items
    (when (mentor-item-is-marked)
-     (mentor-unmark-item t))))
+     (mentor-set-mark nil))))
 
 
 ;;; Utility functions
