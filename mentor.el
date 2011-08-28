@@ -392,8 +392,7 @@ consecutive elements is its arguments."
              (mentor-goto-torrent kept-torrent-id)
            (mentor-missing-torrent
             (goto-char kept-point)))
-       (goto-char kept-point))
-     (recenter)))
+       (goto-char kept-point))))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
