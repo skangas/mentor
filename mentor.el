@@ -720,8 +720,10 @@ start point."
   (mentor-rpc-command "d.stop" (mentor-property 'hash tor)))
 
 (defun mentor-get-old-torrent-path (tor)
-  (let ((path (mentor-property 'base_path tor)))
-    (when (not path)
+  (let ((path (or (mentor-property 'base_path tor)
+                  (and (= (mentor-property 'bytes_done tor) 0)
+                       (mentor-property 'directory tor)))))
+        (when (not path)
       (error "Unable to get path for closed torrent"))
     (substring (directory-file-name path)
                0 (- (length (file-name-nondirectory path))))))
