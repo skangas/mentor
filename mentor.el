@@ -323,10 +323,6 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
 
 ;;; XML-RPC calls
 
-(defun mentor-rpc-method-to-property (name)
-  (intern
-   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" name)))
-
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
   "Do not try methods that makes rtorrent crash")
 
@@ -398,7 +394,7 @@ consecutive elements is its arguments."
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
-          (mentor-update-interesting-torrent-data)
+          (mentor-update-torrent-list)
           (mentor-redisplay)))))
 
 (defun mentor-reload ()
@@ -891,13 +887,6 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (message "TODO: set-inital-seeding"))
 
-(defun mentor-update-this-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-update-torrent-data tor))
-  (mentor-use-tor
-   (mentor-redisplay-torrent)))
-
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
@@ -920,35 +909,7 @@ See also `mentor-move-torrent-data'."
   "Hash table containing all torrents")
 (make-variable-buffer-local 'mentor-torrents)
 
-(defvar mentor-d-interesting-methods
-  '("d.get_base_path"
-    "d.get_bytes_done"
-    "d.get_directory"
-    "d.get_down_rate"
-    "d.get_hashing"
-    "d.get_hashing_failed"
-    "d.get_priority"
-    "d.get_chunk_size"
-    "d.get_up_rate"
-    "d.get_up_total"
-    "d.get_state"
-    "d.views"
-    "d.is_active"
-    "d.is_hash_checked"
-    "d.is_hash_checking"
-    "d.is_open"
-    "d.is_pex_active"))
-
 ;; (defun mentor-property-to-rpc-method () nil)
-
-(defun mentor-update-torrent-data (tor)
-  (let* ((hash (mentor-property 'hash tor))
-         (id (mentor-property 'local_id tor)))
-    (dolist (method mentor-d-interesting-methods)
-      (let ((property (mentor-rpc-method-to-property method))
-            (new-value (mentor-rpc-command method hash)))
-        (setcdr (assq property tor) new-value)))
-    (puthash id tor mentor-torrents)))
 
 (defun mentor-view-torrent-list-add (tor)
   (let* ((id (mentor-property 'local_id tor))
@@ -973,83 +934,128 @@ See also `mentor-move-torrent-data'."
     (setq mentor-view-torrent-list
           (cons (list view) mentor-view-torrent-list))))
 
-(defconst mentor-methods-to-prefix-with-cat
+(defconst mentor-methods-to-get-as-string
   (regexp-opt '("bytes_done" "completed_bytes"
                 "left_bytes" "size_bytes" "chunk_size"
                 "completed_chunks" "size_chunks"))
   "Methods that should be prefixed with cat= when fetched.")
 
-(defun mentor-prefix-method-with-cat (method)
+(defun mentor-get-some-methods-as-string (method)
   "Used to get some properties as a string, since older versions
 of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (let ((re (concat "\\(?:[df]\\.get_"
-                    mentor-methods-to-prefix-with-cat
+                    mentor-methods-to-get-as-string
                     "\\)")))
     (if (string-match re method)
         (concat "cat=$" method)
       method)))
 
-(defun create-torrent (properties values)
-  (mapcar* 
-   (lambda (p v)
-     (cons p
-           (if (string-match mentor-methods-to-prefix-with-cat
-                             (symbol-name p))
-               (string-to-number v)
-             v)))
-   properties values))
+(defun mentor-rpc-method-to-property (method)
+  (intern
+   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
+
+(defun mentor-rpc-value-to-real-value (method value)
+  (if (and (string-match mentor-methods-to-get-as-string method)
+           (stringp value))
+      (string-to-number value)
+    value))
+
+(defun mentor-create-torrent (methods values)
+  (mapcar* (lambda (method value)
+             (cons (mentor-rpc-method-to-property method)
+                   (mentor-rpc-value-to-real-value method value)))
+           methods values))
+
+(defun mentor-update-torrent (new)
+  (let* ((id  (mentor-property 'local_id new))
+         (old (mentor-get-torrent id)))
+    (when (and (null old)
+               (not mentor-is-init))
+      (signal 'mentor-need-init `("No such torrent" ,id)))
+    (if (boundp 'mentor-is-init)
+        (progn (mentor-set-property 'marked nil new)
+               (puthash id new mentor-torrents))
+      (dolist (row new)
+        (let* ((p (car row))
+               (v (cdr row))
+               (alist (assq p old)))
+          (if alist
+              (setcdr alist v)
+            (error "Missing property on torrent...")))))
+    (mentor-view-torrent-list-add new)))
 
 (defun mentor-rpc-d.multicall (methods)
-  (let* ((methods+ (mapcar 'mentor-prefix-method-with-cat methods))
+  (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
-         (value-list (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=))
-         (properties (mapcar 'mentor-rpc-method-to-property methods)))
+         (list-of-values (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
-    (mapcar (lambda (values)
-              (let ((tor (create-torrent properties values)))
-                (mentor-view-torrent-list-add tor)
-                tor))
-            value-list)))
+    (dolist (values list-of-values)
+      (mentor-update-torrent (mentor-create-torrent methods values)))))
 
 (put 'mentor-need-init
      'error-conditions
      '(error mentor-error mentor-need-init))
 
-(defun mentor-update-interesting-torrent-data ()
+(defvar mentor-volatile-rpc-methods
+  '("d.get_local_id" ;; must not be removed
+    "d.get_base_path"
+    "d.get_bytes_done"
+    "d.get_directory"
+    "d.get_down_rate"
+    "d.get_hashing"
+    "d.get_hashing_failed"
+    "d.get_priority"
+    "d.get_chunk_size"
+    "d.get_up_rate"
+    "d.get_up_total"
+    "d.get_state"
+    "d.views"
+    "d.is_active"
+    "d.is_hash_checked"
+    "d.is_hash_checking"
+    "d.is_open"
+    "d.is_pex_active"))
+
+(defun mentor-init-torrent-list ()
+  "Initialize torrent data from rtorrent.
+
+All torrent information will be re-fetched, making this an
+expensive operation."
+  (message "Initializing torrent data...")
+  (let* ((mentor-is-init 'true)
+         (methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)")))
+    (mentor-rpc-d.multicall methods)
+    (mentor-views-update-views))
+  (message "Initializing torrent data... DONE"))
+
+(defun mentor-update-torrent-list ()
   (interactive)
   (message "Updating torrent data...")
   (condition-case err
       (progn
-        (let* ((methods (cons "d.get_local_id" mentor-d-interesting-methods))
-               (torrents (mentor-rpc-d.multicall methods)))
-          (dolist (tor-new torrents)
-            (let* ((id (mentor-property 'local_id tor-new))
-                   (tor-old (mentor-get-torrent id)))
-              (dolist (row tor-new)
-                (let* ((property (car row))
-                       (value (cdr row))
-                       (alist (assq property tor-old)))
-                  (if alist
-                      (setcdr alist value)
-                    (signal 'mentor-need-init `("No such torrent" ,id))))))))
+        (let* ((methods mentor-volatile-rpc-methods))
+          (mentor-rpc-d.multicall methods))
         (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-init-torrent-list))))
 
-(defun mentor-init-torrent-list ()
-  "Initialize torrent list from rtorrent.
+(defun mentor-update-one-torrent (tor)
+  (let* ((hash (mentor-property 'hash     tor))
+         (id   (mentor-property 'local_id tor))
+         (methods mentor-volatile-rpc-methods)
+         (values (mapcar
+                  (lambda (method)
+                    (mentor-rpc-command method hash))
+                  methods))
+         (new (mentor-create-torrent methods values)))
+    (mentor-update-torrent new)))
 
-All torrent information will be re-fetched, making this an
-expensive operation."
-  (message "Initializing torrent list...")
-  (let* ((methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)"))
-         (torrents (mentor-rpc-d.multicall methods)))
-    (dolist (tor torrents)
-      (let ((id (mentor-property 'local_id tor)))
-        (mentor-set-property 'marked nil tor)
-        (puthash id tor mentor-torrents))))
-  (mentor-views-update-views)
-  (message "Initializing torrent list... DONE"))
+(defun mentor-update-this-torrent ()
+  (interactive)
+  (mentor-use-tor
+   (mentor-update-one-torrent tor))
+  (mentor-use-tor
+   (mentor-redisplay-torrent)))
 
 
 ;;; Torrent information
@@ -1425,7 +1431,7 @@ point."
          (hash (mentor-property 'hash tor))
          (methods mentor-f-interesting-methods)
          (methods+ (mapcar
-                    'mentor-prefix-method-with-cat
+                    'mentor-get-some-methods-as-string
                     (if add-files
                         (cons "f.get_path_components" methods)
                       methods)))
@@ -1442,7 +1448,7 @@ point."
         (let ((file (gethash (incf id) files)))
           (mapc (lambda (p)
                   (let* ((file-fun (mentor-concat-symbols 'mentor-file- p))
-                         (val (if (string-match mentor-methods-to-prefix-with-cat
+                         (val (if (string-match mentor-methods-to-get-as-string
                                                 (symbol-name p))
                                   (string-to-number (pop values))
                                 (pop values))))
