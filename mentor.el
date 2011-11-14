@@ -144,7 +144,7 @@ connecting through scgi or http."
     (define-key map (kbd "DEL") 'mentor-add-torrent)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "M-g") 'mentor-update-torrent-data-and-redisplay)
+    (define-key map (kbd "M-g") 'mentor-update-this-torrent)
 
     ;; navigation
     (define-key map (kbd "<up>") 'mentor-previous-item)
@@ -766,20 +766,20 @@ See also `mentor-move-torrent-data'."
     (let* ((new (mentor-get-new-torrent-path tor)))
       (mentor-do-stop-torrent tor)
       (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
-      (mentor-update-torrent-data-and-redisplay)
+      (mentor-update-this-torrent)
       (message (concat "Changed target directory to " new))))))
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
   (mentor-do-marked
    (mentor-set-priority -1)
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-increase-priority (&optional tor)
   (interactive)
   (mentor-do-marked
    (mentor-set-priority 1)
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
@@ -811,7 +811,7 @@ See also `mentor-move-torrent-data'."
     (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
     (mentor-set-property 'hashing 1)
     (mentor-set-property 'is_open 1)
-    (mentor-update-torrent-data-and-redisplay))))
+    (mentor-update-this-torrent))))
 
 (defun mentor-copy-torrent-data (&optional tor)
   (interactive)
@@ -839,7 +839,7 @@ See also `mentor-move-torrent-data'."
         (mentor-do-start-torrent tor))
       ;;; FIXME: needs to update the data for this torrent from rtorrent
       (mentor-set-property 'directory new)
-      (mentor-update-torrent-data-and-redisplay)
+      (mentor-update-this-torrent)
       (message (concat "Moved torrent data to " new))))))
 
 (defun mentor-pause-torrent (&optional tor)
@@ -848,7 +848,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.pause" (mentor-property 'hash tor))
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-resume-torrent (&optional tor)
   "Resume torrent. This is probably not what you want, use
@@ -856,32 +856,32 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.resume" (mentor-property 'hash tor))
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-start-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-keep-position
     (mentor-do-start-torrent tor)
-    (mentor-update-torrent-data-and-redisplay))))
+    (mentor-update-this-torrent))))
 
 (defun mentor-stop-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-do-stop-torrent tor)
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-open-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.open" (mentor-property 'hash tor))
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-rpc-command "d.close" (mentor-property 'hash tor))
-   (mentor-update-torrent-data-and-redisplay)))
+   (mentor-update-this-torrent)))
 
 (defun mentor-recreate-files (&optional tor)
   (interactive)
@@ -891,7 +891,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (message "TODO: set-inital-seeding"))
 
-(defun mentor-update-torrent-data-and-redisplay (&optional tor)
+(defun mentor-update-this-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-update-torrent-data tor))
