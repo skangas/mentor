@@ -327,19 +327,19 @@ The time interval for updates is specified via `mentor-auto-update-interval'."
   (intern
    (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" name)))
 
-;; Do not try methods that makes rtorrent crash
-(defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)")
+(defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
+  "Do not try methods that makes rtorrent crash")
 
-(defvar mentor-rtorrent-rpc-methods nil)
+(defvar mentor-rtorrent-rpc-methods-cache nil)
 
 (defun mentor-rpc-list-methods (&optional regexp)
   "system.listMethods
 Returns a list of all available commands.  First argument is
 interpreted as a regexp, and if specified only returns matching
 functions"
-  (when (not mentor-rtorrent-rpc-methods)
+  (when (not mentor-rtorrent-rpc-methods-cache)
     (let ((methods (mentor-rpc-command "system.listMethods")))
-      (setq mentor-rtorrent-rpc-methods
+      (setq mentor-rtorrent-rpc-methods-cache
             (delq nil
                   (mapcar (lambda (m)
                             (when (not (string-match mentor-method-exclusions-regexp m))
@@ -349,8 +349,8 @@ functions"
       (delq nil (mapcar (lambda (m)
                           (when (string-match regexp m)
                             m))
-                        mentor-rtorrent-rpc-methods))
-    mentor-rtorrent-rpc-methods))
+                        mentor-rtorrent-rpc-methods-cache))
+    mentor-rtorrent-rpc-methods-cache))
 
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call via SCGI or http."
@@ -677,7 +677,7 @@ start point."
 ;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
-  (let ((type (get-text-property (point) 'type))
+  (let ((type (mentor-item-type))
         (props (text-properties-at (point))))
     (cond ((eq type 'dir) 
            (mentor-toggle-file (get-text-property (point) 'file))))))
@@ -1548,10 +1548,10 @@ point."
 (defun mentor-set-mark (new-mark)
   "Set the mark for item at point."
   (interactive)
-  (let* ((type (get-text-property (point) 'type))
+  (let* ((type (mentor-item-type))
          (inhibit-read-only t)
          (new-face (if new-mark mentor-marked-item-face
-                 (assq (mentor-item-type) mentor-default-item-faces)))
+                 (assq type mentor-default-item-faces)))
          (mark-char (if new-mark ?* ? ))
          (start-point (point)))
     (when type
@@ -1575,14 +1575,14 @@ point."
   "Mark the item at point."
   (interactive)
   (mentor-set-mark t)
-  (when (not (eq (get-text-property (point) 'type) 'dir))
+  (when (not (eq (mentor-item-type) 'dir))
     (mentor-next-item t)))
 
 (defun mentor-unmark-item ()
   "Unmark the item at point."
   (interactive)
   (mentor-set-mark nil)
-  (when (not (eq (get-text-property (point) 'type) 'dir))
+  (when (not (eq (mentor-item-type) 'dir))
     (mentor-next-item t)))
 
 (defun mentor-mark-all ()
