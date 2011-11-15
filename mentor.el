@@ -240,6 +240,8 @@ connecting through scgi or http."
 (defvar mentor-priority-fun)
 (make-variable-buffer-local 'mentor-priority-fun)
 
+(defvar mentor-columns-var)
+(make-variable-buffer-local mentor-columns-var)
 
 
 ;; Mentor major-mode
@@ -274,8 +276,9 @@ Type \\[mentor] to start Mentor.
   (interactive)
   (progn (switch-to-buffer (get-buffer-create "*mentor*"))
          (mentor-mode)
-         (mentor-init-header-line)
          (setq mentor-priority-fun 'mentor-torrent-priority-fun)
+         (setq mentor-columns-var  'mentor-view-columns)
+         (mentor-init-header-line)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
                mentor-rtorrent-name (mentor-rpc-command "get_name"))
@@ -482,12 +485,8 @@ consecutive elements is its arguments."
                   (mentor-property prop item))))))))
 
 (defun mentor-reload-header-line ()
-  (cond ((eq mentor-sub-mode 'file-details)
-         (setq mentor-header-line
-               (mentor-process-view-header-columns mentor-file-detail-columns)))
-        ((not mentor-sub-mode)
-         (setq mentor-header-line
-               (mentor-process-view-header-columns mentor-view-columns)))))
+  (setq mentor-header-line
+        (mentor-process-view-header-columns (eval mentor-columns-var))))
 
 (defvar mentor-highlight-overlay nil)
 (make-variable-buffer-local 'mentor-highlight-overlay)
@@ -1379,8 +1378,9 @@ point."
    (switch-to-buffer "*mentor: torrent details*")
    (setq mentor-sub-mode 'file-details)
    (mentor-mode)
-   (mentor-init-header-line)
    (setq mentor-priority-fun 'mentor-file-priority-fun)
+   (setq mentor-columns-var  'mentor-file-detail-columns)
+   (mentor-reload-header-line)
    (mentor-torrent-details-mode t)
    (setq mentor-selected-torrent tor)
    (mentor-details-files-update t)
