@@ -701,7 +701,7 @@ start point."
                    (dir (file-name-directory file)))
               (mentor-delete-file file)
               (setq dirs (adjoin dir dirs :test 'equal))))
-          (dolist (dir dirs)
+          (dolist (dir (sort dirs (lambda (a b) (not (string< a b)))))
             (mentor-delete-file dir))))))
 
 (defun mentor-do-erase-torrent (tor)
