@@ -635,7 +635,7 @@ start point."
     (end-of-buffer
      (when (not no-wrap)
        (goto-char (point-min))
-       (when (not (mentor-item-type))
+       (when (not (mentor-get-item-type))
          (mentor-next-item t)))))
   (mentor-beginning-of-item))
 
@@ -672,7 +672,7 @@ start point."
 ;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
-  (let ((type (mentor-item-type))
+  (let ((type (mentor-get-item-type))
         (props (text-properties-at (point))))
     (cond ((eq type 'dir) 
            (mentor-toggle-file (get-text-property (point) 'file))))))
@@ -1387,7 +1387,7 @@ point."
    (mentor-details-redisplay)
    (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
                                                  (mentor-property 'name tor)))
-   (if (not (mentor-item-type))
+   (if (not (mentor-get-item-type))
        (mentor-next-item t)
      (mentor-beginning-of-item))))
 
@@ -1554,7 +1554,7 @@ point."
 (defun mentor-set-mark (new-mark)
   "Set the mark for item at point."
   (interactive)
-  (let* ((type (mentor-item-type))
+  (let* ((type (mentor-get-item-type))
          (inhibit-read-only t)
          (new-face (if new-mark mentor-marked-item-face
                  (assq type mentor-default-item-faces)))
@@ -1581,21 +1581,21 @@ point."
   "Mark the item at point."
   (interactive)
   (mentor-set-mark t)
-  (when (not (eq (mentor-item-type) 'dir))
+  (when (not (eq (mentor-get-item-type) 'dir))
     (mentor-next-item t)))
 
 (defun mentor-unmark-item ()
   "Unmark the item at point."
   (interactive)
   (mentor-set-mark nil)
-  (when (not (eq (mentor-item-type) 'dir))
+  (when (not (eq (mentor-get-item-type) 'dir))
     (mentor-next-item t)))
 
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
   (interactive)
   (mentor-do-all-items
-   (when (not (eq (mentor-item-type) 'dir))
+   (when (not (eq (mentor-get-item-type) 'dir))
      (mentor-set-mark t))))
 
 (defun mentor-unmark-all ()
@@ -1611,18 +1611,18 @@ point."
 (defmacro mentor-do-all-items (&rest body)
   `(save-excursion
      (goto-char (point-min))
-     (when (not (mentor-item-type))
+     (when (not (mentor-get-item-type))
        (mentor-next-item t))
-     (while (mentor-item-type)
+     (while (mentor-get-item-type)
        ,@body
        (mentor-next-item t))))
 
 (defmacro mentor-do-marked (&rest body)
   `(save-excursion
      (goto-char (point-min))
-     (when (not (mentor-item-type))
+     (when (not (mentor-get-item-type))
        (mentor-next-item t))
-     (while (mentor-item-type)
+     (while (mentor-get-item-type)
        (when (mentor-item-is-marked)
          ,@body)
        (mentor-next-item t))))
@@ -1637,7 +1637,7 @@ point."
 (defun mentor-concat-symbols (&rest symbols)
   (intern (apply 'concat (mapcar 'symbol-name symbols))))
 
-(defun mentor-item-type ()
+(defun mentor-get-item-type ()
   (interactive)
   (get-text-property (point) 'type))
 
