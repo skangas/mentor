@@ -427,7 +427,7 @@ consecutive elements is its arguments."
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
 
-(defun mentor-insert-torrent (id)
+(defun mentor-torrent-insert (id)
   (let* ((torrent (mentor-get-torrent id))
          (text (mentor-process-view-columns torrent mentor-view-columns))
          (marked (mentor-property 'marked torrent)))
@@ -445,7 +445,7 @@ consecutive elements is its arguments."
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
-      (mentor-insert-torrent id))
+      (mentor-torrent-insert id))
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
@@ -453,7 +453,7 @@ consecutive elements is its arguments."
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
     (mentor-remove-item-from-view)
-    (mentor-insert-torrent id)
+    (mentor-torrent-insert id)
     (mentor-previous-item)))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
