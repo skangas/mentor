@@ -241,7 +241,7 @@ connecting through scgi or http."
 (make-variable-buffer-local 'mentor-priority-fun)
 
 (defvar mentor-columns-var)
-(make-variable-buffer-local mentor-columns-var)
+(make-variable-buffer-local 'mentor-columns-var)
 
 
 ;; Mentor major-mode
