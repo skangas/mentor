@@ -814,7 +814,8 @@ See also `mentor-move-torrent-data'."
    (mentor-use-tor
     (let* ((old (mentor-property 'base_path))
            (new (mentor-get-new-torrent-path tor)))
-      (when (file-exists-p old)
+      (when (and (not (null old))
+                 (file-exists-p old))
         (mentor-rpc-command "execute" "cp" "-Rn" old new))
       (message (concat "Copied torrent data to " new))))))
 
@@ -827,7 +828,8 @@ See also `mentor-move-torrent-data'."
            (was-started (= 1 (mentor-property 'is_active))))
       (when was-started
         (mentor-do-stop-torrent tor))
-      (when (file-exists-p old)
+      (when (and (not (null old))
+                 (file-exists-p old))
         (mentor-rpc-command "execute" "mv" "-n" old new))
       (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
       (when was-started
