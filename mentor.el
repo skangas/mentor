@@ -971,7 +971,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (let* ((id  (mentor-property 'local_id new))
          (old (mentor-get-torrent id)))
     (when (and (null old)
-               (not mentor-is-init))
+               (not (boundp 'mentor-is-init)))
       (signal 'mentor-need-init `("No such torrent" ,id)))
     (if (boundp 'mentor-is-init)
         (progn (mentor-set-property 'marked nil new)
