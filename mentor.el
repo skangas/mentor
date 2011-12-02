@@ -962,7 +962,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
       (string-to-number value)
     value))
 
-(defun mentor-create-torrent (methods values)
+(defun mentor-torrent-create (methods values)
   (mapcar* (lambda (method value)
              (cons (mentor-rpc-method-to-property method)
                    (mentor-rpc-value-to-real-value method value)))
@@ -992,7 +992,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
          (list-of-values (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
-      (mentor-update-torrent (mentor-create-torrent methods values)))))
+      (mentor-update-torrent (mentor-torrent-create methods values)))))
 
 (put 'mentor-need-init
      'error-conditions
@@ -1049,7 +1049,7 @@ expensive operation."
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods))
-         (new (mentor-create-torrent methods values)))
+         (new (mentor-torrent-create methods values)))
     (mentor-update-torrent new)))
 
 (defun mentor-update-this-torrent ()
