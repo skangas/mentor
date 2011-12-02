@@ -32,6 +32,7 @@
 ;; accordingly.  This project aims to provide a feature complete interface.
 
 ;; TODO:
+;; Support non-blocking calls ('execute.*.bg'), introduced with rtorrent 0.8.9
 ;; Filters
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
