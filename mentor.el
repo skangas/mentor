@@ -374,6 +374,55 @@ consecutive elements is its arguments."
                     (car c) (cdr c))) calls)))
 
 
+;;; Mentor items
+
+(defstruct mentor-item
+  "A structure containing an item that can be displayed
+in a buffer, like a torrent, file, directory, peer etc."
+  id data marked type)
+
+
+;;; Torrent data structure
+
+(defun mentor-torrent-data-from (methods values)
+  (mapcar* (lambda (method value)
+             (cons (mentor-rpc-method-to-property method)
+                   (mentor-rpc-value-to-real-value method value)))
+           methods values))
+
+(defun mentor-torrent-create (data)
+  (make-mentor-item
+   :id   (assq 'local_id data)
+   :data data
+   :type 'torrent
+   :marked nil))
+
+(defun mentor-torrent-create-from (methods values)
+  (mentor-torrent-create (mentor-torrent-data-from methods values)))
+
+(defun mentor-torrent-update (new)
+  (let* ((id  (mentor-property 'local_id new))
+         (old (mentor-get-torrent id)))
+    (when (and (null old)
+               (not (boundp 'mentor-is-init)))
+      (signal 'mentor-need-init `("No such torrent" ,id)))
+    (if (boundp 'mentor-is-init)
+        (progn (mentor-set-property 'marked nil new)
+               (puthash id new mentor-torrents))
+      (dolist (row new)
+        (let* ((p (car row))
+               (v (cdr row))
+               (alist (assq p old)))
+          (if alist
+              (setcdr alist v)
+            (error "Missing property on torrent...")))))
+    (mentor-view-torrent-list-add new)))
+
+(defun mentor-torrent-update-from (methods values)
+  (mentor-torrent-update (mentor-torrent-create-from methods values)))
+
+
+
 ;;; Main view
 
 ;; (defvar *mentor-update-time* (current-time))
@@ -962,37 +1011,13 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
       (string-to-number value)
     value))
 
-(defun mentor-torrent-create (methods values)
-  (mapcar* (lambda (method value)
-             (cons (mentor-rpc-method-to-property method)
-                   (mentor-rpc-value-to-real-value method value)))
-           methods values))
-
-(defun mentor-update-torrent (new)
-  (let* ((id  (mentor-property 'local_id new))
-         (old (mentor-get-torrent id)))
-    (when (and (null old)
-               (not (boundp 'mentor-is-init)))
-      (signal 'mentor-need-init `("No such torrent" ,id)))
-    (if (boundp 'mentor-is-init)
-        (progn (mentor-set-property 'marked nil new)
-               (puthash id new mentor-torrents))
-      (dolist (row new)
-        (let* ((p (car row))
-               (v (cdr row))
-               (alist (assq p old)))
-          (if alist
-              (setcdr alist v)
-            (error "Missing property on torrent...")))))
-    (mentor-view-torrent-list-add new)))
-
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
          (list-of-values (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
-      (mentor-update-torrent (mentor-torrent-create methods values)))))
+      (mentor-torrent-update-from methods values))))
 
 (put 'mentor-need-init
      'error-conditions
@@ -1048,9 +1073,8 @@ expensive operation."
          (values (mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
-                  methods))
-         (new (mentor-torrent-create methods values)))
-    (mentor-update-torrent new)))
+                  methods)))
+    (mentor-torrent-update-from methods values)))
 
 (defun mentor-update-this-torrent ()
   (interactive)
