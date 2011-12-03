@@ -119,11 +119,11 @@ connecting through scgi or http."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
-(defface mentor-marked-item
+(defface mentor-mark
   '((t :inherit font-lock-warning-face))
   "Face used for marked items."
   :group 'mentor)
-(defvar mentor-marked-item-face 'mentor-marked-item)
+(defvar mentor-mark-face 'mentor-marked-item)
 
 (defface mentor-directory-face
   '((t :inherit font-lock-function-name-face))
@@ -133,6 +133,15 @@ connecting through scgi or http."
 (defvar mentor-default-item-faces
   '((torrent . nil) (file . nil) (dir . mentor-directory-face))
   "An alist with the default face for item types.")
+
+(defvar mentor-font-lock-keywords
+  (list
+   ;;
+   ;; Mentor marks.
+   (list mentor-re-mark '(0 mentor-mark-face)))
+  ;; TODO: Highlight marked items
+
+  "Additional expressions to highlight in Mentor mode.")
 
 
 ;;; major mode
@@ -163,7 +172,7 @@ connecting through scgi or http."
     (define-key map (kbd "b") 'mentor-set-inital-seeding)
     (define-key map (kbd "e") 'mentor-recreate-files) ;; Set the 'create/resize queued' flags on all files in a torrent.
     (define-key map (kbd "o") 'mentor-change-target-directory)
-    (define-key map (kbd "d") 'mentor-stop-torrent)
+    (define-key map (kbd "d") 'mentor-torrent-stop)
     (define-key map (kbd "k") 'mentor-erase-torrent)
     (define-key map (kbd "r") 'mentor-hash-check-torrent)
     (define-key map (kbd "s") 'mentor-start-torrent)
@@ -171,8 +180,8 @@ connecting through scgi or http."
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
-    (define-key map (kbd "m") 'mentor-mark-item)
-    (define-key map (kbd "u") 'mentor-unmark-item)
+    (define-key map (kbd "m") 'mentor-mark)
+    (define-key map (kbd "u") 'mentor-unmark)
     (define-key map (kbd "M") 'mentor-mark-all)
     (define-key map (kbd "U") 'mentor-unmark-all)
     (define-key map (kbd "v") 'mentor-view-in-dired)
@@ -245,6 +254,13 @@ connecting through scgi or http."
 (make-variable-buffer-local 'mentor-columns-var)
 
 
+;; Internal variables
+
+(defvar mentor-marker-char ?*)
+
+(defvar mentor-re-mark "^[^ \n]")
+
+
 ;; Mentor major-mode
 
 (define-derived-mode mentor-mode special-mode "mentor"
@@ -261,6 +277,8 @@ Type \\[mentor] to start Mentor.
         buffer-read-only t
         truncate-lines t)
   (set (make-local-variable 'line-move-visual) t)
+  (set (make-local-variable 'font-lock-defaults)
+     '(mentor-font-lock-keywords t nil nil beginning-of-line))
   (setq mentor-current-view mentor-default-view
         mentor-items (make-hash-table :test 'equal))
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
@@ -387,13 +405,15 @@ This can be torrents, files, peers etc. All values should be made
 using `make-mentor-item'.")
 (make-variable-buffer-local 'mentor-items)
 
-;; TODO: change all occurences of mentor-property to mentor-item-property
 (defun mentor-item-property (property item)
   "Get property for an item."
    (cdr (assoc property (mentor-item-data item))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
+
+(defun mentor-get-item-at-point ()
+  (mentor-get-item (mentor-item-id-at-point)))
 
 ;; FIXME: I don't know if this is a good idea yet.
 ;;        Maybe this leads to sloppy coding.
@@ -404,6 +424,115 @@ using `make-mentor-item'.")
 ;;                    (mentor-get-item (mentor-item-id-at-point))
 ;;                    (error "no torrent"))))
 ;;      ,@body))
+
+(defun mentor-marker-regexp ()
+  (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
+
+(defmacro mentor-map-over-marks (body arg &optional show-progress)
+  "Eval BODY with point on each marked line.  Return a list of BODY's results.
+If no marked item could be found, execute BODY on the current line.
+ARG, if non-nil, specifies the items to use instead of the marked items.
+  If ARG is an integer, use the next ARG (or previous -ARG, if
+   ARG<0) items.  In that case, point is dragged along.  This is
+   so that commands on the next ARG (instead of the marked) items
+   can be chained easily.
+  For any other non-nil value of ARG, use the current item.
+If optional third arg SHOW-PROGRESS evaluates to non-nil,
+  redisplay the dired buffer after each item is processed.
+No guarantee is made about the position on the marked line.
+  BODY must ensure this itself if it depends on this.
+Search starts at the beginning of the buffer, thus the car of the list
+  corresponds to the line nearest to the buffer's bottom.  This
+  is also true for (positive and negative) integer values of ARG.
+BODY should not be too long as it is expanded four times.
+
+Based on `dired-map-over-marks'."
+  ;;
+  ;;Warning: BODY must not add new lines before point - this may cause an
+  ;;endless loop.
+  ;;This warning should not apply any longer, sk  2-Sep-1991 14:10.
+  `(prog1
+       (let ((inhibit-read-only t) case-fold-search found results)
+         (if ,arg
+             (if (integerp ,arg)
+                 (progn ;; no save-excursion, want to move point.
+                   (mentor-repeat-over-lines
+                    ,arg
+                    (function (lambda ()
+                                (if ,show-progress (sit-for 0))
+                                (setq results (cons ,body results)))))
+                   (if (< ,arg 0)
+                       (nreverse results)
+                     results))
+               ;; non-nil, non-integer ARG means use current file:
+               (list ,body))
+           (let ((regexp (mentor-marker-regexp)) next-position)
+             (save-excursion
+               (goto-char (point-min))
+               ;; remember position of next marked file before BODY
+               ;; can insert lines before the just found file,
+               ;; confusing us by finding the same marked file again
+               ;; and again and...
+               (setq next-position (and (re-search-forward regexp nil t)
+                                        (point-marker))
+                     found (not (null next-position)))
+               (while next-position
+                 (goto-char next-position)
+                 (if ,show-progress (sit-for 0))
+                 (setq results (cons ,body results))
+                 ;; move after last match
+                 (goto-char next-position)
+                 (forward-line 1)
+                 (set-marker next-position nil)
+                 (setq next-position (and (re-search-forward regexp nil t)
+                                          (point-marker)))))
+             (if found
+                 results
+               (list ,body)))))))
+     ;; ;; save-excursion loses, again
+     ;; (dired-move-to-filename)))
+
+(defun mentor-repeat-over-lines (arg function)
+  "Based on `dired-repeat-over-lines'."
+  ;; This version skips non-file lines.
+  (let ((pos (make-marker)))
+    (beginning-of-line)
+    (while (and (> arg 0) (not (eobp)))
+      (setq arg (1- arg))
+      (beginning-of-line)
+      ;; (while (and (not (eobp)) (dired-between-files)) (forward-line 1))
+      (save-excursion
+        (forward-line 1)
+        (move-marker pos (1+ (point))))
+      (save-excursion (funcall function))
+      ;; Advance to the next line--actually, to the line that *was* next.
+      ;; (If FUNCTION inserted some new lines in between, skip them.)
+      (goto-char pos))
+    (while (and (< arg 0) (not (bobp)))
+      (setq arg (1+ arg))
+      (forward-line -1)
+      ;; (while (and (not (bobp)) (dired-between-files)) (forward-line -1))
+      (beginning-of-line)
+      (save-excursion (funcall function)))
+    (move-marker pos nil)
+    ;; (dired-move-to-filename)
+    ))
+
+(defmacro mentor-use-item (&rest body)
+  "Convenience macro to use the `item' at point."
+  `(let ((item (or ;; (when (boundp 'item) item)
+                   (mentor-get-item (mentor-item-id-at-point))
+                   (error "No item at point"))))
+     ,@body))
+
+(defun mentor-move-to-name ()
+  "Move to the beginning of the name on the current line.
+Return the position of the beginning of the filename, or nil if none found."
+  (let ((eol (line-end-position)))
+    (beginning-of-line)
+    (let ((change (next-single-property-change (point) 'name nil eol)))
+      (when (and change (< change eol))
+        (goto-char change)))))
 
 
 ;;; Torrent data structure
@@ -564,7 +693,10 @@ If `mentor-is-init' is bound to a value, act"
                   ""
                 (if (listp prop)
                     (apply (car prop) item (cdr prop))
-                  (mentor-item-property prop item))))))))
+                  (let ((text (mentor-item-property prop item)))
+                    (if (eq prop 'name)
+                        (propertize text 'name t)
+                      text)))))))))
 
 (defun mentor-reload-header-line ()
   (setq mentor-header-line
@@ -604,7 +736,7 @@ If `mentor-is-init' is bound to a value, act"
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-item t)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
-                  (lambda () (mentor-item-property property)))))))
+                  (lambda () (mentor-item-property property (mentor-get-item-at-point))))))))
 
 (defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
@@ -833,7 +965,7 @@ start point."
 
 (defun mentor-call-command (&optional tor)
   (interactive)
-  (message "TODO"))
+  (message "TODO: mentor-call-comamnd"))
 
 (defun mentor-change-target-directory (&optional tor)
   "Change torrents target directory without moving data.
@@ -1112,8 +1244,7 @@ expensive operation."
      (mentor-init-torrent-list))))
 
 (defun mentor-update-one-torrent (tor)
-  (let* ((hash (mentor-item-property 'hash     tor))
-         (id   (mentor-item-property 'local_id tor))
+  (let* ((hash (mentor-item-property 'hash tor))
          (methods mentor-volatile-rpc-methods)
          (values (mapcar
                   (lambda (method)
@@ -1615,6 +1746,29 @@ point."
 
 ;;; Marking items
 
+(defun mentor-mark (arg)
+  "Mark the current (or next ARG) items.
+
+Use \\[mentor-unmark-all-files] to remove all marks
+and \\[mentor-unmark] on a subdir to remove the marks in
+this subdir."
+  (interactive "P")
+  (let ((inhibit-read-only t))
+    (mentor-repeat-over-lines
+     (prefix-numeric-value arg)
+     (function (lambda ()
+                 ;; ;; insert at point-at-bol + 1 to inherit all properties
+                 (goto-char (+ 1 (point-at-bol)))
+                 (insert-and-inherit mentor-marker-char)
+                 (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
+
+(defun mentor-unmark (arg)
+  "Unmark the current (or next ARG) files.
+If looking at a subdir, unmark all its files except `.' and `..'."
+  (interactive "P")
+  (let ((mentor-marker-char ?\040))
+    (mentor-mark arg)))
+
 (defun mentor-item-is-marked ()
   (get-text-property (point) 'marked))
 
@@ -1634,7 +1788,8 @@ point."
                              `(face ,new-face
                                marked ,new-mark))
         ;; insert at point-at-bol + 1 to inherit all properties
-        (goto-char (+ 1 (point-at-bol))) (insert-and-inherit mark-char)
+        (goto-char (+ 1 (point-at-bol)))
+        (insert-and-inherit mark-char)
         (delete-region (point-at-bol) (+ 1 (point-at-bol))))
       (goto-char start-point)
       (cond ((eq type 'torrent)
