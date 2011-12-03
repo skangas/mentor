@@ -262,7 +262,7 @@ Type \\[mentor] to start Mentor.
         truncate-lines t)
   (set (make-local-variable 'line-move-visual) t)
   (setq mentor-current-view mentor-default-view
-        mentor-torrents (make-hash-table :test 'equal))
+        mentor-items (make-hash-table :test 'equal))
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
   ;;(set (make-local-variable 'revert-buffer-function) 'mentor-revert)
   (use-local-map mentor-mode-map)
@@ -381,34 +381,54 @@ consecutive elements is its arguments."
 in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
 
+(defvar mentor-items nil
+  "Hash table containing all items for the current buffer.
+This can be torrents, files, peers etc. All values should be made
+using `make-mentor-item'.")
+(make-variable-buffer-local 'mentor-items)
+
+;; TODO: change all occurences of mentor-property to mentor-item-property
+(defun mentor-item-property (property item)
+  "Get property for an item."
+   (cdr (assoc property (mentor-item-data item))))
+
+(defun mentor-get-item (id)
+  (gethash id mentor-items))
+
+;; FIXME: I don't know if this is a good idea yet.
+;;        Maybe this leads to sloppy coding.
+;; (defmacro mentor-use-item (&rest body)
+;;   "Convenience macro to use either the defined `item' value or
+;; the item at point."
+;;   `(let ((item (or (when (boundp 'item) item)
+;;                    (mentor-get-item (mentor-item-id-at-point))
+;;                    (error "no torrent"))))
+;;      ,@body))
+
 
 ;;; Torrent data structure
 
-(defun mentor-torrent-data-from (methods values)
-  (mapcar* (lambda (method value)
-             (cons (mentor-rpc-method-to-property method)
-                   (mentor-rpc-value-to-real-value method value)))
-           methods values))
-
 (defun mentor-torrent-create (data)
   (make-mentor-item
-   :id   (assq 'local_id data)
-   :data data
+   :id   (cdr (assq 'local_id data))
    :type 'torrent
-   :marked nil))
+   :marked nil
+   :data data))
 
-(defun mentor-torrent-create-from (methods values)
-  (mentor-torrent-create (mentor-torrent-data-from methods values)))
-
+;; FIXME: Should be two methods, one to update, one to create a new.
+;;        or documented why this is not a good idea.
 (defun mentor-torrent-update (new)
-  (let* ((id  (mentor-property 'local_id new))
-         (old (mentor-get-torrent id)))
+  "Update torrent using new data.
+
+If `mentor-is-init' is bound to a value, act"
+  (let* ((id  (mentor-item-property 'local_id new))
+         (old (mentor-get-item id)))
     (when (and (null old)
                (not (boundp 'mentor-is-init)))
       (signal 'mentor-need-init `("No such torrent" ,id)))
     (if (boundp 'mentor-is-init)
-        (progn (mentor-set-property 'marked nil new)
-               (puthash id new mentor-torrents))
+        (progn (setf (mentor-item-marked new) nil)
+               (puthash id new mentor-items))
       (dolist (row new)
         (let* ((p (car row))
                (v (cdr row))
@@ -418,14 +438,26 @@ in a buffer, like a torrent, file, directory, peer etc."
             (error "Missing property on torrent...")))))
     (mentor-view-torrent-list-add new)))
 
-(defun mentor-torrent-update-from (methods values)
-  (mentor-torrent-update (mentor-torrent-create-from methods values)))
+
+;;; Insert item into buffer
 
+;; TODO: replace mentor-torrent-insert by this
+(defun mentor-item-insert (id)
+  (let* ((item (mentor-get-item id))
+         (text (mentor-process-view-columns item mentor-view-columns))
+         (marked (mentor-item-marked item)))
+    (insert (propertize text
+                        'marked marked
+                        'field id
+                        'collapsed t
+                        'type 'torrent) "\n")
+    (when marked
+      (save-excursion
+        (mentor-previous-item)
+        (mentor-mark-item)))))
 
 
 ;;; Main view
-
-;; (defvar *mentor-update-time* (current-time))
 
 (defmacro mentor-keep-position (&rest body)
   "Keep the current position."
@@ -458,7 +490,7 @@ in a buffer, like a torrent, file, directory, peer etc."
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
-          (setq mentor-torrents (make-hash-table :test 'equal))
+          (setq mentor-items (make-hash-table :test 'equal))
           (mentor-init-torrent-list)
           (mentor-redisplay)))))
 
@@ -480,7 +512,7 @@ in a buffer, like a torrent, file, directory, peer etc."
 (defun mentor-torrent-insert (id)
   (let* ((torrent (mentor-get-torrent id))
          (text (mentor-process-view-columns torrent mentor-view-columns))
-         (marked (mentor-property 'marked torrent)))
+         (marked (mentor-item-marked torrent)))
     (insert (propertize text
                         'marked marked
                         'field id
@@ -532,7 +564,7 @@ in a buffer, like a torrent, file, directory, peer etc."
                   ""
                 (if (listp prop)
                     (apply (car prop) item (cdr prop))
-                  (mentor-property prop item))))))))
+                  (mentor-item-property prop item))))))))
 
 (defun mentor-reload-header-line ()
   (setq mentor-header-line
@@ -560,7 +592,6 @@ in a buffer, like a torrent, file, directory, peer etc."
       (delete-overlay mentor-highlight-overlay)
       (setq mentor-highlighted-torrent nil))))
 
-
 
 ;;; Sorting
 
@@ -573,7 +604,7 @@ in a buffer, like a torrent, file, directory, peer etc."
        (sort-subr reverse
                   (lambda () (ignore-errors (mentor-next-item t)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
-                  (lambda () (mentor-property property)))))))
+                  (lambda () (mentor-item-property property)))))))
 
 (defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
@@ -628,8 +659,11 @@ according to several criteria."
 
 ;;; Get torrent
 
+(defun mentor-get-torrent (id)
+  (gethash id mentor-items))
+
 (defmacro mentor-use-tor (&rest body)
-  "Convenience macro to use either the defined `torrent' value or
+  "Convenience macro to use either the defined `tor' value or
 the torrent at point."
   `(let ((tor (or (when (boundp 'tor) tor)
                   (mentor-get-torrent (mentor-item-id-at-point))
@@ -738,36 +772,35 @@ start point."
       (file-error nil))))
 
 (defun mentor-do-erase-data (tor)
-  (let* ((hash (mentor-property 'hash tor))
-           (base-path (mentor-property 'base_path tor))
-           (files (mentor-torrent-get-file-list tor))
-           (dirs nil))
-      (if (= 0 (mentor-property 'is_multi_file tor))
-          (mentor-delete-file base-path)
-        (progn
-          (dolist (file files)
-            (let* ((file (mapconcat 'identity (apply 'list base-path (car file)) "/"))
-                   (dir (file-name-directory file)))
-              (mentor-delete-file file)
-              (setq dirs (adjoin dir dirs :test 'equal))))
-          (dolist (dir (sort dirs (lambda (a b) (not (string< a b)))))
-            (mentor-delete-file dir))))))
+  (let* ((base-path (mentor-item-property 'base_path tor))
+         (files (mentor-torrent-get-file-list tor))
+         (dirs nil))
+    (if (= 0 (mentor-item-property 'is_multi_file tor))
+        (mentor-delete-file base-path)
+      (progn
+        (dolist (file files)
+          (let* ((file (mapconcat 'identity (apply 'list base-path (car file)) "/"))
+                 (dir (file-name-directory file)))
+            (mentor-delete-file file)
+            (setq dirs (adjoin dir dirs :test 'equal))))
+        (dolist (dir (sort dirs (lambda (a b) (not (string< a b)))))
+          (mentor-delete-file dir))))))
 
 (defun mentor-do-erase-torrent (tor)
-  (mentor-rpc-command "d.erase" (mentor-property 'hash tor))
-  (remhash (mentor-property 'local_id tor) mentor-torrents)
+  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor))
+  (remhash (mentor-item-property 'local_id tor) mentor-items)
   (mentor-view-torrent-list-delete-all tor))
 
 (defun mentor-do-start-torrent (tor)
-  (mentor-rpc-command "d.start" (mentor-property 'hash tor)))
+  (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
 
 (defun mentor-do-stop-torrent (tor)
-  (mentor-rpc-command "d.stop" (mentor-property 'hash tor)))
+  (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
 
 (defun mentor-get-old-torrent-path (tor)
-  (let ((path (or (mentor-property 'base_path tor)
-                  (and (= (mentor-property 'bytes_done tor) 0)
-                       (mentor-property 'directory tor)))))
+  (let ((path (or (mentor-item-property 'base_path tor)
+                  (and (= (mentor-item-property 'bytes_done tor) 0)
+                       (mentor-item-property 'directory tor)))))
         (when (not path)
       (error "Unable to get path for closed torrent"))
     (substring (directory-file-name path)
@@ -810,7 +843,7 @@ See also `mentor-move-torrent-data'."
    (mentor-use-tor
     (let* ((new (mentor-get-new-torrent-path tor)))
       (mentor-do-stop-torrent tor)
-      (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
+      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
       (mentor-update-this-torrent)
       (message (concat "Changed target directory to " new))))))
 
@@ -829,7 +862,7 @@ See also `mentor-move-torrent-data'."
 (defun mentor-erase-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (when (yes-or-no-p (concat "Remove torrent " (mentor-property 'name tor) " "))
+   (when (yes-or-no-p (concat "Remove torrent " (mentor-item-property 'name tor) " "))
      (mentor-do-erase-torrent tor)
      (mentor-remove-item-from-view))))
 
@@ -837,7 +870,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-use-tor
    (mentor-torrent-get-file-list) ;; populate it before erasing torrent
-   (let* ((name (mentor-property 'name tor))
+   (let* ((name (mentor-item-property 'name tor))
           (confirm-tor
            (yes-or-no-p (concat "Remove torrent " name " ")))
           (confirm-data
@@ -853,7 +886,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (mentor-rpc-command "d.check_hash" (mentor-property 'hash tor))
+    (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
     (mentor-set-property 'hashing 1)
     (mentor-set-property 'is_open 1)
     (mentor-update-this-torrent))))
@@ -862,7 +895,7 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let* ((old (mentor-property 'base_path))
+    (let* ((old (mentor-item-property 'base_path tor))
            (new (mentor-get-new-torrent-path tor)))
       (when (and (not (null old))
                  (file-exists-p old))
@@ -873,15 +906,15 @@ See also `mentor-move-torrent-data'."
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
-    (let* ((old (mentor-property 'base_path))
+    (let* ((old (mentor-item-property 'base_path tor))
            (new (mentor-get-new-torrent-path tor))
-           (was-started (= 1 (mentor-property 'is_active))))
+           (was-started (= 1 (mentor-item-property 'is_active tor))))
       (when was-started
         (mentor-do-stop-torrent tor))
       (when (and (not (null old))
                  (file-exists-p old))
         (mentor-rpc-command "execute" "mv" "-n" old new))
-      (mentor-rpc-command "d.set_directory" (mentor-property 'hash) new)
+      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
       (when was-started
         (mentor-do-start-torrent tor))
       ;;; FIXME: needs to update the data for this torrent from rtorrent
@@ -894,7 +927,7 @@ See also `mentor-move-torrent-data'."
 `mentor-stop-torrent' instead."
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.pause" (mentor-property 'hash tor))
+   (mentor-rpc-command "d.pause" (mentor-item-property 'hash tor))
    (mentor-update-this-torrent)))
 
 (defun mentor-resume-torrent (&optional tor)
@@ -902,7 +935,7 @@ See also `mentor-move-torrent-data'."
 `mentor-start-torrent' instead."
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.resume" (mentor-property 'hash tor))
+   (mentor-rpc-command "d.resume" (mentor-item-property 'hash tor))
    (mentor-update-this-torrent)))
 
 (defun mentor-start-torrent (&optional tor)
@@ -921,13 +954,13 @@ See also `mentor-move-torrent-data'."
 (defun mentor-open-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.open" (mentor-property 'hash tor))
+   (mentor-rpc-command "d.open" (mentor-item-property 'hash tor))
    (mentor-update-this-torrent)))
 
 (defun mentor-close-torrent (&optional tor)
   (interactive)
   (mentor-use-tor
-   (mentor-rpc-command "d.close" (mentor-property 'hash tor))
+   (mentor-rpc-command "d.close" (mentor-item-property 'hash tor))
    (mentor-update-this-torrent)))
 
 (defun mentor-recreate-files (&optional tor)
@@ -941,8 +974,8 @@ See also `mentor-move-torrent-data'."
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
   (mentor-use-tor
-   (let* ((path (mentor-property 'base_path))
-          (is-multi-file (mentor-property 'is_multi_file))
+   (let* ((path (mentor-item-property 'base_path tor))
+          (is-multi-file (mentor-item-property 'is_multi_file tor))
           (loc (if (= 1 is-multi-file)
                    path
                  (file-name-directory path))))
@@ -951,25 +984,26 @@ See also `mentor-move-torrent-data'."
            (find-file loc)
            (when (= is-multi-file 0)
              (dired-goto-file path)))
-       (message "Torrent has no data: %s" (mentor-property 'name))))))
+       (message "Torrent has no data: %s" (mentor-item-property 'name tor))))))
 
 
-;;; Get torrent data from rtorrent
-
-(defvar mentor-torrents nil
-  "Hash table containing all torrents")
-(make-variable-buffer-local 'mentor-torrents)
-
-;; (defun mentor-property-to-rpc-method () nil)
+;;; Torrent views
 
 (defun mentor-view-torrent-list-add (tor)
-  (let* ((id (mentor-property 'local_id tor))
+  (let* ((id (mentor-item-property 'local_id tor))
          (view (intern mentor-current-view))
          (list (assq view mentor-view-torrent-list)))
     (push id (cdr list))))
 
+(defun mentor-view-torrent-list-clear ()
+  (let ((view (intern mentor-current-view)))
+    (setq mentor-view-torrent-list
+          (assq-delete-all view mentor-view-torrent-list))
+    (setq mentor-view-torrent-list
+          (cons (list view) mentor-view-torrent-list))))
+
 (defun mentor-view-torrent-list-delete (tor &optional view)
-  (let* ((id (mentor-property 'local_id tor))
+  (let* ((id (mentor-item-property 'local_id tor))
          (view (or view (intern mentor-current-view)))
          (list (assq view mentor-view-torrent-list)))
     (delete id list)))
@@ -978,12 +1012,30 @@ See also `mentor-move-torrent-data'."
   (dolist (view mentor-view-torrent-list)
     (mentor-view-torrent-list-delete tor (car view))))
 
-(defun mentor-view-torrent-list-clear ()
-  (let ((view (intern mentor-current-view)))
-    (setq mentor-view-torrent-list
-          (assq-delete-all view mentor-view-torrent-list))
-    (setq mentor-view-torrent-list
-          (cons (list view) mentor-view-torrent-list))))
+
+;;; Get torrent data from rtorrent
+
+(defun mentor-rpc-method-to-property (method)
+  (intern
+   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
+
+(defun mentor-rpc-value-to-real-value (method value)
+  (if (and (string-match mentor-methods-to-get-as-string method)
+           (stringp value))
+      (string-to-number value)
+    value))
+
+(defun mentor-torrent-data-from (methods values)
+  (mapcar* (lambda (method value)
+             (cons (mentor-rpc-method-to-property method)
+                   (mentor-rpc-value-to-real-value method value)))
+           methods values))
+
+(defun mentor-torrent-create-from (methods values)
+  (mentor-torrent-create (mentor-torrent-data-from methods values)))
+
+(defun mentor-torrent-update-from (methods values)
+  (mentor-torrent-update (mentor-torrent-create-from methods values)))
 
 (defconst mentor-methods-to-get-as-string
   (regexp-opt '("bytes_done" "completed_bytes"
@@ -1000,16 +1052,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
     (if (string-match re method)
         (concat "cat=$" method)
       method)))
-
-(defun mentor-rpc-method-to-property (method)
-  (intern
-   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
-
-(defun mentor-rpc-value-to-real-value (method value)
-  (if (and (string-match mentor-methods-to-get-as-string method)
-           (stringp value))
-      (string-to-number value)
-    value))
 
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
@@ -1043,6 +1085,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
     "d.is_open"
     "d.is_pex_active"))
 
+
+;;; Interactive commands to update torrent list
+
 (defun mentor-init-torrent-list ()
   "Initialize torrent data from rtorrent.
 
@@ -1067,8 +1112,8 @@ expensive operation."
      (mentor-init-torrent-list))))
 
 (defun mentor-update-one-torrent (tor)
-  (let* ((hash (mentor-property 'hash     tor))
-         (id   (mentor-property 'local_id tor))
+  (let* ((hash (mentor-item-property 'hash     tor))
+         (id   (mentor-item-property 'local_id tor))
          (methods mentor-volatile-rpc-methods)
          (values (mapcar
                   (lambda (method)
@@ -1086,27 +1131,19 @@ expensive operation."
 
 ;;; Torrent information
 
-(defun mentor-get-torrent (id)
-  (gethash id mentor-torrents))
-
-(defun mentor-property (property &optional tor)
-  "Get property for a torrent.
-If `torrent' is nil, use torrent at point."
-  (mentor-use-tor
-   (cdr (assoc property tor))))
-
 (defun mentor-set-property (property val &optional tor)
   "Set a property for a torrent.
 If `torrent' is nil, use torrent at point."
+  (error "FIXME")
   (mentor-use-tor
-   (let ((id (mentor-property 'local_id tor)))
+   (let ((id (mentor-item-property 'local_id tor)))
      (assq-delete-all property tor)
      (let ((new-torrent (cons (cons property val) tor)))
        (puthash id new-torrent mentor-torrents)))))
 
 (defun mentor-torrent-get-progress (torrent)
-  (let* ((donev (mentor-property 'bytes_done torrent))
-         (totalv (mentor-property 'size_bytes torrent))
+  (let* ((donev (mentor-item-property 'bytes_done torrent))
+         (totalv (mentor-item-property 'size_bytes torrent))
          (done (abs (or donev 0)))
          (total (abs (or totalv 1)))
          (percent (* 100 (/ (+ 0.0 done) total))))
@@ -1117,21 +1154,21 @@ If `torrent' is nil, use torrent at point."
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (&optional torrent)
   (concat
-   (or (when (> (mentor-property 'hashing   torrent) 0) "H")
-       (if   (= (mentor-property 'is_active torrent) 1) " " "S"))
-   (if (= (mentor-property 'is_open torrent) 1) " " "C")))
+   (or (when (> (mentor-item-property 'hashing   torrent) 0) "H")
+       (if   (= (mentor-item-property 'is_active torrent) 1) " " "S"))
+   (if (= (mentor-item-property 'is_open torrent) 1) " " "C")))
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-property 'down_rate torrent)))
+   (mentor-item-property 'down_rate torrent)))
 
 (defun mentor-torrent-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-property 'up_rate torrent)))
+   (mentor-item-property 'up_rate torrent)))
 
 (defun mentor-torrent-get-size (torrent)
-  (let ((done (mentor-property 'bytes_done torrent))
-        (total (mentor-property 'size_bytes torrent)))
+  (let ((done (mentor-item-property 'bytes_done torrent))
+        (total (mentor-item-property 'size_bytes torrent)))
     (if (= done total)
         (format "         %-.6s" (mentor-bytes-to-human total))
       (format "%6s / %-6s"
@@ -1140,16 +1177,17 @@ If `torrent' is nil, use torrent at point."
 
 (defun mentor-torrent-get-size-done (torrent)
   (mentor-bytes-to-human
-   (mentor-property 'bytes_done torrent)))
+   (mentor-item-property 'bytes_done torrent)))
 
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
-   (mentor-property 'size_bytes torrent)))
+   (mentor-item-property 'size_bytes torrent)))
 
 (defun mentor-torrent-get-file-list (&optional tor)
+  (error "FIXME")
   (mentor-use-tor
-   (let ((id (mentor-property 'local_id tor))
-         (hash (mentor-property 'hash tor))
+   (let ((id (mentor-item-property 'local_id tor))
+         (hash (mentor-item-property 'hash tor))
          (files (cdr-safe (assoc 'files tor))))
      (when (not files)
        (progn
@@ -1165,10 +1203,10 @@ If `torrent' is nil, use torrent at point."
   (member view (mentor-torrent-get-views tor)))
 
 (defun mentor-torrent-get-views (tor)
-  (mentor-property 'views tor))
+  (mentor-item-property 'views tor))
 
 (defun mentor-torrent-get-prio (tor)
-  (let ((prio (mentor-property 'priority tor)))
+  (let ((prio (mentor-item-property 'priority tor)))
     (cond ((= 0 prio) "off")
           ((= 1 prio) "low")
           ((= 2 prio) "")
@@ -1176,8 +1214,8 @@ If `torrent' is nil, use torrent at point."
 
 (defun mentor-torrent-priority-fun (val)
   (mentor-use-tor
-   (let ((hash (mentor-property 'hash))
-         (prio (mentor-property 'priority)))
+   (let ((hash (mentor-item-property 'hash))
+         (prio (mentor-item-property 'priority)))
      (list "d.set_priority" hash (mentor-limit-num (+ prio val) 0 3)))))
 
 
@@ -1198,7 +1236,7 @@ If `torrent' is nil, use torrent at point."
              (when (y-or-n-p (concat "View " view " was not found. Create it? "))
                (mentor-views-add view) t))
          (mentor-rpc-command "d.views.push_back_unique" 
-                             (mentor-property 'hash tor) view)
+                             (mentor-item-property 'hash tor) view)
        (message "Nothing done")))))
 
 (defvar mentor-torrent-views)
@@ -1246,22 +1284,24 @@ twice!"
   (mentor-views-update-filter view))
 
 (defun mentor-views-init ()
-  "Gets all unique views from torrents, adds all views not
+  "Initialize views.
+Gets all unique views from torrents, adds all views not
 already in view_list and sets all new view_filters."
   ;; should always update the views before potentially adding new ones
-  (mentor-views-update-views)
-  (maphash 
-   (lambda (id torrent)
-     (mapcar (lambda (view) 
-               (when (and (mentor-views-is-custom-view view)
-                          (not (mentor-views-is-view-defined view)))
-                 (mentor-views-add view)))
-             (cdr (assoc 'views torrent))))
-   mentor-torrents))
+  (mentor-views-update-views))
+
+;; FIXME: this was part of mentor-views-init, but why?
+  ;; (maphash 
+  ;;  (lambda (id torrent)
+  ;;    (mapcar (lambda (view) 
+  ;;              (when (and (mentor-views-is-custom-view view)
+  ;;                         (not (mentor-views-is-view-defined view)))
+  ;;                (mentor-views-add view)))
+  ;;            (cdr (assoc 'views torrent))))
+  ;;  mentor-items))
 
 (defun mentor-views-update-views ()
-  "Updates the view list and returns all views defined by
-rtorrent."
+  "Updates the view list with all views defined by rtorrent."
   (setq mentor-torrent-views (mentor-rpc-command "view_list")))
 
 (defun mentor-views-update-filter (view)
