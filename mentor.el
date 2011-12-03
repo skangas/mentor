@@ -165,25 +165,27 @@ connecting through scgi or http."
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
     (define-key map (kbd "-") 'mentor-decrease-priority)
-    ;; (define-key map (kbd "C") 'mentor-call-command)
-    (define-key map (kbd "C") 'mentor-copy-torrent-data)
-    (define-key map (kbd "K") 'mentor-erase-torrent-and-data)
-    (define-key map (kbd "R") 'mentor-move-torrent-data)
-    (define-key map (kbd "b") 'mentor-set-inital-seeding)
-    (define-key map (kbd "e") 'mentor-recreate-files) ;; Set the 'create/resize queued' flags on all files in a torrent.
-    (define-key map (kbd "o") 'mentor-change-target-directory)
+    (define-key map (kbd "C") 'mentor-torrent-call-command)
+    (define-key map (kbd "C") 'mentor-torrent-copy-data)
+    (define-key map (kbd "R") 'mentor-torrent-move)
+    (define-key map (kbd "b") 'mentor-torrent-set-inital-seeding)
+    (define-key map (kbd "e") 'mentor-torrent-recreate-files)
+    (define-key map (kbd "o") 'mentor-torrent-change-target-directory)
     (define-key map (kbd "d") 'mentor-torrent-stop)
-    (define-key map (kbd "k") 'mentor-erase-torrent)
-    (define-key map (kbd "r") 'mentor-hash-check-torrent)
-    (define-key map (kbd "s") 'mentor-start-torrent)
+    (define-key map (kbd "K") 'mentor-torrent-remove-including-data)
+    (define-key map (kbd "k") 'mentor-torrent-remove)
+    (define-key map (kbd "r") 'mentor-torrent-hash-check)
+    (define-key map (kbd "s") 'mentor-torrent-start)
 
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-object)
+
     (define-key map (kbd "m") 'mentor-mark)
     (define-key map (kbd "u") 'mentor-unmark)
     (define-key map (kbd "M") 'mentor-mark-all)
     (define-key map (kbd "U") 'mentor-unmark-all)
+
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
     ;; sort functions
@@ -321,27 +323,6 @@ Type \\[mentor] to start Mentor.
                             (min (length mentor-header-line)
                                  (window-hscroll)))))))
 
-(defun mentor-auto-update-timer ()
-  (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (if (and (eq major-mode 'mentor-mode)
-               mentor-auto-update-flag)
-          (mentor-update t t)))))
-
-(defun mentor-toggle-auto-update (arg)
-  "Change whether this Mentor buffer is updated automatically.
-With prefix ARG, update this buffer automatically if ARG is positive,
-otherwise do not update.  Sets the variable `mentor-auto-update-flag'.
-The time interval for updates is specified via `mentor-auto-update-interval'."
-  (interactive (list (or current-prefix-arg 'toggle)))
-  (setq mentor-auto-update-flag
-        (cond ((eq arg 'toggle) (not mentor-auto-update-flag))
-              (arg (> (prefix-numeric-value arg) 0))
-              (t (not mentor-auto-update-flag))))
-  (message "Mentor auto update %s"
-           (if mentor-auto-update-flag "enabled" "disabled")))
-
-
 
 ;;; XML-RPC calls
 
@@ -405,9 +386,11 @@ This can be torrents, files, peers etc. All values should be made
 using `make-mentor-item'.")
 (make-variable-buffer-local 'mentor-items)
 
-(defun mentor-item-property (property item)
+(defun mentor-item-property (property &optional item)
   "Get property for an item."
-   (cdr (assoc property (mentor-item-data item))))
+  (when (not item)
+    (setq item (mentor-get-item-at-point)))
+  (cdr (assoc property (mentor-item-data item))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
@@ -525,6 +508,7 @@ Based on `dired-map-over-marks'."
                    (error "No item at point"))))
      ,@body))
 
+;; FIXME
 (defun mentor-move-to-name ()
   "Move to the beginning of the name on the current line.
 Return the position of the beginning of the filename, or nil if none found."
@@ -544,12 +528,8 @@ Return the position of the beginning of the filename, or nil if none found."
    :marked nil
    :data data))
 
-;; FIXME: Should be two methods, one to update, one to create a new.
-;;        or documented why this is not a good idea.
 (defun mentor-torrent-update (new)
-  "Update torrent using new data.
-
-If `mentor-is-init' is bound to a value, act"
+  "Add or update a torrent using new data."
   (let* ((id  (mentor-item-property 'local_id new))
          (old (mentor-get-item id)))
     (when (and (null old)
@@ -558,10 +538,10 @@ If `mentor-is-init' is bound to a value, act"
     (if (boundp 'mentor-is-init)
         (progn (setf (mentor-item-marked new) nil)
                (puthash id new mentor-items))
-      (dolist (row new)
+      (dolist (row (mentor-item-data new))
         (let* ((p (car row))
                (v (cdr row))
-               (alist (assq p old)))
+               (alist (assq p (mentor-item-data old))))
           (if alist
               (setcdr alist v)
             (error "Missing property on torrent...")))))
@@ -963,11 +943,11 @@ start point."
   (interactive)
   (message "TODO: mentor-add-torrent"))
 
-(defun mentor-call-command (&optional tor)
+(defun mentor-torrent-call-command (&optional tor)
   (interactive)
-  (message "TODO: mentor-call-comamnd"))
+  (message "TODO: mentor-torrent-call-comamnd"))
 
-(defun mentor-change-target-directory (&optional tor)
+(defun mentor-torrent-change-target-directory (&optional tor)
   "Change torrents target directory without moving data.
 See also `mentor-move-torrent-data'."
   (interactive)
@@ -991,14 +971,14 @@ See also `mentor-move-torrent-data'."
    (mentor-set-priority 1)
    (mentor-update-this-torrent)))
 
-(defun mentor-erase-torrent (&optional tor)
+(defun mentor-torrent-remove (&optional tor)
   (interactive)
   (mentor-use-tor
    (when (yes-or-no-p (concat "Remove torrent " (mentor-item-property 'name tor) " "))
      (mentor-do-erase-torrent tor)
      (mentor-remove-item-from-view))))
 
-(defun mentor-erase-torrent-and-data (&optional tor)
+(defun mentor-torrent-remove-including-data (&optional tor)
   (interactive)
   (mentor-use-tor
    (mentor-torrent-get-file-list) ;; populate it before erasing torrent
@@ -1014,7 +994,7 @@ See also `mentor-move-torrent-data'."
      (when confirm-data
        (mentor-do-erase-data tor)))))
 
-(defun mentor-hash-check-torrent (&optional tor)
+(defun mentor-torrent-hash-check (&optional tor)
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
@@ -1023,7 +1003,7 @@ See also `mentor-move-torrent-data'."
     (mentor-set-property 'is_open 1)
     (mentor-update-this-torrent))))
 
-(defun mentor-copy-torrent-data (&optional tor)
+(defun mentor-torrent-copy-data (&optional tor)
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
@@ -1034,7 +1014,7 @@ See also `mentor-move-torrent-data'."
         (mentor-rpc-command "execute" "cp" "-Rn" old new))
       (message (concat "Copied torrent data to " new))))))
 
-(defun mentor-move-torrent-data (&optional tor)
+(defun mentor-torrent-move (&optional tor)
   (interactive)
   (mentor-keep-position
    (mentor-use-tor
@@ -1054,54 +1034,60 @@ See also `mentor-move-torrent-data'."
       (mentor-update-this-torrent)
       (message (concat "Moved torrent data to " new))))))
 
-(defun mentor-pause-torrent (&optional tor)
+(defun mentor-torrent-pause (&optional arg)
   "Pause torrent. This is probably not what you want, use
-`mentor-stop-torrent' instead."
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.pause" (mentor-item-property 'hash tor))
-   (mentor-update-this-torrent)))
+`mentor-torrent-stop' instead."
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-resume-torrent (&optional tor)
+(defun mentor-torrent-resume (&optional arg)
   "Resume torrent. This is probably not what you want, use
-`mentor-start-torrent' instead."
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.resume" (mentor-item-property 'hash tor))
-   (mentor-update-this-torrent)))
+`mentor-torrent-start' instead."
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-start-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-keep-position
-    (mentor-do-start-torrent tor)
-    (mentor-update-this-torrent))))
+(defun mentor-torrent-start (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-do-start-torrent tor)
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-stop-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-do-stop-torrent tor)
-   (mentor-update-this-torrent)))
+(defun mentor-torrent-stop (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-do-stop-torrent (mentor-get-item-at-point))
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-open-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.open" (mentor-item-property 'hash tor))
-   (mentor-update-this-torrent)))
+(defun mentor-torrent-open (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-close-torrent (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-rpc-command "d.close" (mentor-item-property 'hash tor))
-   (mentor-update-this-torrent)))
+(defun mentor-torrent-close (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-rpc-command "d.close" (mentor-item-property 'hash))
+          (mentor-update-this-torrent))
+   arg))
 
-(defun mentor-recreate-files (&optional tor)
+(defun mentor-torrent-recreate-files (&optional tor)
+  "Set the 'create/resize queued' flags on all files in a torrent."
   (interactive)
-  (message "TODO: mentor-recreate-files"))
+  (message "TODO: mentor-torrent-recreate-files"))
 
-(defun mentor-set-inital-seeding (&optional tor)
+(defun mentor-torrent-set-inital-seeding (&optional tor)
   (interactive)
-  (message "TODO: set-inital-seeding"))
+  (message "TODO: mentor-torrent-set-inital-seeding"))
 
 (defun mentor-view-in-dired (&optional tor)
   (interactive)
