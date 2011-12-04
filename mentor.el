@@ -865,7 +865,6 @@ start point."
         (goto-char pos)
       (signal 'mentor-missing-torrent `("No such torrent" ,id)))))
 
-;; ??? what to do
 (defun mentor-toggle-object ()
   (interactive)
   (let ((type (mentor-get-item-type))
