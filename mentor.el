@@ -142,7 +142,7 @@ connecting through scgi or http."
   '((t :inherit font-lock-warning-face))
   "Face used for marked items."
   :group 'mentor)
-(defvar mentor-mark-face 'mentor-marked-item)
+(defvar mentor-mark-face 'mentor-mark)
 
 (defface mentor-directory-face
   '((t :inherit font-lock-function-name-face))
@@ -1027,10 +1027,12 @@ See also `mentor-torrent-move'."
 (defun mentor-torrent-hash-check (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
-          (mentor-item-set-property 'hashing 1)
-          (mentor-item-set-property 'is_open 1)
-          (mentor-do-update-this-torrent))
+   (progn
+     (let ((tor (mentor-get-item-at-point)))
+       (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
+       (mentor-item-set-property 'hashing 1 tor)
+       (mentor-item-set-property 'is_open 1 tor)
+       (mentor-do-update-this-torrent)))
    arg))
 
 (defun mentor-torrent-pause (&optional arg)
@@ -1105,7 +1107,7 @@ See also `mentor-torrent-move'."
 
 (defun mentor-torrent-update-this (&optional arg)
   (interactive "P")
-  (mentor-map-over-marks (mentor-do-update-this-torrent-data)
+  (mentor-map-over-marks (mentor-do-update-this-torrent)
    arg))
 
 (defun mentor-update ()
