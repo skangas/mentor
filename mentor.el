@@ -343,16 +343,6 @@ If MUST-EXIST is non-nil, give a warning if the property does not
 (defun mentor-get-item-at-point ()
   (mentor-get-item (mentor-item-id-at-point)))
 
-;; FIXME: I don't know if this is a good idea yet.
-;;        Maybe this leads to sloppy coding.
-;; (defmacro mentor-use-item (&rest body)
-;;   "Convenience macro to use either the defined `item' value or
-;; the item at point."
-;;   `(let ((item (or (when (boundp 'item) item)
-;;                    (mentor-get-item (mentor-item-id-at-point))
-;;                    (error "no torrent"))))
-;;      ,@body))
-
 (defun mentor-marker-regexp ()
   (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
 
@@ -445,13 +435,6 @@ Based on `dired-map-over-marks'."
     (move-marker pos nil)
     ;; (dired-move-to-filename)
     ))
-
-(defmacro mentor-use-item (&rest body)
-  "Convenience macro to use the `item' at point."
-  `(let ((item (or ;; (when (boundp 'item) item)
-                   (mentor-get-item (mentor-item-id-at-point))
-                   (error "No item at point"))))
-     ,@body))
 
 ;; FIXME
 (defun mentor-move-to-name ()
