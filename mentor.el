@@ -187,7 +187,7 @@ connecting through scgi or http."
     (define-key map (kbd "DEL") 'mentor-add-torrent)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "M-g") 'mentor-update-this-torrent)
+    (define-key map (kbd "M-g") 'mentor-torrent-update-this)
 
     ;; navigation
     (define-key map (kbd "<up>") 'mentor-previous-item)
@@ -205,7 +205,7 @@ connecting through scgi or http."
     (define-key map (kbd "e") 'mentor-torrent-recreate-files)
     (define-key map (kbd "o") 'mentor-torrent-change-target-directory)
     (define-key map (kbd "d") 'mentor-torrent-stop)
-    (define-key map (kbd "K") 'mentor-torrent-remove-including-data)
+    (define-key map (kbd "K") 'mentor-torrent-remove-including-files)
     (define-key map (kbd "k") 'mentor-torrent-remove)
     (define-key map (kbd "r") 'mentor-torrent-hash-check)
     (define-key map (kbd "s") 'mentor-torrent-start)
@@ -869,7 +869,7 @@ start point."
         (dired-delete-file file)
       (file-error nil))))
 
-(defun mentor-do-erase-data (tor)
+(defun mentor-do-remove-torrent-files (tor)
   (let* ((base-path (mentor-item-property 'base_path tor))
          (files (mentor-torrent-get-file-list tor))
          (dirs nil))
@@ -881,10 +881,11 @@ start point."
                  (dir (file-name-directory file)))
             (mentor-delete-file file)
             (setq dirs (adjoin dir dirs :test 'equal))))
-        (dolist (dir (sort dirs (lambda (a b) (not (string< a b)))))
+        (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
+        (dolist (dir dirs)
           (mentor-delete-file dir))))))
 
-(defun mentor-do-erase-torrent (tor)
+(defun mentor-do-remove-torrent (tor)
   (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor))
   (remhash (mentor-item-property 'local_id tor) mentor-items)
   (mentor-view-torrent-list-delete-all tor))
@@ -894,6 +895,10 @@ start point."
 
 (defun mentor-do-stop-torrent (tor)
   (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
+
+(defun mentor-do-update-this-torrent ()
+  (mentor-torrent-data-update-one (mentor-get-item-at-point))
+  (mentor-redisplay-torrent))
 
 (defun mentor-get-old-torrent-path (tor)
   (let ((path (or (mentor-item-property 'base_path tor)
@@ -941,43 +946,50 @@ See also `mentor-torrent-move'."
    (let* ((new (mentor-get-new-torrent-path tor)))
      (mentor-do-stop-torrent tor)
      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-     (mentor-update-this-torrent)
+     (mentor-do-update-this-torrent)
      (message (concat "Changed target directory to " new)))))
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
   (mentor-do-marked
    (mentor-set-priority -1)
-   (mentor-update-this-torrent)))
+   (mentor-do-update-this-torrent)))
 
 (defun mentor-increase-priority (&optional tor)
   (interactive)
   (mentor-do-marked
    (mentor-set-priority 1)
-   (mentor-update-this-torrent)))
+   (mentor-do-update-this-torrent)))
 
-(defun mentor-torrent-remove (&optional tor)
+(defun mentor-torrent-remove (&optional arg)
   (interactive)
-  (mentor-use-tor
-   (when (yes-or-no-p (concat "Remove torrent " (mentor-item-property 'name tor) " "))
-     (mentor-do-erase-torrent tor)
-     (mentor-remove-item-from-view))))
+  (mentor-map-over-marks
+   (progn
+     (let* ((tor (mentor-get-item-at-point))
+            (name (mentor-item-property 'name tor)))
+       (when (yes-or-no-p (concat "Remove torrent " name " "))
+         (mentor-do-remove-torrent tor)
+         (mentor-remove-item-from-view))))
+   arg))
 
-(defun mentor-torrent-remove-including-data (&optional tor)
-  (interactive)
-  (mentor-use-tor
-   (mentor-torrent-get-file-list) ;; populate it before erasing torrent
-   (let* ((name (mentor-item-property 'name tor))
-          (confirm-tor
-           (yes-or-no-p (concat "Remove torrent " name " ")))
-          (confirm-data
-           (and confirm-tor
-                (yes-or-no-p (concat "Remove data for " name " ")))))
-     (when confirm-tor
-       (mentor-do-erase-torrent tor)
-       (mentor-remove-item-from-view))
-     (when confirm-data
-       (mentor-do-erase-data tor)))))
+(defun mentor-torrent-remove-including-files (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn
+     (let* ((tor (mentor-get-item-at-point))
+            (name (mentor-item-property 'name tor))
+            (confirm-tor (yes-or-no-p (concat "Remove torrent " name " ")))
+            (confirm-data (and confirm-tor
+                               (yes-or-no-p (concat "Also remove files for torrent " name " ")))))
+       (when confirm-data
+         ;; populate file list before removing torrent
+         (mentor-torrent-get-file-list tor))
+       (when confirm-tor
+         (mentor-do-remove-torrent tor)
+         (mentor-remove-item-from-view))
+       (when confirm-data
+         (mentor-do-remove-torrent-files tor))))
+   arg))
 
 (defun mentor-torrent-copy-data (&optional tor)
   (interactive)
@@ -1010,7 +1022,7 @@ See also `mentor-torrent-move'."
               (mentor-do-start-torrent tor))
             ;; FIXME: needs to update the data for this torrent from rtorrent
             (mentor-item-set-property 'directory new)
-            (mentor-update-this-torrent)
+            (mentor-do-update-this-torrent)
             (message (concat "Moved torrent data to " new))))
    arg))
 
@@ -1020,7 +1032,7 @@ See also `mentor-torrent-move'."
    (progn (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
           (mentor-item-set-property 'hashing 1)
           (mentor-item-set-property 'is_open 1)
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-pause (&optional arg)
@@ -1029,7 +1041,7 @@ See also `mentor-torrent-move'."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-resume (&optional arg)
@@ -1038,35 +1050,35 @@ See also `mentor-torrent-move'."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-do-start-torrent tor)
-          (mentor-update-this-torrent))
+   (progn (mentor-do-start-torrent (mentor-get-item-at-point))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-do-stop-torrent (mentor-get-item-at-point))
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-open (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-close (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.close" (mentor-item-property 'hash))
-          (mentor-update-this-torrent))
+          (mentor-do-update-this-torrent))
    arg))
 
 (defun mentor-torrent-recreate-files (&optional tor)
@@ -1093,11 +1105,9 @@ See also `mentor-torrent-move'."
              (dired-goto-file path)))
        (message "Torrent has no data: %s" (mentor-item-property 'name tor))))))
 
-(defun mentor-torrent-update-one (&optional arg)
+(defun mentor-torrent-update-this (&optional arg)
   (interactive "P")
-  (mentor-map-over-marks
-   (progn (mentor-torrent-data-update-one (mentor-get-item-at-point))
-          (mentor-redisplay-torrent))
+  (mentor-map-over-marks (mentor-do-update-this-torrent-data)
    arg))
 
 (defun mentor-update ()
@@ -1284,20 +1294,18 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (mentor-bytes-to-human
    (mentor-item-property 'size_bytes torrent)))
 
-(defun mentor-torrent-get-file-list (&optional tor)
-  (error "FIXME")
-  (mentor-use-tor
-   (let ((id (mentor-item-property 'local_id tor))
-         (hash (mentor-item-property 'hash tor))
-         (files (cdr-safe (assoc 'files tor))))
-     (when (not files)
-       (progn
-         (message "Receiving file list...")
-         (setq files (mentor-rpc-command
-                      "f.multicall" hash "" "f.get_path_components="))
-         (setcdr tor (cons (cons 'files files) (cdr tor)))
-         (puthash id tor mentor-torrents)))
-     files)))
+(defun mentor-torrent-get-file-list (tor)
+  (let ((id (mentor-item-property 'local_id tor))
+        (hash (mentor-item-property 'hash tor))
+        (files (cdr-safe (mentor-item-property 'files tor))))
+    (when (not files)
+      (progn
+        (message "Receiving file list...")
+        (setq files (mentor-rpc-command
+                     "f.multicall" hash "" "f.get_path_components="))
+        (mentor-item-set-property 'files files tor)
+        (puthash id tor mentor-items)))
+    (cdr-safe (mentor-item-property 'files tor))))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
