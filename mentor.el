@@ -558,7 +558,6 @@ expensive operation."
 
 ;;; Insert item into buffer
 
-;; TODO: replace mentor-torrent-insert by this
 (defun mentor-item-insert (id)
   (let* ((item (mentor-get-item id))
          (text (mentor-process-view-columns item mentor-view-columns))
@@ -588,25 +587,11 @@ expensive operation."
             (goto-char kept-point)))
        (goto-char kept-point))))
 
-(defun mentor-torrent-insert (id)
-  (let* ((torrent (mentor-get-torrent id))
-         (text (mentor-process-view-columns torrent mentor-view-columns))
-         (marked (mentor-item-marked torrent)))
-    (insert (propertize text
-                        'marked marked
-                        'field id
-                        'collapsed t
-                        'type 'torrent) "\n")
-    (when marked
-      (save-excursion
-        (mentor-previous-item)
-        (mentor-mark)))))
-
 (defun mentor-insert-torrents ()
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
-      (mentor-torrent-insert id))
+      (mentor-item-insert id))
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
@@ -614,7 +599,7 @@ expensive operation."
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
     (mentor-remove-item-from-view)
-    (mentor-torrent-insert id)
+    (mentor-item-insert id)
     (mentor-previous-item)))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
