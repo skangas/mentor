@@ -300,7 +300,7 @@ Type \\[mentor] to start Mentor.
 (defun mentor-init-header-line ()
   (setq header-line-format
         '(:eval (concat
-                 (propertize " " 'display '((space :align-to 2)))
+                 (propertize " " 'display '((space :align-to 1)))
                  (substring mentor-header-line
                             (min (length mentor-header-line)
                                  (window-hscroll)))))))
