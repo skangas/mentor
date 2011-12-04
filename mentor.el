@@ -46,7 +46,7 @@
 (require 'xml-rpc)
 
 
-;;; configuration
+;;; Customizable variables
 
 (defgroup mentor nil
   "Controlling rtorrent from Emacs."
@@ -111,6 +111,35 @@ connecting through scgi or http."
   :group 'mentor
   :type '(repeat (list symbol integer string)))
 
+
+;; Internal variables
+
+(defvar mentor-mode-hook)
+
+(defvar mentor-current-view)
+
+(defvar mentor-header-line)
+(make-variable-buffer-local 'mentor-header-line)
+
+(defvar mentor-rtorrent-client-version)
+(make-variable-buffer-local 'mentor-rtorrent-client-version)
+
+(defvar mentor-rtorrent-library-version)
+(make-variable-buffer-local 'mentor-rtorrent-library-version)
+
+(defvar mentor-rtorrent-name)
+(make-variable-buffer-local 'mentor-rtorrent-name)
+
+(defvar mentor-sort-list '((name) (up_rate . t)))
+(make-variable-buffer-local 'mentor-sort-list)
+
+(defvar mentor-view-torrent-list nil
+  "alist of torrents in given views")
+
+(defvar mentor-marker-char ?*)
+
+(defvar mentor-re-mark "^[^ \n]")
+
 (defface mentor-highlight-face
   '((((class color) (background light))
      :background "gray13")
@@ -142,6 +171,20 @@ connecting through scgi or http."
   ;; TODO: Highlight marked items
 
   "Additional expressions to highlight in Mentor mode.")
+
+
+;; Variables that should be changed by sub-modes
+
+(defvar mentor-sub-mode nil
+  "The submode which is currently active")
+(make-variable-buffer-local 'mentor-sub-mode)
+(put 'mentor-sub-mode 'permanent-local t)
+
+(defvar mentor-priority-fun)
+(make-variable-buffer-local 'mentor-priority-fun)
+
+(defvar mentor-columns-var)
+(make-variable-buffer-local 'mentor-columns-var)
 
 
 ;;; major mode
@@ -213,54 +256,6 @@ connecting through scgi or http."
     (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
     map))
-
-(defvar mentor-mode-hook)
-
-(defvar mentor-auto-update-buffers)
-
-(defvar mentor-auto-update-timer nil)
-
-(defvar mentor-current-view)
-
-(defvar mentor-header-line)
-(make-variable-buffer-local 'mentor-header-line)
-
-(defvar mentor-rtorrent-client-version)
-(make-variable-buffer-local 'mentor-rtorrent-client-version)
-
-(defvar mentor-rtorrent-library-version)
-(make-variable-buffer-local 'mentor-rtorrent-library-version)
-
-(defvar mentor-rtorrent-name)
-(make-variable-buffer-local 'mentor-rtorrent-name)
-
-(defvar mentor-sort-list '((name) (up_rate . t)))
-(make-variable-buffer-local 'mentor-sort-list)
-
-(defvar mentor-view-torrent-list nil
-  "alist of torrents in given views")
-
-
-
-;; Variables that should be changed by sub-modes
-
-(defvar mentor-sub-mode nil
-  "The submode which is currently active")
-(make-variable-buffer-local 'mentor-sub-mode)
-(put 'mentor-sub-mode 'permanent-local t)
-
-(defvar mentor-priority-fun)
-(make-variable-buffer-local 'mentor-priority-fun)
-
-(defvar mentor-columns-var)
-(make-variable-buffer-local 'mentor-columns-var)
-
-
-;; Internal variables
-
-(defvar mentor-marker-char ?*)
-
-(defvar mentor-re-mark "^[^ \n]")
 
 
 ;; Mentor major-mode
