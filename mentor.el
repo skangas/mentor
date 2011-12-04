@@ -53,16 +53,6 @@
   :prefix "mentor-"
   :group 'tools)
 
-(defcustom mentor-auto-update-default nil
-  "If non-nil, enable auto update for all newly created mentor buffers."
-  :type 'boolean
-  :group 'mentor)
-
-(defcustom mentor-auto-update-interval 5
-  "Time interval in seconds for auto updating mentor buffers."
-  :type 'integer
-  :group 'mentor)
-
 (defcustom mentor-custom-views 
   '((1 . "main") (2 . "main") (3 . "started")
     (4 . "stopped") (5 . "complete") (6 . "incomplete")
@@ -281,11 +271,7 @@ Type \\[mentor] to start Mentor.
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
   ;;(set (make-local-variable 'revert-buffer-function) 'mentor-revert)
   (use-local-map mentor-mode-map)
-  (run-mode-hooks 'mentor-mode-hook)
-  (if (and (not mentor-auto-update-timer) mentor-auto-update-interval)
-      (setq mentor-auto-update-timer
-            (run-at-time t mentor-auto-update-interval
-                         'mentor-auto-update-timer))))
+  (run-mode-hooks 'mentor-mode-hook))
 
 ;;;###autoload
 (defun mentor ()
