@@ -1781,9 +1781,9 @@ this subdir."
   (if bytes
       (let* ((bytes (if (stringp bytes) (string-to-number bytes) bytes))
              (kb 1024.0)
-             (mb (* kb 1024.0))
-             (gb (* mb 1024.0))
-             (tb (* gb 1024.0)))
+             (mb 1048576.0)
+             (gb 1073741824.0)
+             (tb 1099511627776.0))
         (cond ((< bytes 0) "???") ;; workaround for old xmlrpc-c
               ((< bytes kb) bytes)
               ((< bytes mb) (concat (format "%.1f" (/ bytes kb)) "K"))
