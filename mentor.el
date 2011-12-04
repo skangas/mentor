@@ -952,17 +952,16 @@ start point."
   (interactive)
   (message "TODO: mentor-torrent-call-comamnd"))
 
-(defun mentor-torrent-change-target-directory (&optional tor)
+(defun mentor-torrent-change-target-directory (&optional arg)
   "Change torrents target directory without moving data.
-See also `mentor-move-torrent-data'."
+See also `mentor-torrent-move'."
   (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (let* ((new (mentor-get-new-torrent-path tor)))
-      (mentor-do-stop-torrent tor)
-      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-      (mentor-update-this-torrent)
-      (message (concat "Changed target directory to " new))))))
+  (mentor-use-tor
+   (let* ((new (mentor-get-new-torrent-path tor)))
+     (mentor-do-stop-torrent tor)
+     (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
+     (mentor-update-this-torrent)
+     (message (concat "Changed target directory to " new)))))
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
@@ -1010,25 +1009,29 @@ See also `mentor-move-torrent-data'."
         (mentor-rpc-command "execute" "cp" "-Rn" old new))
       (message (concat "Copied torrent data to " new))))))
 
-(defun mentor-torrent-move (&optional tor)
-  (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (let* ((old (mentor-item-property 'base_path tor))
-           (new (mentor-get-new-torrent-path tor))
-           (was-started (= 1 (mentor-item-property 'is_active tor))))
-      (when was-started
-        (mentor-do-stop-torrent tor))
-      (when (and (not (null old))
-                 (file-exists-p old))
-        (mentor-rpc-command "execute" "mv" "-n" old new))
-      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-      (when was-started
-        (mentor-do-start-torrent tor))
-      ;;; FIXME: needs to update the data for this torrent from rtorrent
-      (mentor-set-property 'directory new)
-      (mentor-update-this-torrent)
-      (message (concat "Moved torrent data to " new))))))
+;; TODO: Make it possible to move several torrents to same directory with just
+;;       one prompt.
+;; FIXME: We should not move 'base_path if there is only one file in the torrent.
+(defun mentor-torrent-move (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (let* ((tor (mentor-get-item-at-point))
+                 (old (mentor-item-property 'base_path tor))
+                 (new (mentor-get-new-torrent-path tor))
+                 (was-started (= 1 (mentor-item-property 'is_active tor))))
+            (when was-started
+              (mentor-do-stop-torrent tor))
+            (when (and (not (null old))
+                       (file-exists-p old))
+              (mentor-rpc-command "execute" "mv" "-n" old new))
+            (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
+            (when was-started
+              (mentor-do-start-torrent tor))
+            ;; FIXME: needs to update the data for this torrent from rtorrent
+            (mentor-item-set-property 'directory new)
+            (mentor-update-this-torrent)
+            (message (concat "Moved torrent data to " new))))
+   arg))
 
 (defun mentor-torrent-hash-check (&optional arg)
   (interactive "P")
@@ -1257,15 +1260,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 
 ;;; Torrent information
-
-(defun mentor-set-property (property val &optional tor)
-  "Set a property for a torrent.
-If `torrent' is nil, use torrent at point."
-  (mentor-use-tor
-   (let ((id (mentor-item-property 'local_id tor)))
-     (assq-delete-all property tor)
-     (let ((new-torrent (cons (cons property val) tor)))
-       (puthash id new-torrent mentor-torrents)))))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
