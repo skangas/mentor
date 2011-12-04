@@ -587,7 +587,7 @@ expensive operation."
     (when marked
       (save-excursion
         (mentor-previous-item)
-        (mentor-mark-item)))))
+        (mentor-mark)))))
 
 
 ;;; Main view
@@ -616,7 +616,7 @@ expensive operation."
     (when marked
       (save-excursion
         (mentor-previous-item)
-        (mentor-mark-item)))))
+        (mentor-mark)))))
 
 (defun mentor-insert-torrents ()
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
@@ -951,15 +951,13 @@ See also `mentor-torrent-move'."
 
 (defun mentor-decrease-priority (&optional tor)
   (interactive)
-  (mentor-do-marked
-   (mentor-set-priority -1)
-   (mentor-do-update-this-torrent)))
+  (mentor-set-priority -1)
+  (mentor-do-update-this-torrent))
 
 (defun mentor-increase-priority (&optional tor)
   (interactive)
-  (mentor-do-marked
-   (mentor-set-priority 1)
-   (mentor-do-update-this-torrent)))
+  (mentor-set-priority 1)
+  (mentor-do-update-this-torrent))
 
 (defun mentor-torrent-remove (&optional arg)
   (interactive)
@@ -1679,7 +1677,7 @@ point."
       (when (mentor-file-marked file)
         (save-excursion
           (mentor-previous-item t)
-          (mentor-mark-item)))
+          (mentor-mark)))
       (incf count))))
 
 (defun mentor-details-redisplay ()
@@ -1740,56 +1738,20 @@ this subdir."
                  (insert-and-inherit mentor-marker-char)
                  (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
 
-(defun mentor-unmark (arg)
-  "Unmark the current (or next ARG) files.
-If looking at a subdir, unmark all its files except `.' and `..'."
+(defun mentor-unmark (&optional arg)
+  "Unmark the current (or next ARG) items."
   (interactive "P")
   (let ((mentor-marker-char ?\040))
     (mentor-mark arg)))
 
-(defun mentor-item-is-marked ()
-  (get-text-property (point) 'marked))
-
-(defun mentor-set-mark (new-mark)
-  "Set the mark for item at point."
-  (interactive)
-  (let* ((type (mentor-get-item-type))
-         (inhibit-read-only t)
-         (new-face (if new-mark mentor-marked-item-face
-                 (assq type mentor-default-item-faces)))
-         (mark-char (if new-mark ?* ? ))
-         (start-point (point)))
-    (when type
-      (when (not (eq type 'dir))
-        (add-text-properties (mentor-get-item-beginning)
-                             (mentor-get-item-end)
-                             `(face ,new-face
-                               marked ,new-mark))
-        ;; insert at point-at-bol + 1 to inherit all properties
-        (goto-char (+ 1 (point-at-bol)))
-        (insert-and-inherit mark-char)
-        (delete-region (point-at-bol) (+ 1 (point-at-bol))))
-      (goto-char start-point)
-      (cond ((eq type 'torrent)
-             (mentor-set-property 'marked new-mark))
-            ((eq type 'file)
-             (setf (mentor-file-marked (mentor-file-at-point)) new-mark))
-            ((eq type 'dir)
-             (mentor-mark-dir (mentor-file-at-point) (not new-mark)))))))
-
-(defun mentor-mark-item ()
-  "Mark the item at point."
-  (interactive)
-  (mentor-set-mark t)
-  (when (not (eq (mentor-get-item-type) 'dir))
-    (mentor-next-item t)))
-
-(defun mentor-unmark-item ()
-  "Unmark the item at point."
-  (interactive)
-  (mentor-set-mark nil)
-  (when (not (eq (mentor-get-item-type) 'dir))
-    (mentor-next-item t)))
+(defmacro mentor-do-all-items (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (when (not (mentor-get-item-type))
+       (mentor-next-item t))
+     (while (mentor-get-item-type)
+       ,@body
+       (mentor-next-item t))))
 
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
@@ -1801,31 +1763,12 @@ If looking at a subdir, unmark all its files except `.' and `..'."
 (defun mentor-unmark-all ()
   "Unmark all visible items."
   (interactive)
-  (mentor-do-all-items
-   (when (mentor-item-is-marked)
-     (mentor-set-mark nil))))
+  (mentor-map-over-marks
+   (mentor-unmark)
+   nil))
 
 
 ;;; Utility functions
-
-(defmacro mentor-do-all-items (&rest body)
-  `(save-excursion
-     (goto-char (point-min))
-     (when (not (mentor-get-item-type))
-       (mentor-next-item t))
-     (while (mentor-get-item-type)
-       ,@body
-       (mentor-next-item t))))
-
-(defmacro mentor-do-marked (&rest body)
-  `(save-excursion
-     (goto-char (point-min))
-     (when (not (mentor-get-item-type))
-       (mentor-next-item t))
-     (while (mentor-get-item-type)
-       (when (mentor-item-is-marked)
-         ,@body)
-       (mentor-next-item t))))
 
 (defun mentor-limit-num (num min max)
   (if (< num min)
