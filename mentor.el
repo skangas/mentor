@@ -678,16 +678,19 @@ expensive operation."
                                   (mentor-item-property prop item)))
                                mentor-sort-list)))
                   nil
-                  (lambda (x y)
-                    (memq t (map 'list (lambda (a b prop)
-                                         (let ((reverse (cdr-safe prop)))
-                                           (if (stringp a)
-                                               (if reverse
-                                                   (string> a b)
-                                                 (string< a b))
-                                             (if reverse
-                                                 (> a b)
-                                               (< a b))))) x y mentor-sort-list))))))))
+                  (lambda (a b)
+                    (mentor-cmp-properties a b mentor-sort-list)))))))
+
+(defun mentor-cmp-properties (x y &optional props)
+  (let* ((a (car x))
+         (b (car y))
+         (reverse (cdr-safe (car props)))
+         (cmp (if (stringp a)
+                  (if reverse (string> a b) (string< a b))
+                (if reverse (> a b) (< a b)))))
+    (when (and (not cmp) (equal a b) (> (length props) 1))
+      (setq cmp (mentor-cmp-properties (cdr x) (cdr y) (cdr props))))
+    cmp))
 
 (defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
@@ -699,8 +702,8 @@ sorted.
 If REVERSE is non-nil, the result of the sort is reversed.
 
 When APPEND is non-nil, instead of sorting directly, add the
-result to the end of `mentor-sort-list'.  This means we can sort
-according to several criteria."
+result to the end of `mentor-sort-list'.  This makes it possible
+to sort according to several properties."
   (when property
     (let ((elem (cons property reverse)))
       (if append
