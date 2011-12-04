@@ -306,7 +306,7 @@ Type \\[mentor] to start Mentor.
          (mentor-set-view mentor-default-view)
          (when (equal mentor-current-view mentor-last-used-view)
            (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
-         (mentor-init-torrent-list)
+         (mentor-torrent-data-init)
          (mentor-views-init)
          (mentor-redisplay)
          (beginning-of-buffer)))
@@ -324,55 +324,6 @@ Type \\[mentor] to start Mentor.
                                  (window-hscroll)))))))
 
 
-;;; XML-RPC calls
-
-(defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
-  "Do not try methods that makes rtorrent crash")
-
-(defvar mentor-rtorrent-rpc-methods-cache nil)
-
-(defun mentor-rpc-list-methods (&optional regexp)
-  "system.listMethods
-Returns a list of all available commands.  First argument is
-interpreted as a regexp, and if specified only returns matching
-functions"
-  (when (not mentor-rtorrent-rpc-methods-cache)
-    (let ((methods (mentor-rpc-command "system.listMethods")))
-      (setq mentor-rtorrent-rpc-methods-cache
-            (delq nil
-                  (mapcar (lambda (m)
-                            (when (not (string-match mentor-method-exclusions-regexp m))
-                              m))
-                          methods)))))
-  (if regexp
-      (delq nil (mapcar (lambda (m)
-                          (when (string-match regexp m)
-                            m))
-                        mentor-rtorrent-rpc-methods-cache))
-    mentor-rtorrent-rpc-methods-cache))
-
-(defun mentor-rpc-command (&rest args)
-  "Run command as an XML-RPC call via SCGI or http."
-  (let* ((url-http-response-status 200)
-         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
-    (if (equal response '((nil . "URL/HTTP Error: 200")))
-        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
-      response)))
-
-(defun mentor-multicall-string (method &rest args)
-  (list (cons "methodName" method) (cons "params" args)))
-
-(defun mentor-sys-multicall (&rest calls)
-  "Perform a system.multicall with `calls'.  Every call should be
-a list where the first element is the method name and all
-consecutive elements is its arguments."
-  (mentor-rpc-command
-   "system.multicall"
-   (mapcar (lambda (c)
-             (apply 'mentor-multicall-string 
-                    (car c) (cdr c))) calls)))
-
-
 ;;; Mentor items
 
 (defstruct mentor-item
@@ -388,9 +339,21 @@ using `make-mentor-item'.")
 
 (defun mentor-item-property (property &optional item)
   "Get property for an item."
-  (when (not item)
-    (setq item (mentor-get-item-at-point)))
+  (when (not item) (setq item (mentor-get-item-at-point)))
   (cdr (assoc property (mentor-item-data item))))
+
+(defun mentor-item-set-property (property value &optional item must-exist)
+  "Set data PROPERTY to given VALUE of an item.
+If ITEM is nil, use torrent at point.
+If MUST-EXIST is non-nil, give a warning if the property does not
+  already exist."
+  (when (not item) (setq item (mentor-get-item-at-point)))
+  (let ((prop (assq property (mentor-item-data item))))
+    (if prop
+        (setcdr prop value)
+      (if must-exist
+          (error "Tried updating non-existent property")
+        (push (cons property value) (mentor-item-data item))))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
@@ -538,14 +501,94 @@ Return the position of the beginning of the filename, or nil if none found."
     (if (boundp 'mentor-is-init)
         (progn (setf (mentor-item-marked new) nil)
                (puthash id new mentor-items))
-      (dolist (row (mentor-item-data new))
+      (dolist (row (mentor-item-data new))        
         (let* ((p (car row))
-               (v (cdr row))
-               (alist (assq p (mentor-item-data old))))
-          (if alist
-              (setcdr alist v)
-            (error "Missing property on torrent...")))))
+               (v (cdr row)))
+          (mentor-item-set-property p v old 'must-exist))))
     (mentor-view-torrent-list-add new)))
+
+
+;;; XML-RPC calls
+
+(defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
+  "Do not try methods that makes rtorrent crash")
+
+(defvar mentor-rtorrent-rpc-methods-cache nil)
+
+(defun mentor-rpc-list-methods (&optional regexp)
+  "system.listMethods
+Returns a list of all available commands.  First argument is
+interpreted as a regexp, and if specified only returns matching
+functions"
+  (when (not mentor-rtorrent-rpc-methods-cache)
+    (let ((methods (mentor-rpc-command "system.listMethods")))
+      (setq mentor-rtorrent-rpc-methods-cache
+            (delq nil
+                  (mapcar (lambda (m)
+                            (when (not (string-match mentor-method-exclusions-regexp m))
+                              m))
+                          methods)))))
+  (if regexp
+      (delq nil (mapcar (lambda (m)
+                          (when (string-match regexp m)
+                            m))
+                        mentor-rtorrent-rpc-methods-cache))
+    mentor-rtorrent-rpc-methods-cache))
+
+(defun mentor-rpc-command (&rest args)
+  "Run command as an XML-RPC call via SCGI or http."
+  (let* ((url-http-response-status 200)
+         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+    (if (equal response '((nil . "URL/HTTP Error: 200")))
+        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
+      response)))
+
+(defun mentor-multicall-string (method &rest args)
+  (list (cons "methodName" method) (cons "params" args)))
+
+(defun mentor-sys-multicall (&rest calls)
+  "Perform a system.multicall with `calls'.  Every call should be
+a list where the first element is the method name and all
+consecutive elements is its arguments."
+  (mentor-rpc-command
+   "system.multicall"
+   (mapcar (lambda (c)
+             (apply 'mentor-multicall-string 
+                    (car c) (cdr c))) calls)))
+
+
+;;; Getting torrent data
+
+(defun mentor-torrent-data-init ()
+  "Initialize torrent data from rtorrent.
+
+All torrent information will be re-fetched, making this an
+expensive operation."
+  (message "Initializing torrent data...")
+  (let* ((mentor-is-init 'true)
+         (methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)")))
+    (mentor-rpc-d.multicall methods)
+    (mentor-views-update-views))
+  (message "Initializing torrent data... DONE"))
+
+(defun mentor-torrent-data-update-all ()
+  (message "Updating torrent data...")
+  (condition-case err
+      (progn
+        (let* ((methods mentor-volatile-rpc-methods))
+          (mentor-rpc-d.multicall methods))
+        (message "Updating torrent data...DONE"))
+    (mentor-need-init
+     (mentor-torrent-data-init))))
+
+(defun mentor-torrent-data-update-one (tor)
+  (let* ((hash (mentor-item-property 'hash tor))
+         (methods mentor-volatile-rpc-methods)
+         (values (mapcar
+                  (lambda (method)
+                    (mentor-rpc-command method hash))
+                  methods)))
+    (mentor-torrent-update-from methods values)))
 
 
 ;;; Insert item into buffer
@@ -579,44 +622,6 @@ Return the position of the beginning of the filename, or nil if none found."
            (mentor-missing-torrent
             (goto-char kept-point)))
        (goto-char kept-point))))
-
-(defun mentor-update ()
-  "Update all torrents and redisplay."
-  (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update))
-        ((not mentor-sub-mode)
-         (mentor-keep-position
-          (when (mentor-views-is-custom-view mentor-current-view)
-            (mentor-views-update-filter mentor-current-view))
-          (mentor-update-torrent-list)
-          (mentor-redisplay)))))
-
-(defun mentor-reload ()
-  "Re-initialize all torrents and redisplay."
-  (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update t))
-        ((not mentor-sub-mode)
-         (mentor-keep-position
-          (when (mentor-views-is-custom-view mentor-current-view)
-            (mentor-views-update-filter mentor-current-view))
-          (setq mentor-items (make-hash-table :test 'equal))
-          (mentor-init-torrent-list)
-          (mentor-redisplay)))))
-
-(defun mentor-redisplay ()
-  "Redisplay the mentor torrent view buffer."
-  (interactive)
-  (mentor-reload-header-line)
-  (when (equal major-mode 'mentor-mode)
-    (save-excursion
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (mentor-insert-torrents)
-        (end-of-buffer)
-        (insert "\nmentor-" mentor-version " - rTorrent "
-                mentor-rtorrent-client-version "/"
-                mentor-rtorrent-library-version
-                " (" mentor-rtorrent-name ")\n")))))
 
 (defun mentor-torrent-insert (id)
   (let* ((torrent (mentor-get-torrent id))
@@ -994,15 +999,6 @@ See also `mentor-move-torrent-data'."
      (when confirm-data
        (mentor-do-erase-data tor)))))
 
-(defun mentor-torrent-hash-check (&optional tor)
-  (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
-    (mentor-set-property 'hashing 1)
-    (mentor-set-property 'is_open 1)
-    (mentor-update-this-torrent))))
-
 (defun mentor-torrent-copy-data (&optional tor)
   (interactive)
   (mentor-keep-position
@@ -1033,6 +1029,15 @@ See also `mentor-move-torrent-data'."
       (mentor-set-property 'directory new)
       (mentor-update-this-torrent)
       (message (concat "Moved torrent data to " new))))))
+
+(defun mentor-torrent-hash-check (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
+          (mentor-item-set-property 'hashing 1)
+          (mentor-item-set-property 'is_open 1)
+          (mentor-update-this-torrent))
+   arg))
 
 (defun mentor-torrent-pause (&optional arg)
   "Pause torrent. This is probably not what you want, use
@@ -1103,6 +1108,52 @@ See also `mentor-move-torrent-data'."
            (when (= is-multi-file 0)
              (dired-goto-file path)))
        (message "Torrent has no data: %s" (mentor-item-property 'name tor))))))
+
+(defun mentor-torrent-update-one (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (progn (mentor-torrent-data-update-one (mentor-get-item-at-point))
+          (mentor-redisplay-torrent))
+   arg))
+
+(defun mentor-update ()
+  "Update all torrents and redisplay."
+  (interactive)
+  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update))
+        ((not mentor-sub-mode)
+         (mentor-keep-position
+          (when (mentor-views-is-custom-view mentor-current-view)
+            (mentor-views-update-filter mentor-current-view))
+          (mentor-torrent-data-update-all)
+          (mentor-redisplay)))))
+
+(defun mentor-reload ()
+  "Re-initialize all torrents and redisplay."
+  (interactive)
+  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update t))
+        ((not mentor-sub-mode)
+         (mentor-keep-position
+          (when (mentor-views-is-custom-view mentor-current-view)
+            (mentor-views-update-filter mentor-current-view))
+          (setq mentor-items (make-hash-table :test 'equal))
+          (mentor-torrent-data-init)
+          (mentor-redisplay)))))
+
+(defun mentor-redisplay ()
+  "Redisplay the mentor torrent view buffer."
+  (interactive)
+  (mentor-reload-header-line)
+  (when (equal major-mode 'mentor-mode)
+    (save-excursion
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (mentor-insert-torrents)
+        (end-of-buffer)
+        (insert "\nmentor-" mentor-version " - rTorrent "
+                mentor-rtorrent-client-version "/"
+                mentor-rtorrent-library-version
+                " (" mentor-rtorrent-name ")\n")))))
+
 
 
 ;;; Torrent views
@@ -1203,47 +1254,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
     "d.is_open"
     "d.is_pex_active"))
 
-
-;;; Interactive commands to update torrent list
-
-(defun mentor-init-torrent-list ()
-  "Initialize torrent data from rtorrent.
-
-All torrent information will be re-fetched, making this an
-expensive operation."
-  (message "Initializing torrent data...")
-  (let* ((mentor-is-init 'true)
-         (methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)")))
-    (mentor-rpc-d.multicall methods)
-    (mentor-views-update-views))
-  (message "Initializing torrent data... DONE"))
-
-(defun mentor-update-torrent-list ()
-  (interactive)
-  (message "Updating torrent data...")
-  (condition-case err
-      (progn
-        (let* ((methods mentor-volatile-rpc-methods))
-          (mentor-rpc-d.multicall methods))
-        (message "Updating torrent data...DONE"))
-    (mentor-need-init
-     (mentor-init-torrent-list))))
-
-(defun mentor-update-one-torrent (tor)
-  (let* ((hash (mentor-item-property 'hash tor))
-         (methods mentor-volatile-rpc-methods)
-         (values (mapcar
-                  (lambda (method)
-                    (mentor-rpc-command method hash))
-                  methods)))
-    (mentor-torrent-update-from methods values)))
-
-(defun mentor-update-this-torrent ()
-  (interactive)
-  (mentor-use-tor
-   (mentor-update-one-torrent tor))
-  (mentor-use-tor
-   (mentor-redisplay-torrent)))
 
 
 ;;; Torrent information
@@ -1251,7 +1261,6 @@ expensive operation."
 (defun mentor-set-property (property val &optional tor)
   "Set a property for a torrent.
 If `torrent' is nil, use torrent at point."
-  (error "FIXME")
   (mentor-use-tor
    (let ((id (mentor-item-property 'local_id tor)))
      (assq-delete-all property tor)
