@@ -120,7 +120,7 @@ connecting through scgi or http."
 (defvar mentor-rtorrent-name)
 (make-variable-buffer-local 'mentor-rtorrent-name)
 
-(defvar mentor-sort-list '((name) (up_rate . t)))
+(defvar mentor-sort-list '(name))
 (make-variable-buffer-local 'mentor-sort-list)
 
 (defvar mentor-view-torrent-list nil
@@ -280,6 +280,7 @@ Type \\[mentor] to start Mentor.
          (mentor-mode)
          (setq mentor-priority-fun 'mentor-torrent-priority-fun)
          (setq mentor-columns-var  'mentor-view-columns)
+         (setq mentor-sort-list '((up_rate . t) name))
          (mentor-init-header-line)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
@@ -693,16 +694,32 @@ expensive operation."
 
 ;;; Sorting
 
-(defun mentor-do-sort (property &optional reverse)
+(defun mentor-do-sort ()
   (mentor-keep-position
    (goto-char (point-min))
    (save-excursion
      (let ((sort-fold-case t)
            (inhibit-read-only t))
-       (sort-subr reverse
+       (sort-subr nil
                   (lambda () (ignore-errors (mentor-next-item t)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
-                  (lambda () (mentor-item-property property (mentor-get-item-at-point))))))))
+                  (lambda ()
+                    (let ((item (mentor-get-item-at-point)))
+                      (mapcar* (lambda (p)
+                                 (let ((prop (or (and (listp p) (car p)) p)))
+                                  (mentor-item-property prop item)))
+                               mentor-sort-list)))
+                  nil
+                  (lambda (x y)
+                    (memq t (map 'list (lambda (a b prop)
+                                         (let ((reverse (cdr-safe prop)))
+                                           (if (stringp a)
+                                               (if reverse
+                                                   (string> a b)
+                                                 (string< a b))
+                                             (if reverse
+                                                 (> a b)
+                                               (< a b))))) x y mentor-sort-list))))))))
 
 (defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
@@ -721,10 +738,7 @@ according to several criteria."
       (if append
           (add-to-list 'mentor-sort-list elem t)
         (setq mentor-sort-list (list elem)))))
-  (dolist (property mentor-sort-list)
-    (let ((prop (car property))
-          (rev (cdr property)))
-      (mentor-do-sort prop rev))))
+  (mentor-do-sort))
 
 (defun mentor-sort-by-directory (append)
   (interactive "P")
