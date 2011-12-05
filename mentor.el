@@ -538,7 +538,7 @@ expensive operation."
   (message "Updating torrent data...")
   (condition-case err
       (progn
-        (let* ((methods mentor-volatile-rpc-methods))
+        (let* ((methods mentor-volatile-rpc-d-methods))
           (mentor-rpc-d.multicall methods))
         (message "Updating torrent data...DONE"))
     (mentor-need-init
@@ -546,7 +546,7 @@ expensive operation."
 
 (defun mentor-torrent-data-update-one (tor)
   (let* ((hash (mentor-item-property 'hash tor))
-         (methods mentor-volatile-rpc-methods)
+         (methods mentor-volatile-rpc-d-methods)
          (values (mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
@@ -1247,26 +1247,17 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
      'error-conditions
      '(error mentor-error mentor-need-init))
 
-(defvar mentor-volatile-rpc-methods
+(defconst mentor-volatile-rpc-d-methods
   '("d.get_local_id" ;; must not be removed
-    "d.get_base_path"
-    "d.get_bytes_done"
-    "d.get_directory"
-    "d.get_down_rate"
-    "d.get_hashing"
-    "d.get_hashing_failed"
-    "d.get_priority"
-    "d.get_chunk_size"
-    "d.get_up_rate"
-    "d.get_up_total"
-    "d.get_state"
-    "d.views"
-    "d.is_active"
-    "d.is_hash_checked"
-    "d.is_hash_checking"
-    "d.is_open"
+    "d.get_base_path"    "d.get_bytes_done"
+    "d.get_directory"    "d.get_down_rate"
+    "d.get_hashing"      "d.get_hashing_failed"
+    "d.get_priority"     "d.get_chunk_size"
+    "d.get_up_rate"      "d.get_up_total"
+    "d.get_state"        "d.views"
+    "d.is_active"        "d.is_hash_checked"
+    "d.is_hash_checking" "d.is_open"
     "d.is_pex_active"))
-
 
 
 ;;; Torrent information
@@ -1475,9 +1466,8 @@ to a view unless the filter is updated."
     map)
   "Keymap used in `mentor-torrent-details-mode'.")
 
-(defconst mentor-f-interesting-methods
+(defconst mentor-volatile-rpc-f-methods
   '("f.get_priority" "f.get_completed_chunks" "f.get_size_chunks"))
-(put 'mentor-f-interesting-methods 'permanent-local t)
 
 (define-minor-mode mentor-torrent-details-mode
   "Minor mode for managing a torrent in mentor."
@@ -1624,7 +1614,7 @@ point."
           (assq-delete-all 'files mentor-selected-torrent-info)))
   (let* ((tor mentor-selected-torrent)
          (hash (mentor-property 'hash tor))
-         (methods mentor-f-interesting-methods)
+         (methods mentor-volatile-rpc-f-methods)
          (methods+ (mapcar
                     'mentor-get-some-methods-as-string
                     (if add-files
