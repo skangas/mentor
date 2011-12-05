@@ -162,7 +162,6 @@ connecting through scgi or http."
 
   "Additional expressions to highlight in Mentor mode.")
 
-
 ;; Variables that should be changed by sub-modes
 
 (defvar mentor-sub-mode nil
@@ -170,14 +169,14 @@ connecting through scgi or http."
 (make-variable-buffer-local 'mentor-sub-mode)
 (put 'mentor-sub-mode 'permanent-local t)
 
-(defvar mentor-priority-fun)
-(make-variable-buffer-local 'mentor-priority-fun)
+(defvar mentor-set-priority-fun)
+(make-variable-buffer-local 'mentor-set-priority-fun)
 
 (defvar mentor-columns-var)
 (make-variable-buffer-local 'mentor-columns-var)
 
 
-;;; major mode
+;;; Mentor major-mode
 
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
@@ -195,9 +194,11 @@ connecting through scgi or http."
     (define-key map (kbd "p") 'mentor-previous-item)
     (define-key map (kbd "n") 'mentor-next-item)
 
-    ;; single torrent actions
+    ;; item actions
     (define-key map (kbd "+") 'mentor-increase-priority)
     (define-key map (kbd "-") 'mentor-decrease-priority)
+
+    ;; single torrent actions
     (define-key map (kbd "C") 'mentor-torrent-copy-data)
     (define-key map (kbd "R") 'mentor-torrent-move)
     (define-key map (kbd "b") 'mentor-torrent-set-inital-seeding)
@@ -247,9 +248,6 @@ connecting through scgi or http."
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
     map))
 
-
-;; Mentor major-mode
-
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rtorrent from emacs
 
@@ -278,7 +276,7 @@ Type \\[mentor] to start Mentor.
   (interactive)
   (progn (switch-to-buffer (get-buffer-create "*mentor*"))
          (mentor-mode)
-         (setq mentor-priority-fun 'mentor-torrent-priority-fun)
+         (setq mentor-set-priority-fun 'mentor-torrent-set-priority-fun)
          (setq mentor-columns-var  'mentor-view-columns)
          (setq mentor-sort-list '((up_rate . t) name))
          (mentor-init-header-line)
@@ -573,7 +571,7 @@ expensive operation."
         (mentor-mark)))))
 
 
-;;; Main view
+;;; Main torrent view
 
 (defmacro mentor-keep-position (&rest body)
   "Keep the current position."
@@ -830,7 +828,72 @@ start point."
            (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
-;;; Torrent actions and helper functions for interactive commands
+;;; Interactive item commands
+
+(defun mentor-set-priority (val)
+  (setq val (or val 1))
+  (apply 'mentor-rpc-command (funcall mentor-set-priority-fun val)))
+
+(defun mentor-decrease-priority ()
+  (interactive)
+  (mentor-set-priority -1)
+  (mentor-do-update-this-torrent))
+
+(defun mentor-increase-priority ()
+  (interactive)
+  (mentor-set-priority 1)
+  (mentor-do-update-this-torrent))
+
+
+;;; Marking items
+
+(defun mentor-mark (arg)
+  "Mark the current (or next ARG) items.
+
+Use \\[mentor-unmark-all-files] to remove all marks
+and \\[mentor-unmark] on a subdir to remove the marks in
+this subdir."
+  (interactive "P")
+  (let ((inhibit-read-only t))
+    (mentor-repeat-over-lines
+     (prefix-numeric-value arg)
+     (function (lambda ()
+                 ;; ;; insert at point-at-bol + 1 to inherit all properties
+                 (goto-char (+ 1 (point-at-bol)))
+                 (insert-and-inherit mentor-marker-char)
+                 (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
+
+(defun mentor-unmark (&optional arg)
+  "Unmark the current (or next ARG) items."
+  (interactive "P")
+  (let ((mentor-marker-char ?\040))
+    (mentor-mark arg)))
+
+(defmacro mentor-do-all-items (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (when (not (mentor-get-item-type))
+       (mentor-next-item t))
+     (while (mentor-get-item-type)
+       ,@body
+       (mentor-next-item t))))
+
+(defun mentor-mark-all ()
+  "Mark all visible items except directories."
+  (interactive)
+  (mentor-do-all-items
+   (when (not (eq (mentor-get-item-type) 'dir))
+     (mentor-set-mark t))))
+
+(defun mentor-unmark-all ()
+  "Unmark all visible items."
+  (interactive)
+  (mentor-map-over-marks
+   (mentor-unmark)
+   nil))
+
+
+;;; Interactive torrent commands
 
 (defun mentor-delete-file (file)
   (let ((dired-recursive-deletes nil))
@@ -896,13 +959,6 @@ start point."
       (error "No such file or directory: " new))
     new))
 
-(defun mentor-set-priority (val)
-  (setq val (or val 1))
-  (apply 'mentor-rpc-command (funcall mentor-priority-fun val)))
-
-
-;;; Interactive torrent commands
-
 (defun mentor-add-torrent ()
   (interactive)
   (message "TODO: mentor-add-torrent"))
@@ -923,16 +979,6 @@ See also `mentor-torrent-move'."
      (mentor-do-update-this-torrent)
      (message (concat "Changed target directory to " new)))
    arg))
-
-(defun mentor-decrease-priority ()
-  (interactive)
-  (mentor-set-priority -1)
-  (mentor-do-update-this-torrent))
-
-(defun mentor-increase-priority ()
-  (interactive)
-  (mentor-set-priority 1)
-  (mentor-do-update-this-torrent))
 
 (defun mentor-torrent-remove (&optional arg)
   (interactive "P")
@@ -1122,7 +1168,6 @@ See also `mentor-torrent-move'."
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
 
-
 
 ;;; Torrent views
 
@@ -1295,7 +1340,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
           ((= 2 prio) "")
           ((= 3 prio) "hig"))))
 
-(defun mentor-torrent-priority-fun (val)
+(defun mentor-torrent-set-priority-fun (val)
   (let ((tor (mentor-get-item-at-point))
         (hash (mentor-item-property 'hash))
         (prio (mentor-item-property 'priority)))
@@ -1478,7 +1523,7 @@ the integer index used by rtorrent to identify this file."
     (mentor-bytes-to-human
      (* chunk-size (mentor-file-size_chunks file)))))
 
-(defun mentor-file-priority-fun (val)
+(defun mentor-file-set-priority-fun (val)
   (let* ((file (mentor-file-at-point))
          (id   (mentor-file-id file))
          (prio (mentor-file-priority file))
@@ -1528,7 +1573,7 @@ point."
     (switch-to-buffer "*mentor: torrent details*")
     (setq mentor-sub-mode 'file-details)
     (mentor-mode)
-    (setq mentor-priority-fun 'mentor-file-priority-fun)
+    (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
     (setq mentor-columns-var  'mentor-file-detail-columns)
     (mentor-reload-header-line)
     (mentor-torrent-details-mode t)
@@ -1694,54 +1739,6 @@ point."
         (setf (mentor-file-marked curr-file) new-mark))))
   (when (not no-redisplay)
     (mentor-details-redisplay)))
-
-
-;;; Marking items
-
-(defun mentor-mark (arg)
-  "Mark the current (or next ARG) items.
-
-Use \\[mentor-unmark-all-files] to remove all marks
-and \\[mentor-unmark] on a subdir to remove the marks in
-this subdir."
-  (interactive "P")
-  (let ((inhibit-read-only t))
-    (mentor-repeat-over-lines
-     (prefix-numeric-value arg)
-     (function (lambda ()
-                 ;; ;; insert at point-at-bol + 1 to inherit all properties
-                 (goto-char (+ 1 (point-at-bol)))
-                 (insert-and-inherit mentor-marker-char)
-                 (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
-
-(defun mentor-unmark (&optional arg)
-  "Unmark the current (or next ARG) items."
-  (interactive "P")
-  (let ((mentor-marker-char ?\040))
-    (mentor-mark arg)))
-
-(defmacro mentor-do-all-items (&rest body)
-  `(save-excursion
-     (goto-char (point-min))
-     (when (not (mentor-get-item-type))
-       (mentor-next-item t))
-     (while (mentor-get-item-type)
-       ,@body
-       (mentor-next-item t))))
-
-(defun mentor-mark-all ()
-  "Mark all visible items except directories."
-  (interactive)
-  (mentor-do-all-items
-   (when (not (eq (mentor-get-item-type) 'dir))
-     (mentor-set-mark t))))
-
-(defun mentor-unmark-all ()
-  "Unmark all visible items."
-  (interactive)
-  (mentor-map-over-marks
-   (mentor-unmark)
-   nil))
 
 
 ;;; Utility functions
