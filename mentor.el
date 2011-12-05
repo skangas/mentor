@@ -198,7 +198,6 @@ connecting through scgi or http."
     ;; single torrent actions
     (define-key map (kbd "+") 'mentor-increase-priority)
     (define-key map (kbd "-") 'mentor-decrease-priority)
-    (define-key map (kbd "C") 'mentor-torrent-call-command)
     (define-key map (kbd "C") 'mentor-torrent-copy-data)
     (define-key map (kbd "R") 'mentor-torrent-move)
     (define-key map (kbd "b") 'mentor-torrent-set-inital-seeding)
@@ -209,6 +208,7 @@ connecting through scgi or http."
     (define-key map (kbd "k") 'mentor-torrent-remove)
     (define-key map (kbd "r") 'mentor-torrent-hash-check)
     (define-key map (kbd "s") 'mentor-torrent-start)
+    (define-key map (kbd "x") 'mentor-torrent-call-command)
 
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
