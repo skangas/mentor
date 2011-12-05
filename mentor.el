@@ -186,7 +186,7 @@ connecting through scgi or http."
     (define-key map (kbd "DEL") 'mentor-add-torrent)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
-    (define-key map (kbd "M-g") 'mentor-torrent-update-this)
+    (define-key map (kbd "M-g") 'mentor-update-item)
 
     ;; navigation
     (define-key map (kbd "<up>") 'mentor-previous-item)
@@ -276,6 +276,7 @@ Type \\[mentor] to start Mentor.
   (interactive)
   (progn (switch-to-buffer (get-buffer-create "*mentor*"))
          (mentor-mode)
+         (setq mentor-item-update-this-fun 'mentor-torrent-update-this)
          (setq mentor-set-priority-fun 'mentor-torrent-set-priority-fun)
          (setq mentor-columns-var  'mentor-view-columns)
          (setq mentor-sort-list '((up_rate . t) name))
@@ -544,14 +545,16 @@ expensive operation."
     (mentor-need-init
      (mentor-torrent-data-init))))
 
-(defun mentor-torrent-data-update-one (tor)
-  (let* ((hash (mentor-item-property 'hash tor))
+(defun mentor-torrent-update-this ()
+  (let* ((tor (mentor-get-item-at-point))
+         (hash (mentor-item-property 'hash tor))
          (methods mentor-volatile-rpc-d-methods)
          (values (mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
-    (mentor-torrent-update-from methods values)))
+    (mentor-torrent-update-from methods values)
+    (mentor-redisplay-torrent)))
 
 
 ;;; Insert item into buffer
@@ -830,6 +833,9 @@ start point."
 
 ;;; Interactive item commands
 
+(defun mentor-item-update-this ()
+  (funcall mentor-item-update-this-fun))
+
 (defun mentor-set-priority (val)
   (setq val (or val 1))
   (apply 'mentor-rpc-command (funcall mentor-set-priority-fun val)))
@@ -837,12 +843,17 @@ start point."
 (defun mentor-decrease-priority ()
   (interactive)
   (mentor-set-priority -1)
-  (mentor-do-update-this-torrent))
+  (mentor-item-update-this))
 
 (defun mentor-increase-priority ()
   (interactive)
   (mentor-set-priority 1)
-  (mentor-do-update-this-torrent))
+  (mentor-item-update-this))
+
+(defun mentor-update-item (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks (mentor-item-update-this)
+   arg))
 
 
 ;;; Marking items
@@ -929,10 +940,6 @@ this subdir."
 (defun mentor-do-stop-torrent (tor)
   (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
 
-(defun mentor-do-update-this-torrent ()
-  (mentor-torrent-data-update-one (mentor-get-item-at-point))
-  (mentor-redisplay-torrent))
-
 (defun mentor-get-old-torrent-path (tor)
   (let ((path (or (mentor-item-property 'base_path tor)
                   (and (= (mentor-item-property 'bytes_done tor) 0)
@@ -976,7 +983,7 @@ See also `mentor-torrent-move'."
           (new (mentor-get-new-torrent-path tor)))
      (mentor-do-stop-torrent tor)
      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-     (mentor-do-update-this-torrent)
+     (mentor-torrent-update-this)
      (message (concat "Changed target directory to " new)))
    arg))
 
@@ -1042,7 +1049,7 @@ See also `mentor-torrent-move'."
               (mentor-do-start-torrent tor))
             ;; FIXME: needs to update the data for this torrent from rtorrent
             (mentor-item-set-property 'directory new)
-            (mentor-do-update-this-torrent)
+            (mentor-torrent-update-this)
             (message (concat "Moved torrent data to " new))))
    arg))
 
@@ -1054,7 +1061,7 @@ See also `mentor-torrent-move'."
        (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
        (mentor-item-set-property 'hashing 1 tor)
        (mentor-item-set-property 'is_open 1 tor)
-       (mentor-do-update-this-torrent)))
+       (mentor-torrent-update-this)))
    arg))
 
 (defun mentor-torrent-pause (&optional arg)
@@ -1063,7 +1070,7 @@ See also `mentor-torrent-move'."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-resume (&optional arg)
@@ -1072,35 +1079,35 @@ See also `mentor-torrent-move'."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-do-start-torrent (mentor-get-item-at-point))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-do-stop-torrent (mentor-get-item-at-point))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-open (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-close (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.close" (mentor-item-property 'hash))
-          (mentor-do-update-this-torrent))
+          (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-recreate-files ()
@@ -1125,15 +1132,10 @@ See also `mentor-torrent-move'."
             (dired-goto-file path)))
       (message "Torrent has no data: %s" (mentor-item-property 'name tor)))))
 
-(defun mentor-torrent-update-this (&optional arg)
-  (interactive "P")
-  (mentor-map-over-marks (mentor-do-update-this-torrent)
-   arg))
-
 (defun mentor-update ()
   "Update all torrents and redisplay."
   (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update))
+  (cond ((eq mentor-sub-mode 'file-details) (mentor-files-update))
         ((not mentor-sub-mode)
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
@@ -1144,7 +1146,7 @@ See also `mentor-torrent-move'."
 (defun mentor-reload ()
   "Re-initialize all torrents and redisplay."
   (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-details-files-update t))
+  (cond ((eq mentor-sub-mode 'file-details) (mentor-files-update t))
         ((not mentor-sub-mode)
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
@@ -1501,14 +1503,14 @@ the integer index used by rtorrent to identify this file."
           ((eq prio 2) "hig"))))
 
 (defun mentor-file-progress (file)
-  (let* ((chunk-size (mentor-property
+  (let* ((chunk-size (mentor-item-property
                      'chunk_size mentor-selected-torrent))
          (done (mentor-file-completed_chunks file))
          (size (mentor-file-size_chunks file)))
     (format "%d" (* 100 (/ (+ 0.0 done) size)))))
 
 (defun mentor-file-size (file)
-  (let* ((chunk-size (mentor-property
+  (let* ((chunk-size (mentor-item-property
                       'chunk_size mentor-selected-torrent)))
     (mentor-bytes-to-human
      (* chunk-size (mentor-file-size_chunks file)))))
@@ -1517,7 +1519,7 @@ the integer index used by rtorrent to identify this file."
   (let* ((file (mentor-file-at-point))
          (id   (mentor-file-id file))
          (prio (mentor-file-priority file))
-         (hash (mentor-property 'hash mentor-selected-torrent)))
+         (hash (mentor-item-property 'hash mentor-selected-torrent)))
     (when (not (mentor-file-is-dir file))
       (list "f.set_priority" hash id (mentor-limit-num (+ prio val) 0 2)))))
 
@@ -1568,10 +1570,10 @@ point."
     (mentor-reload-header-line)
     (mentor-torrent-details-mode t)
     (setq mentor-selected-torrent tor)
-    (mentor-details-files-update t)
+    (mentor-files-update t)
     (mentor-details-redisplay)
     (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
-                                                  (mentor-property 'name tor)))
+                                                  (mentor-item-property 'name tor)))
     (if (not (mentor-get-item-type))
         (mentor-next-item t)
       (mentor-beginning-of-item))))
@@ -1600,12 +1602,12 @@ point."
                                      :id (incf file-id)))
         (mentor-file-add-file last-dir file)
         (puthash file-id file all-files)))
-    (setq mentor-selected-torrent-info
-          (cons (cons 'root root)
-                (cons (cons 'files all-files)
-                      mentor-selected-torrent-info)))))
+    (push (cons 'files all-files) mentor-selected-torrent-info)
+    (push (cons 'root root) mentor-selected-torrent-info)))
 
-(defun mentor-details-files-update (&optional add-files)
+;; TODO: benchmark if add-files nil really means any performance gain
+;;       for large examples
+(defun mentor-files-update (&optional add-files)
   (interactive)
   (when add-files
     (setq mentor-selected-torrent-info
@@ -1613,7 +1615,7 @@ point."
     (setq mentor-selected-torrent-info
           (assq-delete-all 'files mentor-selected-torrent-info)))
   (let* ((tor mentor-selected-torrent)
-         (hash (mentor-property 'hash tor))
+         (hash (mentor-item-property 'hash tor))
          (methods mentor-volatile-rpc-f-methods)
          (methods+ (mapcar
                     'mentor-get-some-methods-as-string
@@ -1719,6 +1721,7 @@ point."
 
 (defun mentor-mark-dir (file &optional clear-mark no-redisplay)
   (interactive)
+  (error "FIXME")
   (when (not (mentor-file-show file))
     (setf (mentor-file-show file) t))
   (dolist (curr-file (mentor-file-files file))
