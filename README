@@ -1,0 +1,3 @@
+This is a GNU Emacs interface for the `rtorrent' bittorrent client.  It uses
+XML-RPC to communicate with rtorrent, and needs rtorrent to be configured
+accordingly.  This project aims to provide a feature complete interface.
