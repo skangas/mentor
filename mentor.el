@@ -740,20 +740,6 @@ to sort according to several properties."
   (mentor-sort 'up_rate t append))
 
 
-;;; Get torrent
-
-(defun mentor-get-torrent (id)
-  (gethash id mentor-items))
-
-(defmacro mentor-use-tor (&rest body)
-  "Convenience macro to use either the defined `tor' value or
-the torrent at point."
-  `(let ((tor (or (when (boundp 'tor) tor)
-                  (mentor-get-torrent (mentor-item-id-at-point))
-                  (error "no torrent"))))
-     ,@body))
-
-
 ;;; Navigation
 
 (defun mentor-item-id-at-point ()
@@ -918,7 +904,7 @@ start point."
   (interactive)
   (message "TODO: mentor-add-torrent"))
 
-(defun mentor-torrent-call-command (&optional tor)
+(defun mentor-torrent-call-command ()
   (interactive)
   (message "TODO: mentor-torrent-call-comamnd"))
 
@@ -926,25 +912,27 @@ start point."
   "Change torrents target directory without moving data.
 See also `mentor-torrent-move'."
   (interactive)
-  (mentor-use-tor
-   (let* ((new (mentor-get-new-torrent-path tor)))
+  (mentor-map-over-marks
+   (let* ((tor (mentor-get-item-at-point))
+          (new (mentor-get-new-torrent-path tor)))
      (mentor-do-stop-torrent tor)
      (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
      (mentor-do-update-this-torrent)
-     (message (concat "Changed target directory to " new)))))
+     (message (concat "Changed target directory to " new)))
+   arg))
 
-(defun mentor-decrease-priority (&optional tor)
+(defun mentor-decrease-priority ()
   (interactive)
   (mentor-set-priority -1)
   (mentor-do-update-this-torrent))
 
-(defun mentor-increase-priority (&optional tor)
+(defun mentor-increase-priority ()
   (interactive)
   (mentor-set-priority 1)
   (mentor-do-update-this-torrent))
 
 (defun mentor-torrent-remove (&optional arg)
-  (interactive)
+  (interactive "P")
   (mentor-map-over-marks
    (progn
      (let* ((tor (mentor-get-item-at-point))
@@ -973,16 +961,17 @@ See also `mentor-torrent-move'."
          (mentor-do-remove-torrent-files tor))))
    arg))
 
-(defun mentor-torrent-copy-data (&optional tor)
-  (interactive)
-  (mentor-keep-position
-   (mentor-use-tor
-    (let* ((old (mentor-item-property 'base_path tor))
-           (new (mentor-get-new-torrent-path tor)))
-      (when (and (not (null old))
-                 (file-exists-p old))
-        (mentor-rpc-command "execute" "cp" "-Rn" old new))
-      (message (concat "Copied torrent data to " new))))))
+(defun mentor-torrent-copy-data (&optional arg)
+  (interactive "P")
+  (mentor-map-over-marks
+   (let* ((tor (mentor-get-item-at-point))
+          (old (mentor-item-property 'base_path tor))
+          (new (mentor-get-new-torrent-path tor)))
+     (when (and (not (null old))
+                (file-exists-p old))
+       (mentor-rpc-command "execute" "cp" "-Rn" old new))
+     (message (concat "Copied torrent data to " new)))
+   arg))
 
 ;; TODO: Make it possible to move several torrents to same directory with just
 ;;       one prompt.
@@ -1065,29 +1054,27 @@ See also `mentor-torrent-move'."
           (mentor-do-update-this-torrent))
    arg))
 
-(defun mentor-torrent-recreate-files (&optional tor)
+(defun mentor-torrent-recreate-files ()
   "Set the 'create/resize queued' flags on all files in a torrent."
   (interactive)
   (message "TODO: mentor-torrent-recreate-files"))
 
-(defun mentor-torrent-set-inital-seeding (&optional tor)
+(defun mentor-torrent-set-inital-seeding ()
   (interactive)
   (message "TODO: mentor-torrent-set-inital-seeding"))
 
-(defun mentor-view-in-dired (&optional tor)
+(defun mentor-view-in-dired ()
   (interactive)
-  (mentor-use-tor
-   (let* ((path (mentor-item-property 'base_path tor))
-          (is-multi-file (mentor-item-property 'is_multi_file tor))
-          (loc (if (= 1 is-multi-file)
-                   path
-                 (file-name-directory path))))
-     (if loc
-         (progn
-           (find-file loc)
-           (when (= is-multi-file 0)
-             (dired-goto-file path)))
-       (message "Torrent has no data: %s" (mentor-item-property 'name tor))))))
+  (let* ((tor (mentor-get-item-at-point))
+         (is-multi-file (= 1 (mentor-item-property 'is_multi_file tor)))
+         (path (mentor-item-property 'base_path tor))
+         (path2 (if is-multi-file path (file-name-directory path))))
+    (if path2
+        (progn
+          (find-file path2)
+          (when (not is-multi-file)
+            (dired-goto-file path)))
+      (message "Torrent has no data: %s" (mentor-item-property 'name tor)))))
 
 (defun mentor-torrent-update-this (&optional arg)
   (interactive "P")
@@ -1247,7 +1234,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
       (format "[%2d%%]" percent))))
 
 ;; TODO show an "I" for incomplete torrents
-(defun mentor-torrent-get-state (&optional torrent)
+(defun mentor-torrent-get-state (torrent)
   (concat
    (or (when (> (mentor-item-property 'hashing   torrent) 0) "H")
        (if   (= (mentor-item-property 'is_active torrent) 1) " " "S"))
@@ -1306,21 +1293,21 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
           ((= 3 prio) "hig"))))
 
 (defun mentor-torrent-priority-fun (val)
-  (mentor-use-tor
-   (let ((hash (mentor-item-property 'hash))
-         (prio (mentor-item-property 'priority)))
-     (list "d.set_priority" hash (mentor-limit-num (+ prio val) 0 3)))))
+  (let ((tor (mentor-get-item-at-point))
+        (hash (mentor-item-property 'hash))
+        (prio (mentor-item-property 'priority)))
+    (list "d.set_priority" hash (mentor-limit-num (+ prio val) 0 3))))
 
 
 ;;; View functions
 
-(defun mentor-add-torrent-to-view (view &optional tor)
+(defun mentor-add-torrent-to-view (view)
   (interactive 
    (list (mentor-prompt-complete "Add torrent to view: " 
                                  (remove-if-not 'mentor-views-is-custom-view 
                                                 mentor-torrent-views)
                                  nil mentor-current-view)))
-  (mentor-use-tor
+  (let ((tor (mentor-get-item-at-point)))
    (when (not (mentor-views-is-custom-view view))
      (setq view (concat mentor-custom-view-prefix view)))
    (if (not (mentor-views-valid-view-name view))
@@ -1530,26 +1517,26 @@ the integer index used by rtorrent to identify this file."
           'file file
           'show (mentor-file-show file))))
 
-(defun mentor-torrent-detail-screen (&optional tor)
+(defun mentor-torrent-detail-screen ()
   "Show information about the specified torrent or the torrent at
 point."
   (interactive)
-  (mentor-use-tor
-   (switch-to-buffer "*mentor: torrent details*")
-   (setq mentor-sub-mode 'file-details)
-   (mentor-mode)
-   (setq mentor-priority-fun 'mentor-file-priority-fun)
-   (setq mentor-columns-var  'mentor-file-detail-columns)
-   (mentor-reload-header-line)
-   (mentor-torrent-details-mode t)
-   (setq mentor-selected-torrent tor)
-   (mentor-details-files-update t)
-   (mentor-details-redisplay)
-   (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
-                                                 (mentor-property 'name tor)))
-   (if (not (mentor-get-item-type))
-       (mentor-next-item t)
-     (mentor-beginning-of-item))))
+  (let ((tor (mentor-get-item-at-point)))
+    (switch-to-buffer "*mentor: torrent details*")
+    (setq mentor-sub-mode 'file-details)
+    (mentor-mode)
+    (setq mentor-priority-fun 'mentor-file-priority-fun)
+    (setq mentor-columns-var  'mentor-file-detail-columns)
+    (mentor-reload-header-line)
+    (mentor-torrent-details-mode t)
+    (setq mentor-selected-torrent tor)
+    (mentor-details-files-update t)
+    (mentor-details-redisplay)
+    (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
+                                                  (mentor-property 'name tor)))
+    (if (not (mentor-get-item-type))
+        (mentor-next-item t)
+      (mentor-beginning-of-item))))
 
 (defun mentor-details-add-files (name-list)
   (let ((root (make-mentor-file :name "/" :type 'dir :id -1 :show t))
