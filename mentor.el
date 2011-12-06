@@ -87,7 +87,7 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '(((mentor-torrent-get-prio) -5 "Pri")
+  '(((mentor-torrent-get-prio) -3 "Pri")
     ((mentor-torrent-get-progress) -5 "Cmp")
     ((mentor-torrent-get-state) -3 "State")
     (name -80 "Name")
