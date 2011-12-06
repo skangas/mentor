@@ -53,7 +53,7 @@
   :prefix "mentor-"
   :group 'tools)
 
-(defcustom mentor-custom-views 
+(defcustom mentor-custom-views
   '((1 . "main") (2 . "main") (3 . "started")
     (4 . "stopped") (5 . "complete") (6 . "incomplete")
     (7 . "hashing") (8 . "seeding") (9 . "active"))
@@ -233,7 +233,7 @@ connecting through scgi or http."
     (define-key map (kbd "t u") 'mentor-sort-by-upload-speed)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "Q") 'mentor-shutdown-rtorrent)
-    
+
     ;; view bindings
     (define-key map (kbd "a") 'mentor-add-torrent-to-view)
     (define-key map (kbd "w") 'mentor-switch-to-view)
@@ -465,7 +465,7 @@ Return the position of the beginning of the filename, or nil if none found."
     (if (boundp 'mentor-is-init)
         (progn (setf (mentor-item-marked new) nil)
                (puthash id new mentor-items))
-      (dolist (row (mentor-item-data new))        
+      (dolist (row (mentor-item-data new))
         (let* ((p (car row))
                (v (cdr row)))
           (mentor-item-set-property p v old 'must-exist))))
@@ -517,7 +517,7 @@ consecutive elements is its arguments."
   (mentor-rpc-command
    "system.multicall"
    (mapcar (lambda (c)
-             (apply 'mentor-multicall-string 
+             (apply 'mentor-multicall-string
                     (car c) (cdr c))) calls)))
 
 
@@ -648,7 +648,7 @@ expensive operation."
   (let ((cur (mentor-item-id-at-point)))
     (when (not mentor-highlight-overlay)
       (setq mentor-highlight-overlay (make-overlay 1 10))
-      (overlay-put mentor-highlight-overlay 
+      (overlay-put mentor-highlight-overlay
                    'face 'mentor-highlight-face))
     (if cur
         (when (not (equal cur mentor-highlighted-torrent))
@@ -827,7 +827,7 @@ start point."
   (interactive)
   (let ((type (mentor-get-item-type))
         (props (text-properties-at (point))))
-    (cond ((eq type 'dir) 
+    (cond ((eq type 'dir)
            (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
@@ -1343,9 +1343,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 ;;; View functions
 
 (defun mentor-add-torrent-to-view (view)
-  (interactive 
-   (list (mentor-prompt-complete "Add torrent to view: " 
-                                 (remove-if-not 'mentor-views-is-custom-view 
+  (interactive
+   (list (mentor-prompt-complete "Add torrent to view: "
+                                 (remove-if-not 'mentor-views-is-custom-view
                                                 mentor-torrent-views)
                                  nil mentor-current-view)))
   (let ((tor (mentor-get-item-at-point)))
@@ -1356,7 +1356,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
      (if (or (mentor-views-is-view-defined view)
              (when (y-or-n-p (concat "View " view " was not found. Create it? "))
                (mentor-views-add view) t))
-         (mentor-rpc-command "d.views.push_back_unique" 
+         (mentor-rpc-command "d.views.push_back_unique"
                              (mentor-item-property 'hash tor) view)
        (message "Nothing done")))))
 
@@ -1364,7 +1364,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (make-variable-buffer-local 'mentor-torrent-views)
 
 (defconst mentor-torrent-default-views
-  '("main" "name" "started" "stopped" "complete" 
+  '("main" "name" "started" "stopped" "complete"
     "incomplete" "hashing" "seeding" "active"))
 
 (defconst mentor-custom-view-prefix "mentor-"
@@ -1385,8 +1385,8 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-switch-to-view (&optional new)
   (interactive)
   (when (null new)
-    (setq new (mentor-prompt-complete 
-               "Show view: " mentor-torrent-views 
+    (setq new (mentor-prompt-complete
+               "Show view: " mentor-torrent-views
                1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (mentor-get-custom-view-name new)))
@@ -1412,9 +1412,9 @@ already in view_list and sets all new view_filters."
   (mentor-views-update-views))
 
 ;; FIXME: this was part of mentor-views-init, but why?
-  ;; (maphash 
+  ;; (maphash
   ;;  (lambda (id torrent)
-  ;;    (mapcar (lambda (view) 
+  ;;    (mapcar (lambda (view)
   ;;              (when (and (mentor-views-is-custom-view view)
   ;;                         (not (mentor-views-is-view-defined view)))
   ;;                (mentor-views-add view)))
