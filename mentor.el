@@ -1124,13 +1124,13 @@ See also `mentor-torrent-move'."
   (let* ((tor (mentor-get-item-at-point))
          (is-multi-file (= 1 (mentor-item-property 'is_multi_file tor)))
          (path (mentor-item-property 'base_path tor))
-         (path2 (if is-multi-file path (file-name-directory path))))
+         (path2 (and path (if is-multi-file path (file-name-directory path)))))
     (if path2
         (progn
           (find-file path2)
           (when (not is-multi-file)
             (dired-goto-file path)))
-      (message "Torrent has no data: %s" (mentor-item-property 'name tor)))))
+      (message "Torrent has no data"))))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
