@@ -115,6 +115,12 @@ connecting through scgi or http."
 (defvar mentor-header-line)
 (make-variable-buffer-local 'mentor-header-line)
 
+(defvar mentor-items nil
+  "Hash table containing all items for the current buffer.
+This can be torrents, files, peers etc. All values should be made
+using `make-mentor-item'.")
+(make-variable-buffer-local 'mentor-items)
+
 (defvar mentor-rtorrent-client-version)
 (make-variable-buffer-local 'mentor-rtorrent-client-version)
 
@@ -126,6 +132,8 @@ connecting through scgi or http."
 
 (defvar mentor-sort-list '(name))
 (make-variable-buffer-local 'mentor-sort-list)
+
+(defvar mentor-last-used-view)
 
 (defvar mentor-view-torrent-list nil
   "alist of torrents in given views")
@@ -166,12 +174,27 @@ connecting through scgi or http."
 
   "Additional expressions to highlight in Mentor mode.")
 
+(defconst mentor-volatile-rpc-d-methods
+  '("d.get_local_id" ;; must not be removed
+    "d.get_base_path"    "d.get_bytes_done"
+    "d.get_directory"    "d.get_down_rate"
+    "d.get_hashing"      "d.get_hashing_failed"
+    "d.get_priority"     "d.get_chunk_size"
+    "d.get_up_rate"      "d.get_up_total"
+    "d.get_state"        "d.views"
+    "d.is_active"        "d.is_hash_checked"
+    "d.is_hash_checking" "d.is_open"
+    "d.is_pex_active"))
+
 ;; Variables that should be changed by sub-modes
 
 (defvar mentor-sub-mode nil
   "The submode which is currently active")
 (make-variable-buffer-local 'mentor-sub-mode)
 (put 'mentor-sub-mode 'permanent-local t)
+
+(defvar mentor-item-update-this-fun)
+(make-variable-buffer-local 'mentor-item-update-this-fun)
 
 (defvar mentor-set-priority-fun)
 (make-variable-buffer-local 'mentor-set-priority-fun)
@@ -294,7 +317,7 @@ Type \\[mentor] to start Mentor.
          (mentor-torrent-data-init)
          (mentor-views-init)
          (mentor-redisplay)
-         (beginning-of-buffer)))
+         (goto-char (point-min))))
 
 (defun mentor-post-command-hook ()
   (when mentor-highlight-enable
@@ -315,12 +338,6 @@ Type \\[mentor] to start Mentor.
   "A structure containing an item that can be displayed
 in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
-
-(defvar mentor-items nil
-  "Hash table containing all items for the current buffer.
-This can be torrents, files, peers etc. All values should be made
-using `make-mentor-item'.")
-(make-variable-buffer-local 'mentor-items)
 
 (defun mentor-item-property (property &optional item)
   "Get property for an item."
@@ -620,7 +637,7 @@ expensive operation."
           cols
           (lambda (col) (or (cadddr col)
                             (cadr col)))
-          (lambda (col) (caddr column)))))
+          (lambda (col) (caddr col)))))
 
 (defun mentor-process-view-columns (item cols)
   (apply 'concat " "
@@ -818,7 +835,7 @@ start point."
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
-               (beginning-of-buffer)
+               (goto-char (point-min))
                (while (and (not (equal id (mentor-item-id-at-point)))
                            (not (= (point) (point-max))))
                  (mentor-next-item t))
@@ -967,7 +984,7 @@ this subdir."
     (when (not (condition-case err
                    (mentor-rpc-command "execute" "ls" "-d" new)
                  (error nil)))
-      (error "No such file or directory: " new))
+      (error (concat "No such file or directory: " new)))
     new))
 
 (defun mentor-add-torrent ()
@@ -1168,7 +1185,7 @@ See also `mentor-torrent-move'."
       (let ((inhibit-read-only t))
         (erase-buffer)
         (mentor-insert-torrents)
-        (end-of-buffer)
+        (goto-char (point-max))
         (insert "\nmentor-" mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
                 mentor-rtorrent-library-version
@@ -1203,6 +1220,22 @@ See also `mentor-torrent-move'."
 
 ;;; Get torrent data from rtorrent
 
+(defconst mentor-methods-to-get-as-string
+  (regexp-opt '("bytes_done" "completed_bytes"
+                "left_bytes" "size_bytes" "chunk_size"
+                "completed_chunks" "size_chunks"))
+  "Methods that should be prefixed with cat= when fetched.")
+
+(defun mentor-get-some-methods-as-string (method)
+  "Used to get some properties as a string, since older versions
+of libxmlrpc-c cannot handle integers longer than 4 bytes."
+  (let ((re (concat "\\(?:[df]\\.get_"
+                    mentor-methods-to-get-as-string
+                    "\\)")))
+    (if (string-match re method)
+        (concat "cat=$" method)
+      method)))
+
 (defun mentor-rpc-method-to-property (method)
   (intern
    (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
@@ -1225,22 +1258,6 @@ See also `mentor-torrent-move'."
 (defun mentor-torrent-update-from (methods values)
   (mentor-torrent-update (mentor-torrent-create-from methods values)))
 
-(defconst mentor-methods-to-get-as-string
-  (regexp-opt '("bytes_done" "completed_bytes"
-                "left_bytes" "size_bytes" "chunk_size"
-                "completed_chunks" "size_chunks"))
-  "Methods that should be prefixed with cat= when fetched.")
-
-(defun mentor-get-some-methods-as-string (method)
-  "Used to get some properties as a string, since older versions
-of libxmlrpc-c cannot handle integers longer than 4 bytes."
-  (let ((re (concat "\\(?:[df]\\.get_"
-                    mentor-methods-to-get-as-string
-                    "\\)")))
-    (if (string-match re method)
-        (concat "cat=$" method)
-      method)))
-
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
@@ -1252,18 +1269,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (put 'mentor-need-init
      'error-conditions
      '(error mentor-error mentor-need-init))
-
-(defconst mentor-volatile-rpc-d-methods
-  '("d.get_local_id" ;; must not be removed
-    "d.get_base_path"    "d.get_bytes_done"
-    "d.get_directory"    "d.get_down_rate"
-    "d.get_hashing"      "d.get_hashing_failed"
-    "d.get_priority"     "d.get_chunk_size"
-    "d.get_up_rate"      "d.get_up_total"
-    "d.get_state"        "d.views"
-    "d.is_active"        "d.is_hash_checked"
-    "d.is_hash_checking" "d.is_open"
-    "d.is_pex_active"))
 
 
 ;;; Torrent information
@@ -1346,6 +1351,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 ;;; View functions
 
+(defvar mentor-torrent-views)
+(make-variable-buffer-local 'mentor-torrent-views)
+
 (defun mentor-add-torrent-to-view (view)
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
@@ -1363,9 +1371,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
          (mentor-rpc-command "d.views.push_back_unique"
                              (mentor-item-property 'hash tor) view)
        (message "Nothing done")))))
-
-(defvar mentor-torrent-views)
-(make-variable-buffer-local 'mentor-torrent-views)
 
 (defconst mentor-torrent-default-views
   '("main" "name" "started" "stopped" "complete"
