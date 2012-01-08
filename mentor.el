@@ -92,8 +92,8 @@ connecting through scgi or http."
 
 (defcustom mentor-view-columns
   '(((mentor-torrent-get-prio) -3 "Pri")
-    ((mentor-torrent-get-progress) -5 "Cmp")
     ((mentor-torrent-get-state) -3 "State")
+    ((mentor-torrent-get-progress) -3 "Cmp")
     (name -80 "Name")
     ((mentor-torrent-get-speed-up) -6 "Up")
     ((mentor-torrent-get-speed-down) -6 "Down")
@@ -1276,7 +1276,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
          (percent (* 100 (/ (+ 0.0 done) total))))
     (if (= (truncate percent) 100)
         ""
-      (format "[%2d%%]" percent))))
+      (format "%d%%" percent))))
 
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-torrent-get-state (torrent)
