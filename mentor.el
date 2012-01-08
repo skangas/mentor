@@ -1329,7 +1329,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                      "f.multicall" hash "" "f.get_path_components="))
         (mentor-item-set-property 'files files tor)
         (puthash id tor mentor-items)))
-    (cdr-safe (mentor-item-property 'files tor))))
+    (mentor-item-property 'files tor)))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
