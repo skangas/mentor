@@ -41,7 +41,11 @@
 ;; Bug reports, comments, and suggestions are welcome!
 
 ;;; Code:
-(eval-when-compile (require 'cl))
+(eval-when-compile
+  (require 'cl)
+  (require 'dired)
+  (defmacro string> (a b) (list 'not (list 'or (list 'string= a b)
+                                         (list 'string< a b)))))
 (require 'url-scgi)
 (require 'xml-rpc)
 
