@@ -363,6 +363,9 @@ If MUST-EXIST is non-nil, give a warning if the property does not
 (defun mentor-get-item-at-point ()
   (mentor-get-item (mentor-item-id-at-point)))
 
+(defun mentor-between-items ()
+  (not (mentor-item-id-at-point)))
+
 (defun mentor-marker-regexp ()
   (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
 
@@ -438,7 +441,7 @@ Based on `dired-map-over-marks'."
     (while (and (> arg 0) (not (eobp)))
       (setq arg (1- arg))
       (beginning-of-line)
-      ;; (while (and (not (eobp)) (dired-between-files)) (forward-line 1))
+      (while (and (not (eobp)) (mentor-between-items)) (forward-line 1))
       (save-excursion
         (forward-line 1)
         (move-marker pos (1+ (point))))
@@ -449,7 +452,7 @@ Based on `dired-map-over-marks'."
     (while (and (< arg 0) (not (bobp)))
       (setq arg (1+ arg))
       (forward-line -1)
-      ;; (while (and (not (bobp)) (dired-between-files)) (forward-line -1))
+      (while (and (not (bobp)) (mentor-between-items)) (forward-line -1))
       (beginning-of-line)
       (save-excursion (funcall function)))
     (move-marker pos nil)
@@ -879,7 +882,7 @@ start point."
 
 ;;; Marking items
 
-(defun mentor-mark (arg)
+(defun mentor-mark (&optional arg)
   "Mark the current (or next ARG) items.
 
 Use \\[mentor-unmark-all-files] to remove all marks
@@ -890,7 +893,7 @@ this subdir."
     (mentor-repeat-over-lines
      (prefix-numeric-value arg)
      (function (lambda ()
-                 ;; ;; insert at point-at-bol + 1 to inherit all properties
+                 ;; insert at point-at-bol + 1 to inherit all properties
                  (goto-char (+ 1 (point-at-bol)))
                  (insert-and-inherit mentor-marker-char)
                  (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
