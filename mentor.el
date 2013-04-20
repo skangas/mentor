@@ -1288,11 +1288,13 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
       (format "%d%%" percent))))
 
 ;; TODO show an "I" for incomplete torrents
-(defun mentor-torrent-get-state (torrent)
-  (concat
-   (or (when (> (mentor-item-property 'hashing   torrent) 0) "H")
-       (if   (= (mentor-item-property 'is_active torrent) 1) " " "S"))
-   (if (= (mentor-item-property 'is_open torrent) 1) " " "C")))
+(defun mentor-torrent-get-state (tor)
+  (let* ((h (mentor-item-property 'hashing tor))
+         (a (mentor-item-property 'is_active tor))
+         (o (mentor-item-property 'is_open tor))
+         (first-char (if (> h 0) "H" (if (= a 1) " " "S")))
+         (second-char (if (= o 1) " " "C")))
+    (concat first-char second-char)))
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
