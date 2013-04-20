@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011 Stefan Kangas.
 
 ;; Author: Stefan Kangas
-;; Version: 0.1
+;; Version: 0.2
 ;; Keywords: comm, data, processes, scgi
 
 ;; This file is NOT part of GNU Emacs.
@@ -29,6 +29,8 @@
 
 ;;; Change Log:
 
+;; 0.2 Support Emacs 24
+
 ;; 0.1 First public version
 
 ;;; Code:
@@ -51,25 +53,16 @@ specification."
 (defun scgi-add-null-bytes (&rest args)
   (apply 'concat (mapcar (lambda (a) (concat a "\000")) args)))
 
-(defmacro scgi-parse-request-header (name desc conv)
-  `(let ((,name (plist-get headers ,(intern
-                                     (concat ":" (symbol-name name))))))
-     (when name
-      (scgi-add-null-bytes ,desc
-                           ,(if conv
-                                (list conv name)
-                              name)))))
-
-(defun scgi-make-request-header (headers)
-  (concat
-   (scgi-parse-request-header length "CONTENT_LENGTH" number-to-string)
-   (scgi-add-null-bytes "SCGI" "1")))
+(defun scgi-make-request-header (data)
+  (scgi-add-null-bytes "CONTENT_LENGTH"
+                       (number-to-string (length data))
+                       "SCGI" "1"))
 
 (defun url-scgi-create-request ()
   (declare (special url-request-data))
   (concat
    (scgi-string-to-netstring
-    (scgi-make-request-header `(:length ,(length url-request-data))))
+    (scgi-make-request-header url-request-data))
    url-request-data))
 
 (defun url-scgi-activate-callback ()
