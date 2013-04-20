@@ -37,6 +37,7 @@
 ;; Sort according to column, changable with < and >
 ;; Customizable fonts
 ;; Save cache to disk
+;; Support scgi_local
 
 ;; Bug reports, comments, and suggestions are welcome!
 
@@ -53,9 +54,9 @@
 ;;; Customizable variables
 
 (defgroup mentor nil
-  "Controlling rtorrent from Emacs."
+  "Emacs frontend for the rTorrent bittorrent client, using XML-RPC."
   :prefix "mentor-"
-  :group 'tools)
+  :group 'external)
 
 (defcustom mentor-custom-views
   '((1 . "main") (2 . "main") (3 . "started")
