@@ -13,7 +13,7 @@
 ;; Keywords: xml rpc network
 ;; URL: http://emacswiki.org/emacs/xml-rpc.el
 ;; Maintained-at: http://savannah.nongnu.org/bzr/?group=emacsweblogs
-;; Last Modified: <2010-02-25 17:07:43 mah>
+;; Last Modified: <2013-04-20 13:51:38 skangas>
 
 (defconst xml-rpc-version "1.6.8"
   "Current version of xml-rpc.el")
@@ -329,7 +329,7 @@ interpreting and simplifying it while retaining its structure."
        ((eq valtype 'string)
         valvalue)
        ;; Integer
-       ((or (eq valtype 'int) (eq valtype 'i4))
+       ((or (eq valtype 'int) (eq valtype 'i4) (eq valtype 'i8))
         (string-to-number (or valvalue "0")))
        ;; Double/float
        ((eq valtype 'double)
