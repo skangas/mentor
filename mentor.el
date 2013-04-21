@@ -135,6 +135,10 @@ using `make-mentor-item'.")
 (make-variable-buffer-local 'mentor-sort-list)
 
 (defvar mentor-last-used-view)
+(make-variable-buffer-local 'mentor-last-used-view)
+
+(defvar mentor-last-move-target "~")
+(make-variable-buffer-local 'mentor-last-move-target)
 
 (defvar mentor-view-torrent-list nil
   "alist of torrents in given views")
@@ -1100,41 +1104,76 @@ See also `mentor-torrent-move'."
          (mentor-do-remove-torrent-files tor))))
    arg))
 
+(defun mentor-get-new-path (&optional prompt old)
+  (let* ((old (or old mentor-last-move-target))
+         (old-prefixed (concat mentor-directory-prefix old))
+         (prompt (or prompt "New path: "))
+         (new (read-file-name prompt old-prefixed nil t)))
+    (if (condition-case err
+            (mentor-rpc-command "execute" "ls" "-d" new)
+          (error nil))
+        (setq mentor-last-move-target new)
+      (error (concat "No such file or directory: " new)))))
+
+;; TODO: Sort out the "copied" and "moved" messages below to give a summary
+;; instead of just the last file.
+
 (defun mentor-torrent-copy-data (&optional arg)
   (interactive "P")
-  (mentor-map-over-marks
-   (let* ((tor (mentor-get-item-at-point))
-          (old (mentor-item-property 'base_path tor))
-          (new (mentor-get-new-torrent-path tor)))
-     (when (and (not (null old))
-                (file-exists-p old))
-       (mentor-rpc-command "execute" "cp" "-Rn" old new))
-     (message (concat "Copied torrent data to " new)))
-   arg))
+  (let* ((items (mentor-get-marked-items))
+         (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
+         (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
+   (mentor-map-over-marks
+    (let* ((old (mentor-d-get-base-path)))
+      (when (and (not (null old))
+                 (file-exists-p old))
+        (mentor-execute "cp" "-Rn" old new))
+      (message "Copied %s to %s" (mentor-d-get-name) new)
+      (mentor-redisplay-torrent))
+    arg)))
 
-;; TODO: Make it possible to move several torrents to same directory with just
-;;       one prompt.
-;; FIXME: We should not move 'base_path if there is only one file in the torrent.
-(defun mentor-torrent-move (&optional arg)
+(defun mentor-torrent-move (&optional no-move arg)
   (interactive "P")
-  (mentor-map-over-marks
-   (progn (let* ((tor (mentor-get-item-at-point))
-                 (old (mentor-item-property 'base_path tor))
-                 (new (mentor-get-new-torrent-path tor))
-                 (was-started (= 1 (mentor-item-property 'is_active tor))))
-            (when was-started
-              (mentor-do-stop-torrent tor))
-            (when (and (not (null old))
-                       (file-exists-p old))
-              (mentor-rpc-command "execute" "mv" "-n" old new))
-            (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-            (when was-started
-              (mentor-do-start-torrent tor))
-            ;; FIXME: needs to update the data for this torrent from rtorrent
-            (mentor-item-set-property 'directory new)
-            (mentor-torrent-update-this)
-            (message (concat "Moved torrent data to " new))))
-   arg))
+  (let* ((items (mentor-get-marked-items))
+         (verbstr (or (and no-move "Change directory of ") "Move "))
+         (prompt (concat verbstr (mentor-mark-prompt arg items) " to: "))
+         (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
+    (mentor-map-over-marks
+     (let* ((old (or (and no-move (mentor-d-get-directory))
+                     (mentor-d-get-base-path)))
+            (was-started (mentor-d-is-active)))
+       (when (not no-move)
+         (when (null old)
+           (error "Torrent has no base path"))
+         ;; FIXME: Should work also on remote host, i.e. use rpc "execute"
+         ;; to look for the file.
+         (when (not (file-exists-p old))
+           (error "Download base path %s does not exist" old))
+         (when (and (not (mentor-d-is-multi-file))
+                    (file-directory-p old))
+           (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
+       (if (not (equal (file-name-directory old) new))
+           (progn
+             (when was-started
+               (mentor-d-stop))
+             (if (not no-move)
+                 (mentor-execute "mv" "-u" old new))
+             (mentor-d-set-directory new)
+             (when was-started
+               (mentor-d-start))
+             (mentor-torrent-update-this)
+             (if no-move
+                 (message "Changed %s target directory to %s" (mentor-d-get-name) new)
+               (message "Moved %s to %s" (mentor-d-get-name) new)))
+         (message "Skipping %s since it is already in %s"
+                  (mentor-d-get-name) new))
+       (mentor-redisplay-torrent))
+     arg)))
+
+(defun mentor-torrent-change-target-directory (&optional arg)
+  "Change torrents target directory without moving data."
+  (interactive "P")
+  (mentor-torrent-move t arg))
 
 (defun mentor-torrent-hash-check (&optional arg)
   (interactive "P")
@@ -1343,6 +1382,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 (defun mentor-d-get-base-path (&optional tor)
   (mentor-item-property 'base_path tor))
+
+(defun mentor-d-get-directory (&optional tor)
+  (mentor-item-property 'directory tor))
 
 (defun mentor-d-get-hash (&optional tor)
   (mentor-item-property 'hash tor))
