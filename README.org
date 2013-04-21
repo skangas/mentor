@@ -10,6 +10,13 @@ You can find the latest version of mentor here:
 
 http://www.github.com/skangas/rtorrent
 
+** Screenshot
+
+[[screen.png]]
+
+Screenshot of moving a download and its data to another directory using ido
+integration. Sort your downloads in a breeze!
+
 ** Quick Start
 
 Clone the repository using:
