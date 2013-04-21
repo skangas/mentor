@@ -1335,6 +1335,38 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 ;;; Torrent information
 
+(defun mentor-item-get-name (torrent)
+  (mentor-item-property 'name torrent))
+
+(defun mentor-execute (&rest args)
+  (apply 'mentor-rpc-command "execute" args))
+
+(defun mentor-d-get-base-path (&optional tor)
+  (mentor-item-property 'base_path tor))
+
+(defun mentor-d-get-hash (&optional tor)
+  (mentor-item-property 'hash tor))
+
+(defun mentor-d-get-name (&optional tor)
+  (mentor-item-property 'name tor))
+
+(defun mentor-d-is-active (&optional tor)
+  (= (mentor-item-property 'is_active tor) 1))
+
+(defun mentor-d-is-multi-file (&optional tor)
+  (= (mentor-item-property 'is_multi_file tor) 1))
+
+(defun mentor-d-set-directory (new &optional tor)
+  ;; FIXME: Is this the only property that needs updating?
+  (mentor-item-set-property 'directory new)
+  (mentor-rpc-command "d.set_directory" (mentor-d-get-hash tor) new))
+
+(defun mentor-d-start (&optional tor)
+  (mentor-rpc-command "d.start" (mentor-d-get-hash)))
+
+(defun mentor-d-stop (&optional tor)
+  (mentor-rpc-command "d.stop" (mentor-d-get-hash)))
+
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
          (totalv (mentor-item-property 'size_bytes torrent))
