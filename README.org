@@ -1,0 +1,76 @@
+* mentor
+
+mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client, using XML-RPC.
+
+This project aims to provide a feature complete and highly customizable
+interface, which will feel familiar to Emacs users. Key bindings are chosen to
+be as close to the vanilla rtorrent curses interface as possible.
+
+You can find the latest version of mentor here:
+
+http://www.github.com/skangas/rtorrent
+
+** Quick Start
+
+Clone the repository using:
+
+: git clone https://github.com/skangas/mentor.git
+
+Add this to your ~/.emacs:
+
+ : (add-to-list 'load-path "~/src/mentor/")
+ : (require 'mentor)
+ : (setq mentor-rtorrent-url "scgi://localhost:5000")
+   
+Change "~/src/mentor" to the path where you keep the mentor source code.
+
+Add this to your ~/.rtorrent.rc:
+   
+ : scgi_port = 127.0.0.1:5000
+ : xmlrpc_dialect = i8
+ : encoding_list = UTF-8
+   
+Make sure `scgi_port' matches `mentor-rtorrent-url' above.
+
+Restart both rTorrent and Emacs (or just make sure mentor is loaded).
+
+To start mentor, run:
+
+ : M-x mentor
+
+** Additional configuration
+
+You can find Mentor in the `External' customize group.
+
+ : M-x customize
+
+** Configuring rtorrent
+
+For more information on configuring rTorrent, refer to:
+   
+http://libtorrent.rakshasa.no/wiki/RTorrentXMLRPCGuide
+
+** Known issues
+
+- There is currently no support (patches welcome) for communicating with
+  rtorrent over a local socket using the more secure scgi_local command. This
+  means it is currently not advisable to use mentor on anything but single user
+  systems.
+
+- mentor currently has some performance issues if you have many (several
+  hundreds) torrents. Be aware.
+
+** Misc
+
+- If you wish to byte-compile mentor, go into the source directory and run:
+
+  : make
+
+- Here is how you setup autoload. See the Emacs manual for more information on
+  this.
+
+  : (autoload 'mentor "mentor" nil t)
+
+* Contact
+
+Send bug reports, suggestions and patches to <skangas@skangas.se>.
