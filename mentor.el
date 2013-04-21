@@ -384,15 +384,13 @@ ARG, if non-nil, specifies the items to use instead of the marked items.
    can be chained easily.
   For any other non-nil value of ARG, use the current item.
 If optional third arg SHOW-PROGRESS evaluates to non-nil,
-  redisplay the dired buffer after each item is processed.
+  redisplay item after it has been processed.
 No guarantee is made about the position on the marked line.
   BODY must ensure this itself if it depends on this.
 Search starts at the beginning of the buffer, thus the car of the list
   corresponds to the line nearest to the buffer's bottom.  This
   is also true for (positive and negative) integer values of ARG.
-BODY should not be too long as it is expanded four times.
-
-Based on `dired-map-over-marks'."
+BODY should not be too long as it is expanded four times."
   ;;
   ;;Warning: BODY must not add new lines before point - this may cause an
   ;;endless loop.
@@ -405,7 +403,7 @@ Based on `dired-map-over-marks'."
                    (mentor-repeat-over-lines
                     ,arg
                     (function (lambda ()
-                                (if ,show-progress (sit-for 0))
+                                ;; (if ,show-progress (sit-for 0))
                                 (setq results (cons ,body results)))))
                    (if (< ,arg 0)
                        (nreverse results)
@@ -424,7 +422,7 @@ Based on `dired-map-over-marks'."
                      found (not (null next-position)))
                (while next-position
                  (goto-char next-position)
-                 (if ,show-progress (sit-for 0))
+                 ;; (if ,show-progress (sit-for 0))
                  (setq results (cons ,body results))
                  ;; move after last match
                  (goto-char next-position)
@@ -438,8 +436,22 @@ Based on `dired-map-over-marks'."
      ;; ;; save-excursion loses, again
      ;; (dired-move-to-filename)))
 
+(defun mentor-get-marked-items (&optional arg)
+  "Return the marked items' names as list of strings.
+The list is in the same order as the buffer, that is, the car is the
+  first marked file.
+Optional argument ARG, if non-nil, specifies items near
+ point instead of marked items.  It usually comes from the prefix
+ argument.
+  If ARG is an integer, use the next ARG items.
+  Any other non-nil value means to use the current file instead."
+  (save-excursion
+    (nreverse
+     (mentor-map-over-marks
+      (mentor-item-get-name (mentor-get-item-at-point))
+      arg))))
+
 (defun mentor-repeat-over-lines (arg function)
-  "Based on `dired-repeat-over-lines'."
   ;; This version skips non-file lines.
   (let ((pos (make-marker)))
     (beginning-of-line)
@@ -463,6 +475,48 @@ Based on `dired-map-over-marks'."
     (move-marker pos nil)
     ;; (dired-move-to-filename)
     ))
+
+(defun mentor-mark-pop-up (bufname items function &rest args)
+  "Return FUNCTION's result on ARGS after showing which items are marked.
+Displays the file names in a buffer named BUFNAME;
+ nil gives \" *Marked Items*\".
+This uses function `dired-pop-to-buffer' to do that.
+
+FUNCTION should not manipulate items, just read input
+ (an argument or confirmation).
+The window is not shown if there is just one item.
+ITEMS is the list of marked items.  It can also be (t FILENAME)
+in the case of one marked file, to distinguish that from using
+just the current file."
+  (or bufname (setq bufname  " *Marked Items*"))
+  (if (= (length items) 1)
+      (apply function args)
+    (with-current-buffer (get-buffer-create bufname)
+      (erase-buffer)
+      (dired-format-columns-of-files items)
+      (remove-text-properties (point-min) (point-max)
+			      '(mouse-face nil help-echo nil)))
+    (save-window-excursion
+      (dired-pop-to-buffer bufname)
+      (apply function args))))
+
+(defun mentor-mark-prompt (arg items)
+  "Return a string suitable for use in a mentor prompt.
+ARG is normally the prefix argument for the calling command.
+ITEMS should be a list of item names."
+  (let ((count (length items)))
+    (if (= count 1)
+	(car items)
+      ;; more than 1 item:
+      (if (integerp arg)
+	  (format "[%s %d items]" (if (> arg 0) "next" "previous") count)
+	(format "[%d items]" count)))))
+
+(defun mentor-mark-confirm (desc arg)
+  (let ((items (mentor-get-marked-items arg)))
+    (mentor-mark-pop-up nil items (function y-or-n-p)
+                        (concat desc " "
+                                (mentor-mark-prompt arg items) "? "))))
 
 ;; FIXME
 (defun mentor-move-to-name ()
