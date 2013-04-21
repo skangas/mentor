@@ -340,23 +340,27 @@ Type \\[mentor] to start Mentor.
 in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
 
+(defmacro mentor-use-item-at-point (body)
+  `(let ((item (or item (mentor-get-item-at-point))))
+     ,body))
+
 (defun mentor-item-property (property &optional item)
   "Get property for an item."
-  (when (not item) (setq item (mentor-get-item-at-point)))
-  (cdr (assoc property (mentor-item-data item))))
+  (mentor-use-item-at-point
+   (cdr (assoc property (mentor-item-data item)))))
 
 (defun mentor-item-set-property (property value &optional item must-exist)
   "Set data PROPERTY to given VALUE of an item.
 If ITEM is nil, use torrent at point.
 If MUST-EXIST is non-nil, give a warning if the property does not
   already exist."
-  (when (not item) (setq item (mentor-get-item-at-point)))
-  (let ((prop (assq property (mentor-item-data item))))
-    (if prop
-        (setcdr prop value)
-      (if must-exist
-          (error "Tried updating non-existent property")
-        (push (cons property value) (mentor-item-data item))))))
+  (mentor-use-item-at-point
+   (let ((prop (assq property (mentor-item-data item))))
+     (if prop
+         (setcdr prop value)
+       (if must-exist
+           (error "Tried updating non-existent property")
+         (push (cons property value) (mentor-item-data item)))))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
