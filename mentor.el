@@ -587,7 +587,7 @@ functions"
   (let* ((url-http-response-status 200)
          (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
-        (error "mentor, unable to connect: %s" mentor-rtorrent-url)
+        (error "Unable to connect to %s" mentor-rtorrent-url)
       response)))
 
 (defun mentor-multicall-string (method &rest args)
@@ -1213,7 +1213,7 @@ See also `mentor-torrent-move'."
           (find-file path2)
           (when (not is-multi-file)
             (dired-goto-file path)))
-      (message "Torrent has no data"))))
+      (message "Torrent does not have a base path"))))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
@@ -1481,9 +1481,8 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   t)
 
 (defun mentor-set-view (new)
-  (if mentor-current-view
-      (setq mentor-last-used-view mentor-current-view)
-    (setq mentor-last-used-view mentor-default-view))
+  (setq mentor-last-used-view (or mentor-current-view
+                                  mentor-default-view))
   (setq mentor-current-view new)
   (setq mode-line-buffer-identification (concat "*mentor* " mentor-current-view)))
 
@@ -1498,7 +1497,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (when (not (equal new mentor-current-view))
     (mentor-set-view new)
     (mentor-update)
-    (message "Showing view \"%s\"" mentor-current-view)))
+    (message "Showing view: %s" mentor-current-view)))
 
 (defun mentor-views-add (view)
   "Adds the specified view to rtorrents \"view_list\" and sets
