@@ -1131,6 +1131,9 @@ this subdir."
          ;; to look for the file.
          (when (not (file-exists-p old))
            (error "Download base path %s does not exist" old))
+         (let ((target (concat new (file-name-nondirectory old))))
+          (when (file-exists-p target)
+            (error "Destination already exists: %s" target)))
          (when (and (not (mentor-d-is-multi-file))
                     (file-directory-p old))
            (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
