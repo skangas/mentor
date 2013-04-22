@@ -1022,12 +1022,6 @@ this subdir."
             (mentor-delete-file dir)))
       (mentor-delete-file base-path))))
 
-(defun mentor-do-start-torrent (tor)
-  (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
-
-(defun mentor-do-stop-torrent (tor)
-  (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
-
 (defun mentor-get-old-torrent-path (tor)
   (let ((path (or (mentor-item-property 'base_path tor)
                   (and (= (mentor-item-property 'bytes_done tor) 0)
@@ -1194,14 +1188,14 @@ this subdir."
 (defun mentor-torrent-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-do-start-torrent (mentor-get-item-at-point))
+   (progn (mentor-d-start)
           (mentor-torrent-update-this))
    arg))
 
 (defun mentor-torrent-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-do-stop-torrent (mentor-get-item-at-point))
+   (progn (mentor-d-stop)
           (mentor-torrent-update-this))
    arg))
 
