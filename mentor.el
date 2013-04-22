@@ -345,7 +345,9 @@ in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
 
 (defmacro mentor-use-item-at-point (body)
-  `(let ((item (or item (mentor-get-item-at-point))))
+  `(let ((item (or (and (boundp 'item) item)
+                   (mentor-get-item-at-point)
+                   (error "There is no item here"))))
      ,body))
 
 (defun mentor-item-property (property &optional item)
