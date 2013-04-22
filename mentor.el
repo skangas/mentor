@@ -686,7 +686,7 @@ expensive operation."
 (defun mentor-redisplay-torrent ()
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
-    (mentor-remove-item-from-view)
+    (mentor-delete-from-buffer)
     (mentor-item-insert id)
     (mentor-previous-item)))
 
@@ -894,10 +894,14 @@ start point."
      'error-conditions
      '(error mentor-error mentor-missing-torrent))
 
-(defun mentor-remove-item-from-view ()
+(defun mentor-delete-from-buffer (&optional items)
+  (when (not items)
+    (setq items (list (point))))
   (let ((inhibit-read-only t))
-    (delete-region (mentor-get-item-beginning t)
-                   (+ 1 (mentor-get-item-end)))))
+    (dolist (it items)
+      (goto-char it)
+      (delete-region (mentor-get-item-beginning t)
+                     (+ 1 (mentor-get-item-end))))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -993,33 +997,28 @@ this subdir."
 
 ;;; Interactive torrent commands
 
+;; TODO: Report how it went, including failures.
 (defun mentor-delete-file (file)
   (let ((dired-recursive-deletes nil))
-    (message "Deleting %s" file)
     (condition-case err
         (dired-delete-file file)
       (file-error nil))))
 
-(defun mentor-do-remove-torrent-files (tor)
-  (let* ((base-path (mentor-item-property 'base_path tor))
-         (files (mentor-torrent-get-file-list tor))
-         (dirs nil))
-    (if (= 0 (mentor-item-property 'is_multi_file tor))
-        (mentor-delete-file base-path)
-      (progn
-        (dolist (file files)
-          (let* ((file (mapconcat 'identity (apply 'list base-path (car file)) "/"))
-                 (dir (file-name-directory file)))
-            (mentor-delete-file file)
-            (setq dirs (adjoin dir dirs :test 'equal))))
-        (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
-        (dolist (dir dirs)
-          (mentor-delete-file dir))))))
-
-(defun mentor-do-remove-torrent (tor)
-  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor))
-  (remhash (mentor-item-property 'local_id tor) mentor-items)
-  (mentor-view-torrent-list-delete-all tor))
+(defun mentor-do-remove-torrent-files ()
+  (let* ((base-path (mentor-d-get-base-path))
+         (files (mentor-torrent-get-file-list))
+         dirs)
+    (if (mentor-d-is-multi-file)        
+        (progn
+          (dolist (file files)
+            (let* ((file (concat base-path "/" (caar file)))
+                   (dir (file-name-directory file)))
+              (mentor-delete-file file)
+              (setq dirs (adjoin dir dirs :test 'equal))))
+          (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
+          (dolist (dir dirs)
+            (mentor-delete-file dir)))
+      (mentor-delete-file base-path))))
 
 (defun mentor-do-start-torrent (tor)
   (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
@@ -1061,54 +1060,37 @@ this subdir."
   (interactive)
   (message "TODO: mentor-torrent-call-comamnd"))
 
-(defun mentor-torrent-change-target-directory (&optional arg)
-  "Change torrents target directory without moving data.
-See also `mentor-torrent-move'."
-  (interactive)
-  (mentor-map-over-marks
-   (let* ((tor (mentor-get-item-at-point))
-          (new (mentor-get-new-torrent-path tor)))
-     (mentor-do-stop-torrent tor)
-     (mentor-rpc-command "d.set_directory" (mentor-item-property 'hash tor) new)
-     (mentor-torrent-update-this)
-     (message (concat "Changed target directory to " new)))
-   arg))
+(defun mentor-torrent-remove-helper (remove-files &optional arg)
+  (when (mentor-mark-confirm
+         (or (and remove-files "Remove including data")
+             "Remove")
+         arg)
+    (mentor-delete-from-buffer
+     (mentor-map-over-marks
+      (progn
+        (when remove-files
+          (mentor-torrent-get-file-list))
+        (mentor-d-erase)
+        (when remove-files
+          (mentor-do-remove-torrent-files))
+        (mentor-view-torrent-list-delete-all)
+        (remhash (mentor-d-get-local-id) mentor-items)
+        (point))
+      arg))))
 
 (defun mentor-torrent-remove (&optional arg)
   (interactive "P")
-  (mentor-map-over-marks
-   (progn
-     (let* ((tor (mentor-get-item-at-point))
-            (name (mentor-item-property 'name tor)))
-       (when (yes-or-no-p (concat "Remove torrent " name " "))
-         (mentor-do-remove-torrent tor)
-         (mentor-remove-item-from-view))))
-   arg))
+  (mentor-torrent-remove-helper nil arg))
 
 (defun mentor-torrent-remove-including-files (&optional arg)
   (interactive "P")
-  (mentor-map-over-marks
-   (progn
-     (let* ((tor (mentor-get-item-at-point))
-            (name (mentor-item-property 'name tor))
-            (confirm-tor (yes-or-no-p (concat "Remove torrent " name " ")))
-            (confirm-data (and confirm-tor
-                               (yes-or-no-p (concat "Also remove files for torrent " name " ")))))
-       (when confirm-data
-         ;; populate file list before removing torrent
-         (mentor-torrent-get-file-list tor))
-       (when confirm-tor
-         (mentor-do-remove-torrent tor)
-         (mentor-remove-item-from-view))
-       (when confirm-data
-         (mentor-do-remove-torrent-files tor))))
-   arg))
+  (mentor-torrent-remove-helper t arg))
 
 (defun mentor-get-new-path (&optional prompt old)
-  (let* ((old (or old mentor-last-move-target))
-         (old-prefixed (concat mentor-directory-prefix old))
+  (let* ((old (concat mentor-directory-prefix
+                      (or old mentor-last-move-target)))
          (prompt (or prompt "New path: "))
-         (new (read-file-name prompt old-prefixed nil t)))
+         (new (read-file-name prompt old nil t)))
     (if (condition-case err
             (mentor-rpc-command "execute" "ls" "-d" new)
           (error nil))
@@ -1308,13 +1290,12 @@ See also `mentor-torrent-move'."
     (setq mentor-view-torrent-list
           (cons (list view) mentor-view-torrent-list))))
 
-(defun mentor-view-torrent-list-delete (tor &optional view)
-  (let* ((id (mentor-item-property 'local_id tor))
-         (view (or view (intern mentor-current-view)))
+(defun mentor-view-torrent-list-delete (&optional tor view)
+  (let* ((view (or view (intern mentor-current-view)))
          (list (assq view mentor-view-torrent-list)))
-    (delete id list)))
+    (delete (mentor-d-get-local-id tor) list)))
 
-(defun mentor-view-torrent-list-delete-all (tor)
+(defun mentor-view-torrent-list-delete-all (&optional tor)
   (dolist (view mentor-view-torrent-list)
     (mentor-view-torrent-list-delete tor (car view))))
 
@@ -1377,8 +1358,11 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-item-get-name (torrent)
   (mentor-item-property 'name torrent))
 
-(defun mentor-execute (&rest args)
-  (apply 'mentor-rpc-command "execute" args))
+(defun mentor-d-close (&optional tor)
+  (mentor-rpc-command "d.close" (mentor-d-get-hash tor)))
+
+(defun mentor-d-erase (&optional tor)
+  (mentor-rpc-command "d.erase" (mentor-d-get-hash tor)))
 
 (defun mentor-d-get-base-path (&optional tor)
   (mentor-item-property 'base_path tor))
@@ -1388,6 +1372,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 (defun mentor-d-get-hash (&optional tor)
   (mentor-item-property 'hash tor))
+
+(defun mentor-d-get-local-id (&optional tor)
+  (mentor-item-property 'local_id tor))
 
 (defun mentor-d-get-name (&optional tor)
   (mentor-item-property 'name tor))
@@ -1404,10 +1391,13 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (mentor-rpc-command "d.set_directory" (mentor-d-get-hash tor) new))
 
 (defun mentor-d-start (&optional tor)
-  (mentor-rpc-command "d.start" (mentor-d-get-hash)))
+  (mentor-rpc-command "d.start" (mentor-d-get-hash tor)))
 
 (defun mentor-d-stop (&optional tor)
-  (mentor-rpc-command "d.stop" (mentor-d-get-hash)))
+  (mentor-rpc-command "d.stop" (mentor-d-get-hash tor)))
+
+(defun mentor-execute (&rest args)
+  (apply 'mentor-rpc-command "execute" args))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
@@ -1453,18 +1443,17 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (mentor-bytes-to-human
    (mentor-item-property 'size_bytes torrent)))
 
-(defun mentor-torrent-get-file-list (tor)
-  (let ((id (mentor-item-property 'local_id tor))
-        (hash (mentor-item-property 'hash tor))
-        (files (cdr-safe (mentor-item-property 'files tor))))
-    (when (not files)
+;; FIXME: There seems to be some code duplication here...
+(defun mentor-torrent-get-file-list (&optional tor)
+  (let ((files (mentor-item-property 'files tor)))
+    (when (not (cdr-safe files))
       (progn
         (message "Receiving file list...")
         (setq files (mentor-rpc-command
-                     "f.multicall" hash "" "f.get_path_components="))
-        (mentor-item-set-property 'files files tor)
-        (puthash id tor mentor-items)))
-    (mentor-item-property 'files tor)))
+                     "f.multicall" (mentor-d-get-hash tor)
+                     "" "f.get_path_components="))
+        (mentor-item-set-property 'files files tor)))
+    files))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
