@@ -43,10 +43,10 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'cl)
   (require 'dired)
   (defmacro string> (a b) (list 'not (list 'or (list 'string= a b)
                                          (list 'string< a b)))))
+(require 'cl)
 (require 'url-scgi)
 (require 'xml-rpc)
 
@@ -1934,5 +1934,9 @@ point."
       str)))
 
 (provide 'mentor)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
 
 ;;; mentor.el ends here
