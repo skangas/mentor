@@ -13,7 +13,7 @@
 ;; Keywords: xml rpc network
 ;; URL: http://emacswiki.org/emacs/xml-rpc.el
 ;; Maintained-at: http://savannah.nongnu.org/bzr/?group=emacsweblogs
-;; Last Modified: <2013-04-20 13:51:38 skangas>
+;; Last Modified: <2013-04-23 22:14:38 skangas>
 
 (defconst xml-rpc-version "1.6.8"
   "Current version of xml-rpc.el")
@@ -650,9 +650,9 @@ called with the result as parameter."
   (let* ((m-name (if (stringp method)
                      method
                    (symbol-name method)))
-         (m-params (mapcar '(lambda (p)
-                              `(param nil ,(car (xml-rpc-value-to-xml-list
-                                                 p))))
+         (m-params (mapcar #'(lambda (p)
+                               `(param nil ,(car (xml-rpc-value-to-xml-list
+                                                  p))))
                            (if async-callback-func
                                params
                              (car-safe params))))
