@@ -380,6 +380,31 @@ If MUST-EXIST is non-nil, give a warning if the property does not
 (defun mentor-marker-regexp ()
   (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
 
+(defun mentor-repeat-over-lines (arg function)
+  ;; This version skips non-file lines.
+  (let ((pos (make-marker)))
+    (beginning-of-line)
+    (while (and (> arg 0) (not (eobp)))
+      (setq arg (1- arg))
+      (beginning-of-line)
+      (while (and (not (eobp)) (mentor-between-items)) (forward-line 1))
+      (save-excursion
+        (forward-line 1)
+        (move-marker pos (1+ (point))))
+      (save-excursion (funcall function))
+      ;; Advance to the next line--actually, to the line that *was* next.
+      ;; (If FUNCTION inserted some new lines in between, skip them.)
+      (goto-char pos))
+    (while (and (< arg 0) (not (bobp)))
+      (setq arg (1+ arg))
+      (forward-line -1)
+      (while (and (not (bobp)) (mentor-between-items)) (forward-line -1))
+      (beginning-of-line)
+      (save-excursion (funcall function)))
+    (move-marker pos nil)
+    ;; (dired-move-to-filename)
+    ))
+
 (defmacro mentor-map-over-marks (body arg &optional show-progress)
   "Eval BODY with point on each marked line.  Return a list of BODY's results.
 If no marked item could be found, execute BODY on the current line.
@@ -456,31 +481,6 @@ Optional argument ARG, if non-nil, specifies items near
      (mentor-map-over-marks
       (mentor-item-get-name (mentor-get-item-at-point))
       arg))))
-
-(defun mentor-repeat-over-lines (arg function)
-  ;; This version skips non-file lines.
-  (let ((pos (make-marker)))
-    (beginning-of-line)
-    (while (and (> arg 0) (not (eobp)))
-      (setq arg (1- arg))
-      (beginning-of-line)
-      (while (and (not (eobp)) (mentor-between-items)) (forward-line 1))
-      (save-excursion
-        (forward-line 1)
-        (move-marker pos (1+ (point))))
-      (save-excursion (funcall function))
-      ;; Advance to the next line--actually, to the line that *was* next.
-      ;; (If FUNCTION inserted some new lines in between, skip them.)
-      (goto-char pos))
-    (while (and (< arg 0) (not (bobp)))
-      (setq arg (1+ arg))
-      (forward-line -1)
-      (while (and (not (bobp)) (mentor-between-items)) (forward-line -1))
-      (beginning-of-line)
-      (save-excursion (funcall function)))
-    (move-marker pos nil)
-    ;; (dired-move-to-filename)
-    ))
 
 (defun mentor-mark-pop-up (bufname items function &rest args)
   "Return FUNCTION's result on ARGS after showing which items are marked.
@@ -973,21 +973,13 @@ this subdir."
   (let ((mentor-marker-char ?\040))
     (mentor-mark arg)))
 
-(defmacro mentor-do-all-items (&rest body)
-  `(save-excursion
-     (goto-char (point-min))
-     (when (not (mentor-get-item-type))
-       (mentor-next-item t))
-     (while (mentor-get-item-type)
-       ,@body
-       (mentor-next-item t))))
-
 (defun mentor-mark-all ()
   "Mark all visible items except directories."
   (interactive)
-  (mentor-do-all-items
-   (when (not (eq (mentor-get-item-type) 'dir))
-     (mentor-mark))))
+  (save-excursion
+    (goto-char (point-min))
+    (while (not (eobp))
+      (mentor-mark))))
 
 (defun mentor-unmark-all ()
   "Unmark all visible items."
