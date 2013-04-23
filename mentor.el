@@ -987,7 +987,7 @@ this subdir."
   (interactive)
   (mentor-do-all-items
    (when (not (eq (mentor-get-item-type) 'dir))
-     (mentor-set-mark t))))
+     (mentor-mark))))
 
 (defun mentor-unmark-all ()
   "Unmark all visible items."
@@ -1480,6 +1480,10 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defvar mentor-torrent-views)
 (make-variable-buffer-local 'mentor-torrent-views)
 
+(defconst mentor-custom-view-prefix "mentor-"
+  "The string to add to the view name before adding it to
+  rtorrent.")
+
 (defun mentor-add-torrent-to-view (view)
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
@@ -1501,10 +1505,6 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defconst mentor-torrent-default-views
   '("main" "name" "started" "stopped" "complete"
     "incomplete" "hashing" "seeding" "active"))
-
-(defconst mentor-custom-view-prefix "mentor-"
-  "The string to add to the view name before adding it to
-  rtorrent.")
 
 ;; TODO find out what a valid name is in rtorrent
 (defun mentor-views-valid-view-name (name)
