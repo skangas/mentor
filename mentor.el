@@ -92,16 +92,13 @@ connecting through scgi or http."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '(((mentor-torrent-get-prio) -3 "Pri")
-    ((mentor-torrent-get-state) -3 "State")
+  '(((mentor-torrent-get-state) -3 "State")
     ((mentor-torrent-get-progress) -3 "Cmp")
-    (name -80 "Name")
+    (name -50 "Name")
     ((mentor-torrent-get-speed-up) -6 "Up")
     ((mentor-torrent-get-speed-down) -6 "Down")
     ((mentor-torrent-get-size) -15 "     Size")
-    (message -40 "Message")
-    (directory -100 "Directory")
-    (tied_to_file -80 "Tied file name"))
+    (message -40 "Message"))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(repeat (list symbol integer string)))
