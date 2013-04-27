@@ -1037,9 +1037,16 @@ this subdir."
       (error (concat "No such file or directory: " new)))
     new))
 
+;; TODO: Update view after load
 (defun mentor-add-torrent ()
   (interactive)
-  (message "TODO: mentor-add-torrent"))
+  (let* ((is-torrent-p (lambda (x)
+                         (or (and (not (string-match "^\\." x))
+                                  (file-directory-p x))
+                             (string-match "\.torrent$" x))))
+         (file (read-file-name "Add torrent: " nil nil
+                               nil nil is-torrent-p)))
+    (mentor-c-load-raw file)))
 
 (defun mentor-torrent-call-command ()
   (interactive)
@@ -1346,6 +1353,23 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-item-get-name (torrent)
   (mentor-item-property 'name torrent))
 
+;; General RPC commands, prefix c
+(defun mentor-c-load (file &optional start)
+  (let ((cmd (if start "load.start_verbose" "load.verbose")))
+    (mentor-rpc-command cmd "" file)))
+
+(defun mentor-c-load-raw (file &optional start)
+  (let ((cmd (if start "load.raw_start_verbose" "load.raw_verbose"))
+        (data (with-temp-buffer
+                (insert-file-contents-literally file)
+                (buffer-substring-no-properties (point-min) (point-max)))))
+    (mentor-rpc-command cmd "" data)))
+
+(defun mentor-c-use-deprecated-set (arg)
+  "Same as command line -D flag."
+  (mentor-rpc-command "method.use_deprecated.set" "" arg))
+
+;; Download RPC commands, prefix d
 (defun mentor-d-close (&optional tor)
   (mentor-rpc-command "d.close" (mentor-d-get-hash tor)))
 
