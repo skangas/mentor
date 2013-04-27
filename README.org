@@ -8,7 +8,7 @@ be as close to the vanilla rtorrent curses interface as possible.
 
 You can find the latest version of mentor here:
 
-http://www.github.com/skangas/rtorrent
+http://www.github.com/skangas/mentor
 
 ** Screenshot
 
