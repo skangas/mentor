@@ -238,7 +238,7 @@ using `make-mentor-item'.")
     (define-key map (kbd "k") 'mentor-torrent-remove)
     (define-key map (kbd "r") 'mentor-torrent-hash-check)
     (define-key map (kbd "s") 'mentor-torrent-start)
-    (define-key map (kbd "x") 'mentor-torrent-call-command)
+    (define-key map (kbd "x") 'mentor-call-command)
 
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
@@ -1048,9 +1048,9 @@ this subdir."
                                nil nil is-torrent-p)))
     (mentor-c-load-raw file)))
 
-(defun mentor-torrent-call-command ()
-  (interactive)
-  (message "TODO: mentor-torrent-call-comamnd"))
+(defun mentor-call-command (&optional cmd)
+  (interactive "MEnter command: ")
+  (apply 'mentor-rpc-command (split-string cmd)))
 
 (defun mentor-torrent-remove-helper (remove-files &optional arg)
   (when (mentor-mark-confirm
