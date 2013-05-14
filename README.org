@@ -37,9 +37,26 @@ Add this to your ~/.rtorrent.rc:
  : xmlrpc_dialect = i8
  : encoding_list = UTF-8
    
-Make sure `scgi_port' matches `mentor-rtorrent-url' above.
+Make sure `scgi_port' matches `mentor-rtorrent-url' above. Restart rTorrent.
 
-Restart both rTorrent and Emacs (or just make sure mentor is loaded).
+Make sure you have at least version 1.6.8 of xml-rpc.el installed.  If you are
+using Emacs 24 you can install it from ELPA/Marmalade.  Add the Marmalade to
+your ~/.emacs:
+
+: (add-to-list 'package-archives 
+:              '("marmalade" .
+:                "http://marmalade-repo.org/packages/"))
+
+Evaluate these lines or restart Emacs. Now can install xml-rpc.el using:
+
+: M-x package-list-packages
+
+If you are on Emacs 23, Google for xml-rpc.el and make sure you use at least
+version 1.6.8.
+
+Make sure mentor is loaded, using this command:
+
+: M-: (require 'mentor)
 
 To start mentor, run:
 
