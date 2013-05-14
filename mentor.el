@@ -1,13 +1,14 @@
-;;; mentor.el --- Control rtorrent from GNU Emacs
+;;; mentor.el --- Frontend for the rTorrent bittorrent client
 
-;; Copyright (C) 2010, 2011, 2012, 2013 Stefan Kangas.
+;; Copyright (C) 2010-2013 Stefan Kangas.
 ;; Copyright (C) 2011 David Spångberg.
 
 ;; Author: Stefan Kangas <skangas@skangas.se>
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Keywords: bittorrent, rtorrent
+;; Package-Requires: ((xml-rpc "0.6.8"))
 
-(defconst mentor-version "0.1"
+(defconst mentor-version "0.1.1"
   "The version of Mentor that you're using.")
 
 ;; This file is NOT part of GNU Emacs.
@@ -27,12 +28,12 @@
 
 ;;; Commentary:
 
-;; This is a GNU Emacs interface for the `rtorrent' bittorrent client.  It uses
+;; This is a GNU Emacs interface for the `rTorrent' bittorrent client.  It uses
 ;; XML-RPC to communicate with rtorrent, and needs rtorrent to be configured
 ;; accordingly.  This project aims to provide a feature complete interface.
 
 ;; TODO:
-;; Add mentor to Marmalade
+
 ;; Support non-blocking calls ('execute.*.bg'), introduced with rtorrent 0.8.9
 ;; Filters
 ;; Sort according to column, changable with < and >
