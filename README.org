@@ -1,14 +1,17 @@
 * mentor
 
-mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client, using XML-RPC.
+mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.  It uses
+XML-RPC to communicate with rTorrent, and needs rTorrent to be configured
+accordingly.
 
 This project aims to provide a feature complete and highly customizable
 interface, which will feel familiar to Emacs users. Key bindings are chosen to
-be as close to the vanilla rtorrent curses interface as possible.
+be as close to the vanilla rTorrent curses interface as possible.
 
-You can find the latest version of mentor here:
-
-http://www.github.com/skangas/mentor
+mentor still has some way to go before it can really be considered a complete
+interface, so please moderate your expectations. It works fine for many common
+tasks though, and in some cases (dare we say?) much better than the standard
+ncurses interface.
 
 ** Screenshot
 
@@ -17,50 +20,60 @@ http://www.github.com/skangas/mentor
 Screenshot of moving a download and its data to another directory using ido
 integration. Sort your downloads in a breeze!
 
-** Quick Start
+** Installing mentor
+
+*** Installing through MELPA (recommended)
+
+If you are using Emacs 24 you can install mentor using ELPA.  It is available
+from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these lines to
+your init.el:
+
+: (add-to-list 'package-archives
+:  '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+Evaluate these lines or restart Emacs. Next, find and install mentor using this
+command:
+
+: M-x package-list-packages
+
+*** Installing mentor manually
+
+If you for some reason do not use Emacs 24 (e.g. using Debian wheezy), or do not
+want to use ELPA, you can install mentor manually.
 
 Clone the repository using:
 
 : git clone https://github.com/skangas/mentor.git
 
-Add this to your ~/.emacs:
+Add this to your init.el:
 
- : (add-to-list 'load-path "~/src/mentor/")
- : (require 'mentor)
- : (setq mentor-rtorrent-url "scgi://localhost:5000")
-   
+: (add-to-list 'load-path "~/src/mentor/")
+: (require 'mentor)
+
 Change "~/src/mentor" to the path where you keep the mentor source code.
 
-Add this to your ~/.rtorrent.rc:
+Make sure you have xml-rpc.el installed, at least version 1.6.8.
+
+** Quick Start
+
+- Add this to your init.el:
+
+   : (require 'mentor)
+   : (setq mentor-rtorrent-url "scgi://localhost:5000")
+
+   Evaluate these lines or restart Emacs.
+
+- Add this to your ~/.rtorrent.rc:
    
- : scgi_port = 127.0.0.1:5000
- : xmlrpc_dialect = i8
- : encoding_list = UTF-8
+   : scgi_port = 127.0.0.1:5000
+   : xmlrpc_dialect = i8
+   : encoding_list = UTF-8
    
-Make sure `scgi_port' matches `mentor-rtorrent-url' above. Restart rTorrent.
+   Make sure `scgi_port' matches `mentor-rtorrent-url' above. Restart rTorrent.
 
-Make sure you have at least version 1.6.8 of xml-rpc.el installed.  If you are
-using Emacs 24 you can install it from ELPA/Marmalade.  Add the Marmalade to
-your ~/.emacs:
+- To start mentor, run:
 
-: (add-to-list 'package-archives 
-:              '("marmalade" .
-:                "http://marmalade-repo.org/packages/"))
-
-Evaluate these lines or restart Emacs. Now can install xml-rpc.el using:
-
-: M-x package-list-packages
-
-If you are on Emacs 23, Google for xml-rpc.el and make sure you use at least
-version 1.6.8.
-
-Make sure mentor is loaded, using this command:
-
-: M-: (require 'mentor)
-
-To start mentor, run:
-
- : M-x mentor
+   : M-x mentor
 
 ** Additional configuration
 
@@ -71,18 +84,24 @@ You can find Mentor in the `External' customize group.
 ** Configuring rtorrent
 
 For more information on configuring rTorrent, refer to:
-   
+
 http://libtorrent.rakshasa.no/wiki/RTorrentXMLRPCGuide
 
 ** Known issues
 
+- The file view needs much love, and is currently not known to be
+  working. Sorry.
+
+- There is no view for trackers/peers/extra information.
+
 - There is currently no support (patches welcome) for communicating with
   rtorrent over a local socket using the more secure scgi_local command. This
-  means it is currently not advisable to use mentor on anything but single user
-  systems.
+  means it is currently not advisable to use mentor on anything but single
+  user systems.
 
-- mentor currently has some performance issues if you have many (several
-  hundreds) torrents. Be aware.
+- mentor currently has some performance issues if you have many torrents
+  (several hundreds). Be aware.
+
 
 ** Misc
 
@@ -95,6 +114,11 @@ http://libtorrent.rakshasa.no/wiki/RTorrentXMLRPCGuide
 
   : (autoload 'mentor "mentor" nil t)
 
-* Contact
+** Contact
 
-Send bug reports, suggestions and patches to <skangas@skangas.se>.
+You can find the latest version of mentor here:
+
+http://www.github.com/skangas/mentor
+
+Bug reports, comments, and suggestions are welcome! Send them to
+<skangas@skangas.se> or report them on GitHub.
