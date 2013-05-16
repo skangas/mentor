@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <skangas@skangas.se>
 ;; Version: 0.1.1
 ;; Keywords: bittorrent, rtorrent
-;; Package-Requires: ((xml-rpc "0.6.8"))
+;; Package-Requires: ((xml-rpc "1.6.9"))
 
 (defconst mentor-version "0.1.1"
   "The version of Mentor that you're using.")
@@ -110,62 +110,6 @@
 (require 'cl)
 (require 'url-scgi)
 (require 'xml-rpc)
-
-;; XXX: Hack to get version 1.6.8 working with mentor. Drop this when version
-;; 1.6.9 is in Marmalade.
-(when (equal xml-rpc-version "1.6.8")
-  (defun xml-rpc-xml-list-to-value (xml-list)
-    "Convert an XML-RPC structure in an xml.el style XML-LIST to an elisp list, \
-interpreting and simplifying it while retaining its structure."
-    (let (valtype valvalue)
-      (cond
-       ((and (xml-rpc-caddar-safe xml-list)
-             (listp (car-safe (cdr-safe (cdr-safe (car-safe xml-list))))))
-
-        (setq valtype (car (caddar xml-list))
-              valvalue (caddr (caddar xml-list)))
-        (cond
-         ;; Base64
-         ((eq valtype 'base64)
-          (if xml-rpc-base64-decode-unicode
-              (decode-coding-string (base64-decode-string valvalue) 'utf-8)
-            (base64-decode-string valvalue)))
-         ;; Boolean
-         ((eq valtype 'boolean)
-          (xml-rpc-string-to-boolean valvalue))
-         ;; String
-         ((eq valtype 'string)
-          valvalue)
-         ;; Integer
-         ((or (eq valtype 'int) (eq valtype 'i4) (eq valtype 'i8))
-          (string-to-number (or valvalue "0")))
-         ;; Double/float
-         ((eq valtype 'double)
-          (string-to-number valvalue))
-         ;; Struct
-         ((eq valtype 'struct)
-          (mapcar (lambda (member)
-                    (let ((membername (cadr (cdaddr member)))
-                          (membervalue (xml-rpc-xml-list-to-value
-                                        (cdddr member))))
-                      (cons membername membervalue)))
-                  (cddr (caddar xml-list))))
-         ;; Fault
-         ((eq valtype 'fault)
-          (let* ((struct (xml-rpc-xml-list-to-value (list valvalue)))
-                 (fault-string (cdr (assoc "faultString" struct)))
-                 (fault-code (cdr (assoc "faultCode" struct))))
-            (list 'fault fault-code fault-string)))
-         ;; DateTime
-         ((or (eq valtype 'dateTime.iso8601)
-              (eq valtype 'dateTime))
-          (list :datetime (date-to-time valvalue)))
-         ;; Array
-         ((eq valtype 'array)
-          (mapcar (lambda (arrval)
-                    (xml-rpc-xml-list-to-value (list arrval)))
-                  (cddr valvalue)))))
-       ((xml-rpc-caddar-safe xml-list))))))
 
 
 ;;; Customizable variables

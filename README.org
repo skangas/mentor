@@ -52,7 +52,7 @@ Add this to your init.el:
 
 Change "~/src/mentor" to the path where you keep the mentor source code.
 
-Make sure you have xml-rpc.el installed, at least version 1.6.8.
+Make sure you have xml-rpc.el installed, at least version 1.6.9.
 
 ** Quick Start
 
