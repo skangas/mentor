@@ -104,9 +104,7 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'dired)
-  (defmacro string> (a b) (list 'not (list 'or (list 'string= a b)
-                                         (list 'string< a b)))))
+  (require 'dired))
 (require 'cl)
 (require 'url-scgi)
 (require 'xml-rpc)
@@ -303,7 +301,7 @@ using `make-mentor-item'.")
 
     ;; misc actions
     (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
-    (define-key map (kbd "TAB") 'mentor-toggle-object)
+    (define-key map (kbd "TAB") 'mentor-toggle-item)
 
     (define-key map (kbd "m") 'mentor-mark)
     (define-key map (kbd "u") 'mentor-unmark)
@@ -704,23 +702,6 @@ expensive operation."
     (mentor-redisplay-torrent)))
 
 
-;;; Insert item into buffer
-
-(defun mentor-item-insert (id)
-  (let* ((item (mentor-get-item id))
-         (text (mentor-process-view-columns item mentor-view-columns))
-         (marked (mentor-item-marked item)))
-    (insert (propertize text
-                        'marked marked
-                        'field id
-                        'collapsed t
-                        'type 'torrent) "\n")
-    (when marked
-      (save-excursion
-        (mentor-previous-item)
-        (mentor-mark)))))
-
-
 ;;; Main torrent view
 
 (defmacro mentor-keep-position (&rest body)
@@ -735,19 +716,33 @@ expensive operation."
             (goto-char kept-point)))
        (goto-char kept-point))))
 
+(defun mentor-insert-torrent (id)
+  (let* ((item (mentor-get-item id))
+         (text (mentor-process-view-columns item mentor-view-columns))
+         (marked (mentor-item-marked item)))
+    (insert (propertize text
+                        'marked marked
+                        'field id
+                        'collapsed t
+                        'type 'torrent) "\n")
+    (when marked
+      (save-excursion
+        (mentor-previous-item)
+        (mentor-mark)))))
+
 (defun mentor-insert-torrents ()
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
-      (mentor-item-insert id))
+      (mentor-insert-torrent id))
     (when (> (length tor-ids) 0)
       (mentor-sort))))
 
 (defun mentor-redisplay-torrent ()
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
-    (mentor-delete-from-buffer)
-    (mentor-item-insert id)
+    (mentor-delete-item-from-buffer)
+    (mentor-insert-torrent id)
     (mentor-previous-item)))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
@@ -834,7 +829,7 @@ expensive operation."
          (b (car y))
          (reverse (cdr-safe (car props)))
          (cmp (if (stringp a)
-                  (if reverse (string> a b) (string< a b))
+                  (if reverse (not (string< a b)) (string< a b))
                 (if reverse (> a b) (< a b)))))
     (when (and (not cmp) (equal a b) (> (length props) 1))
       (setq cmp (mentor-cmp-properties (cdr x) (cdr y) (cdr props))))
@@ -914,7 +909,7 @@ that point. Otherwise goto the real start point."
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
-  (mentor-while-same-item nil (< (point) (point-max)) (forward-char)))
+  (mentor-while-same-item nil (not (eobp)) (forward-char)))
 
 (defun mentor-get-item-beginning (&optional real-start)
   "If real-start is nil and the item at point has a item-start
@@ -954,7 +949,7 @@ start point."
      'error-conditions
      '(error mentor-error mentor-missing-torrent))
 
-(defun mentor-delete-from-buffer (&optional items)
+(defun mentor-delete-item-from-buffer (&optional items)
   (when (not items)
     (setq items (list (point))))
   (let ((inhibit-read-only t))
@@ -974,7 +969,7 @@ start point."
         (goto-char pos)
       (signal 'mentor-missing-torrent `("No such torrent" ,id)))))
 
-(defun mentor-toggle-object ()
+(defun mentor-toggle-item ()
   (interactive)
   (let ((type (mentor-get-item-type))
         (props (text-properties-at (point))))
@@ -1021,7 +1016,7 @@ this subdir."
      (prefix-numeric-value arg)
      (function (lambda ()
                  ;; insert at point-at-bol + 1 to inherit all properties
-                 (goto-char (+ 1 (point-at-bol)))
+                 (goto-char (1+ (point-at-bol)))
                  (insert-and-inherit mentor-marker-char)
                  (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
 
@@ -1095,7 +1090,7 @@ this subdir."
     (when (not (condition-case err
                    (mentor-rpc-command "execute" "ls" "-d" new)
                  (error nil)))
-      (error (concat "No such file or directory: " new)))
+      (error "No such file or directory: %s" new))
     new))
 
 ;; TODO: Update view after load
@@ -1118,7 +1113,7 @@ this subdir."
          (or (and remove-files "Remove including data")
              "Remove")
          arg)
-    (mentor-delete-from-buffer
+    (mentor-delete-item-from-buffer
      (mentor-map-over-marks
       (progn
         (when remove-files
@@ -1183,7 +1178,9 @@ this subdir."
          ;; FIXME: Should work also on remote host, i.e. use rpc "execute"
          ;; to look for the file.
          (when (not (file-exists-p old))
-           (error "Download base path %s does not exist" old))
+           (error (concat "Download base path %s does not exist\n"
+                          "Try `mentor-torrent-change-target-directory'")
+                  old))
          (let ((target (concat new (file-name-nondirectory old))))
           (when (file-exists-p target)
             (error "Destination already exists: %s" target)))
@@ -1325,7 +1322,7 @@ this subdir."
         (erase-buffer)
         (mentor-insert-torrents)
         (goto-char (point-max))
-        (insert "\nmentor-" mentor-version " - rTorrent "
+        (insert "\nmentor " mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
@@ -1390,11 +1387,9 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                    (mentor-rpc-value-to-real-value method value)))
            methods values))
 
-(defun mentor-torrent-create-from (methods values)
-  (mentor-torrent-create (mentor-torrent-data-from methods values)))
-
 (defun mentor-torrent-update-from (methods values)
-  (mentor-torrent-update (mentor-torrent-create-from methods values)))
+  (mentor-torrent-update (mentor-torrent-create
+                          (mentor-torrent-data-from methods values))))
 
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
@@ -1701,9 +1696,6 @@ the integer index used by rtorrent to identify this file."
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
 
-(defun mentor-file-at-point-is-dir ()
-  (mentor-file-is-dir (mentor-file-at-point)))
-
 (defun mentor-file-prio-string (file)
   (let ((prio (mentor-file-priority file)))
     (cond ((eq prio 0) "off")
@@ -1945,11 +1937,9 @@ point."
 ;;; Utility functions
 
 (defun mentor-limit-num (num min max)
-  (if (< num min)
-      min
-    (if (> num max)
-        max
-      num)))
+  (cond ((< num min) min)
+        ((> num max) max)
+        (t num)))
 
 (defun mentor-concat-symbols (&rest symbols)
   (intern (apply 'concat (mapcar 'symbol-name symbols))))
@@ -1990,22 +1980,8 @@ point."
 (defun mentor-enforce-length (str maxlen)
   (if (not str)
       (make-string (abs maxlen) ? )
-    (format (concat "%"
-                    (when (< maxlen 0)
-                      "-")
-                    (number-to-string
-                     (abs maxlen))
-                    "s")
-            (substring str
-                       0 (min (length str)
-                              (abs maxlen))))))
-
-(defun mentor-trim-line (str)
-  (if (string= str "")
-      nil
-    (if (equal (elt str (- (length str) 1)) ?\n)
-        (substring str 0 (- (length str) 1))
-      str)))
+    (format (concat "%" (number-to-string maxlen) "s")
+            (substring str 0 (min (length str) (abs maxlen))))))
 
 (provide 'mentor)
 
