@@ -277,6 +277,8 @@ using `make-mentor-item'.")
     (define-key map (kbd "M-g") 'mentor-update-item)
 
     ;; navigation
+    (define-key map (kbd "C-p") 'mentor-previous-item)
+    (define-key map (kbd "C-n") 'mentor-next-item)
     (define-key map (kbd "<up>") 'mentor-previous-item)
     (define-key map (kbd "<down>") 'mentor-next-item)
     (define-key map (kbd "p") 'mentor-previous-item)
@@ -734,9 +736,7 @@ expensive operation."
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
-      (mentor-insert-torrent id))
-    (when (> (length tor-ids) 0)
-      (mentor-sort))))
+      (mentor-insert-torrent id))))
 
 (defun mentor-redisplay-torrent ()
   (let ((inhibit-read-only t)
@@ -812,7 +812,7 @@ expensive operation."
      (let ((sort-fold-case t)
            (inhibit-read-only t))
        (sort-subr nil
-                  (lambda () (ignore-errors (mentor-next-item t)))
+                  (lambda () (ignore-errors (mentor-next-item 1 t)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
                   (lambda ()
                     (let ((item (mentor-get-item-at-point)))
@@ -924,26 +924,30 @@ start point."
     (mentor-end-of-item)
     (point)))
 
-(defun mentor-next-item (&optional no-wrap)
-  (interactive)
-  (condition-case err
-      (mentor-while-same-item t t (forward-char))
-    (end-of-buffer
-     (when (not no-wrap)
-       (goto-char (point-min))
-       (when (not (mentor-get-item-type))
-         (mentor-next-item t)))))
+(defun mentor-next-item (&optional arg no-wrap)
+  (interactive "P")
+  (let* ((arg (or arg 1))
+         (reverse (< arg 0))
+         (i (abs arg)))
+    (while (and (> i 0))
+      (decf i)
+      (mentor-while-same-item
+       t t
+       (let ((at-limit (if reverse (bobp) (eobp)))
+             (other-limit (if reverse (point-max) (point-min)))
+             (step (if reverse -1 1)))
+         (if (not at-limit)
+             (forward-line step)
+           (if no-wrap
+               (signal (if reverse 'beginning-of-buffer 'end-of-buffer) t)
+             (goto-char other-limit)
+             (when (not (mentor-get-item-type))
+               (mentor-next-item step t))))))))
   (mentor-beginning-of-item))
 
-(defun mentor-previous-item (&optional no-wrap)
-  (interactive)
-  (condition-case err
-      (mentor-while-same-item t t (backward-char))
-    (beginning-of-buffer
-     (when (not no-wrap)
-       (goto-char (point-max))
-       (mentor-previous-item t))))
-  (mentor-beginning-of-item t))
+(defun mentor-previous-item (&optional arg no-wrap)
+  (interactive "P")
+  (mentor-next-item (- 0 (or arg 1)) no-wrap))
 
 (put 'mentor-missing-torrent
      'error-conditions
@@ -963,7 +967,7 @@ start point."
                (goto-char (point-min))
                (while (and (not (equal id (mentor-item-id-at-point)))
                            (not (= (point) (point-max))))
-                 (mentor-next-item t))
+                 (mentor-next-item 1 t))
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos)
@@ -1321,6 +1325,7 @@ this subdir."
       (let ((inhibit-read-only t))
         (erase-buffer)
         (mentor-insert-torrents)
+        (mentor-sort)
         (goto-char (point-max))
         (insert "\nmentor " mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
@@ -1775,7 +1780,7 @@ point."
     (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
                                                   (mentor-item-property 'name tor)))
     (if (not (mentor-get-item-type))
-        (mentor-next-item t)
+        (mentor-next-item 1 t)
       (mentor-beginning-of-item))))
 
 (defun mentor-details-add-files (name-list)
