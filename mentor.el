@@ -909,7 +909,8 @@ that point. Otherwise goto the real start point."
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
-  (mentor-while-same-item nil (not (eobp)) (forward-char)))
+  (ignore-errors (mentor-next-item 1 t))
+  (mentor-while-same-item nil (not (bobp)) (backward-char)))
 
 (defun mentor-get-item-beginning (&optional real-start)
   "If real-start is nil and the item at point has a item-start
@@ -942,8 +943,7 @@ start point."
                (signal (if reverse 'beginning-of-buffer 'end-of-buffer) t)
              (goto-char other-limit)
              (when (not (mentor-get-item-type))
-               (mentor-next-item step t))))))))
-  (mentor-beginning-of-item))
+               (mentor-next-item step t)))))))))
 
 (defun mentor-previous-item (&optional arg no-wrap)
   (interactive "P")
