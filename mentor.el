@@ -312,6 +312,8 @@ using `make-mentor-item'.")
 
     (define-key map (kbd "v") 'mentor-view-in-dired)
 
+    (define-key map (kbd "l") 'mentor-load)
+
     ;; sort functions
     (define-key map (kbd "t c") 'mentor-sort-by-state)
     (define-key map (kbd "t D") 'mentor-sort-by-directory)
@@ -1110,6 +1112,13 @@ this subdir."
          (file (read-file-name "Add torrent: " nil nil
                                nil nil is-torrent-p)))
     (mentor-c-load-raw file)))
+
+(defun mentor-load (prefix file)
+  "Load a file/url adding it to the current torrents if
+successful. If prefix is set the added torrent is started after
+being added."
+  (interactive "P\nMMentor load: ")
+  (mentor-c-load file prefix))
 
 (defun mentor-call-command (&optional cmd)
   (interactive "MEnter command: ")
