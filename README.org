@@ -20,6 +20,21 @@ ncurses interface.
 Screenshot of moving a download and its data to another directory using ido
 integration. Sort your downloads in a breeze!
 
+** Features
+
+Here is a summary of some of the features:
+
+- Show torrents in a table, with configurable columns.
+- Search torrents using C-s (no more of the manual up/down).
+- Mark and perform operations on more than one torrent at once.
+- Sort torrents according to one or more criteria.
+- Move downloads together with their data in one command.
+- Swith between views, create new etc. (like numbers)
+- Support for most standard operations. (Start/stop/rehash/move etc.)
+- Use all Emacs features you are used to: macros, Emacs lisp etc.
+
+Patches welcome.
+
 ** Installing mentor
 
 *** Installing through MELPA (recommended)
