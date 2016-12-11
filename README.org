@@ -24,9 +24,9 @@ integration. Sort your downloads in a breeze!
 
 *** Installing through MELPA (recommended)
 
-If you are using Emacs 24 you can install mentor using ELPA.  It is available
-from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these lines to
-your init.el:
+If you are using Emacs 24 or later you can install mentor using ELPA.  It is
+available from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these
+lines to your init.el:
 
 : (add-to-list 'package-archives
 :  '("melpa" . "http://melpa.milkbox.net/packages/") t)
@@ -85,7 +85,7 @@ You can find Mentor in the `External' customize group.
 
 For more information on configuring rTorrent, refer to:
 
-http://libtorrent.rakshasa.no/wiki/RTorrentXMLRPCGuide
+https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC
 
 ** Known issues
 
@@ -120,5 +120,5 @@ You can find the latest version of mentor here:
 
 http://www.github.com/skangas/mentor
 
-Bug reports, comments, and suggestions are welcome! Send them to
-<skangas@skangas.se> or report them on GitHub.
+Bug reports, comments, and suggestions are welcome! Send them to Stefan Kangas
+<stefankangas@gmail.com> or report them on GitHub.
