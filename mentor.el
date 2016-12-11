@@ -236,13 +236,13 @@ using `make-mentor-item'.")
   "Additional expressions to highlight in Mentor mode.")
 
 (defconst mentor-volatile-rpc-d-methods
-  '("d.get_local_id" ;; must not be removed
-    "d.get_base_path"    "d.get_bytes_done"
-    "d.get_directory"    "d.get_down_rate"
-    "d.get_hashing"      "d.get_hashing_failed"
-    "d.get_priority"     "d.get_chunk_size"
-    "d.get_up_rate"      "d.get_up_total"
-    "d.get_state"        "d.views"
+  '("d.local_id" ;; must not be removed
+    "d.base_path"        "d.bytes_done"
+    "d.directory"        "d.down.rate"
+    "d.hashing"          "d.hashing_failed"
+    "d.priority"         "d.chunk_size"
+    "d.up.rate"          "d.up.total"
+    "d.state"            "d.views"
     "d.is_active"        "d.is_hash_checked"
     "d.is_hash_checking" "d.is_open"
     "d.is_pex_active"))
@@ -375,8 +375,8 @@ Type \\[mentor] to start Mentor.
          (mentor-init-header-line)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
-               mentor-rtorrent-name (mentor-rpc-command "get_name"))
-         (let* ((pwd-with-trailing-newline (mentor-rpc-command "execute_capture" "pwd"))
+               mentor-rtorrent-name (mentor-rpc-command "session.name"))
+         (let* ((pwd-with-trailing-newline (mentor-rpc-command "execute.capture" "" "pwd"))
                 (pwd (substring pwd-with-trailing-newline 0 -1)))
            (cd (file-name-as-directory pwd)))
          (mentor-set-view mentor-default-view)
@@ -1097,7 +1097,7 @@ this subdir."
     (when (string-equal old new)
       (error "Source and destination are the same"))
     (when (not (condition-case err
-                   (mentor-rpc-command "execute" "ls" "-d" new)
+                   (mentor-rpc-command "execute2" "" "ls" "-d" new)
                  (error nil)))
       (error "No such file or directory: %s" new))
     new))
@@ -1156,7 +1156,7 @@ being added."
          (prompt (or prompt "New path: "))
          (new (read-file-name prompt old nil t)))
     (if (condition-case err
-            (mentor-rpc-command "execute" "ls" "-d" new)
+            (mentor-rpc-command "execute2" "" "ls" "-d" new)
           (error nil))
         (setq mentor-last-move-target new)
       (error (concat "No such file or directory: " new)))))
@@ -1191,7 +1191,7 @@ being added."
        (when (not no-move)
          (when (null old)
            (error "Torrent has no base path"))
-         ;; FIXME: Should work also on remote host, i.e. use rpc "execute"
+         ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
          ;; to look for the file.
          (when (not (file-exists-p old))
            (error (concat "Download base path %s does not exist\n"
@@ -1411,7 +1411,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
-         (list-of-values (apply 'mentor-rpc-command "d.multicall" mentor-current-view methods=)))
+         (list-of-values (apply 'mentor-rpc-command "d.multicall2" "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
       (mentor-torrent-update-from methods values))))
@@ -1473,7 +1473,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-d-set-directory (new &optional tor)
   ;; FIXME: Is this the only property that needs updating?
   (mentor-item-set-property 'directory new)
-  (mentor-rpc-command "d.set_directory" (mentor-d-get-hash tor) new))
+  (mentor-rpc-command "d.directory.set" (mentor-d-get-hash tor) new))
 
 (defun mentor-d-start (&optional tor)
   (mentor-rpc-command "d.start" (mentor-d-get-hash tor)))
@@ -1482,7 +1482,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (mentor-rpc-command "d.stop" (mentor-d-get-hash tor)))
 
 (defun mentor-execute (&rest args)
-  (apply 'mentor-rpc-command "execute" args))
+  (apply 'mentor-rpc-command "execute2" "" args))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
@@ -1536,7 +1536,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
         (message "Receiving file list...")
         (setq files (mentor-rpc-command
                      "f.multicall" (mentor-d-get-hash tor)
-                     "" "f.get_path_components="))
+                     "" "f.path_components="))
         (mentor-item-set-property 'files files tor)))
     files))
 
@@ -1558,7 +1558,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (let ((tor (mentor-get-item-at-point))
         (hash (mentor-item-property 'hash))
         (prio (mentor-item-property 'priority)))
-    (list "d.set_priority" hash (mentor-limit-num (+ prio val) 0 3))))
+    (list "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
 
 
 ;;; View functions
@@ -1620,7 +1620,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 the new views view_filter. SHOULD BE USED WITH CARE! Atleast in
 rtorrent 0.8.6, rtorrent crashes if you try to add the same view
 twice!"
-  (mentor-rpc-command "view_add" view)
+  (mentor-rpc-command "view.add" view)
   (setq mentor-torrent-views (cons view mentor-torrent-views))
   (mentor-views-update-filter view))
 
@@ -1643,14 +1643,14 @@ already in view_list and sets all new view_filters."
 
 (defun mentor-views-update-views ()
   "Updates the view list with all views defined by rtorrent."
-  (setq mentor-torrent-views (mentor-rpc-command "view_list")))
+  (setq mentor-torrent-views (mentor-rpc-command "view.list")))
 
 (defun mentor-views-update-filter (view)
   "Updates the view_filter for the specified view. You need to do
 this everytime you add/remove a torrent to a view since
 rtorrent (atleast as of 0.8.6) does not add/remove new torrents
 to a view unless the filter is updated."
-  (mentor-rpc-command "view_filter" view
+  (mentor-rpc-command "view.filter" view
                       (concat "d.views.has=" view)))
 
 (defun mentor-views-update-filters ()
@@ -1689,7 +1689,7 @@ to a view unless the filter is updated."
   "Keymap used in `mentor-torrent-details-mode'.")
 
 (defconst mentor-volatile-rpc-f-methods
-  '("f.get_priority" "f.get_completed_chunks" "f.get_size_chunks"))
+  '("f.priority" "f.completed_chunks" "f.size_chunks"))
 
 (define-minor-mode mentor-torrent-details-mode
   "Minor mode for managing a torrent in mentor."
@@ -1738,7 +1738,7 @@ the integer index used by rtorrent to identify this file."
          (prio (mentor-file-priority file))
          (hash (mentor-item-property 'hash mentor-selected-torrent)))
     (when (not (mentor-file-is-dir file))
-      (list "f.set_priority" hash id (mentor-limit-num (+ prio val) 0 2)))))
+      (list "f.priority.set" hash id (mentor-limit-num (+ prio val) 0 2)))))
 
 (defun mentor-toggle-file (file)
   (interactive)
@@ -1837,7 +1837,7 @@ point."
          (methods+ (mapcar
                     'mentor-get-some-methods-as-string
                     (if add-files
-                        (cons "f.get_path_components" methods)
+                        (cons "f.path_components" methods)
                       methods)))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
          (value-list (apply 'mentor-rpc-command
