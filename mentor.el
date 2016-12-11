@@ -143,7 +143,7 @@ something like `/ssh:user@example.com:'.)"
   :group 'mentor
   :type 'boolean)
 
-(defcustom mentor-rtorrent-url "scgi://localhost:5000"
+(defcustom mentor-rtorrent-url "scgi://127.0.0.1:5000"
   "The URL to the rtorrent client. Can either be on the form
 scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
 connecting through scgi or http."
