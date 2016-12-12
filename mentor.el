@@ -33,18 +33,18 @@
 ;; accordingly.
 
 ;; This project aims to provide a feature complete and highly customizable
-;; interface, which will feel familiar to Emacs users. Key bindings are chosen
+;; interface, which will feel familiar to Emacs users.  Key bindings are chosen
 ;; to be as close to the vanilla rTorrent curses interface as possible.
 
 ;; mentor still has some way to go before it can really be considered a complete
-;; interface, so please moderate your expectations. It works fine for many
+;; interface, so please moderate your expectations.  It works fine for many
 ;; common tasks though, and in some cases (dare we say?) much better than the
 ;; standard ncurses interface.
 
 ;; * QUICK START
 
 ;; Assuming you are installing mentor through MELPA, which is the recommended
-;; way, here are some instructions to get you started. Otherwise, please see the
+;; way, here are some instructions to get you started.  Otherwise, please see the
 ;; README.org file included in the repository for additional instructions.
 
 ;; 1. Add this to your init.el:
@@ -60,7 +60,7 @@
 ;;    xmlrpc_dialect = i8
 ;;    encoding_list = UTF-8
 ;;    
-;;    Make sure `scgi_port' matches `mentor-rtorrent-url' above. Restart rTorrent.
+;;    Make sure `scgi_port' matches `mentor-rtorrent-url' above.  Restart rTorrent.
 
 ;; 3. To start mentor, run:
 ;;
@@ -81,17 +81,17 @@
 ;; * KNOWN ISSUES
 
 ;; - The file view needs much love, and is currently not known to be
-;;   working. Sorry.
+;;   working.  Sorry.
 ;;
 ;; - There is no view for trackers/peers/extra information.
 ;;
 ;; - There is currently no support (patches welcome) for communicating with
-;;   rtorrent over a local socket using the more secure scgi_local command. This
+;;   rtorrent over a local socket using the more secure scgi_local command.  This
 ;;   means it is currently not advisable to use mentor on anything but single
 ;;   user systems.
 ;;
 ;; - mentor currently has some performance issues if you have many torrents
-;;   (several hundreds). Be aware.
+;;   (several hundreds).  Be aware.
 
 ;; * CONTACT
 ;;
@@ -121,8 +121,10 @@
   '((1 . "main") (2 . "main") (3 . "started")
     (4 . "stopped") (5 . "complete") (6 . "incomplete")
     (7 . "hashing") (8 . "seeding") (9 . "active"))
-  "A list of mappings \"(BINDING . VIEWNAME)\" where BINDING is
-the key to which the specified view will be bound to."
+  "A list of mappings to bind keys to views.
+
+This takes the form \"(BINDING . VIEWNAME)\" where BINDING is the
+key to which the specified VIEWNAME will be bound to."
   :group 'mentor
   :type '(alist :key-type integer :value-type string))
 
@@ -132,9 +134,10 @@ the key to which the specified view will be bound to."
   :type 'string)
 
 (defcustom mentor-directory-prefix ""
-  "Prefix to use before all directories. (Hint: If your rtorrent
-process is running on a remote host, you could set this to
-something like `/ssh:user@example.com:'.)"
+  "Prefix to use before all directories.
+
+If your rtorrent process is running on a remote host, you could
+set this to something like `/ssh:user@example.com:'."
   :group 'mentor
   :type 'string)
 
@@ -143,10 +146,15 @@ something like `/ssh:user@example.com:'.)"
   :group 'mentor
   :type 'boolean)
 
-(defcustom mentor-rtorrent-url "scgi://127.0.0.1:5000"
-  "The URL to the rtorrent client. Can either be on the form
-scgi://HOST:PORT or http://HOST[:PORT]/PATH depending on if you are
-connecting through scgi or http."
+(defcustom mentor-rtorrent-url "scgi://~/.emacs.d/rtorrent-rpc.socket"
+  "The URL to the rtorrent XML-RPC socket.
+
+When connecting directly to the scgi_port, use
+`scgi://HOST:PORT'.
+
+If the connection is over http, which would be the case when
+using a web server in front of rtorrent, you would put
+`http://HOST[:PORT]/PATH'."
   :group 'mentor
   :type 'string)
 
@@ -174,7 +182,7 @@ connecting through scgi or http."
 
 (defvar mentor-items nil
   "Hash table containing all items for the current buffer.
-This can be torrents, files, peers etc. All values should be made
+This can be torrents, files, peers etc.  All values should be made
 using `make-mentor-item'.")
 (make-variable-buffer-local 'mentor-items)
 
@@ -197,7 +205,7 @@ using `make-mentor-item'.")
 (make-variable-buffer-local 'mentor-last-move-target)
 
 (defvar mentor-view-torrent-list nil
-  "alist of torrents in given views")
+  "A list of torrents in given views.")
 
 (defvar mentor-marker-char ?*)
 
@@ -250,7 +258,7 @@ using `make-mentor-item'.")
 ;; Variables that should be changed by sub-modes
 
 (defvar mentor-sub-mode nil
-  "The submode which is currently active")
+  "The submode which is currently active.")
 (make-variable-buffer-local 'mentor-sub-mode)
 (put 'mentor-sub-mode 'permanent-local t)
 
@@ -363,6 +371,7 @@ Type \\[mentor] to start Mentor.
 
 ;;;###autoload
 (defun mentor ()
+  "Start mentor."
   (interactive)
   (progn (switch-to-buffer (get-buffer-create "*mentor*"))
          (mentor-mode)
@@ -412,7 +421,7 @@ in a buffer, like a torrent, file, directory, peer etc."
      ,body))
 
 (defun mentor-item-property (property &optional item)
-  "Get property for an item."
+  "Get PROPERTY for item at point or ITEM."
   (mentor-use-item-at-point
    (cdr (assoc property (mentor-item-data item)))))
 
@@ -442,7 +451,9 @@ If MUST-EXIST is non-nil, give a warning if the property does not
   (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
 
 (defun mentor-repeat-over-lines (arg function)
-  ;; This version skips non-file lines.
+  "Repeat over lines.
+
+This version skips non-file lines."
   (let ((pos (make-marker)))
     (beginning-of-line)
     (while (and (> arg 0) (not (eobp)))
@@ -606,7 +617,7 @@ Return the position of the beginning of the filename, or nil if none found."
    :data data))
 
 (defun mentor-torrent-update (new)
-  "Add or update a torrent using new data."
+  "Add or update a torrent using data in NEW."
   (let* ((id  (mentor-item-property 'local_id new))
          (old (mentor-get-item id)))
     (when (and (null old)
@@ -625,15 +636,16 @@ Return the position of the beginning of the filename, or nil if none found."
 ;;; XML-RPC calls
 
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
-  "Do not try methods that makes rtorrent crash")
+  "Do not try methods that makes rtorrent crash.")
 
 (defvar mentor-rtorrent-rpc-methods-cache nil)
 
 (defun mentor-rpc-list-methods (&optional regexp)
-  "system.listMethods
-Returns a list of all available commands.  First argument is
-interpreted as a regexp, and if specified only returns matching
-functions"
+  "Return a list of all available commands.
+
+This uses the RPC method `system.listMethods'.
+
+If REGEXP is specified it only returns the matching functions."
   (when (not mentor-rtorrent-rpc-methods-cache)
     (let ((methods (mentor-rpc-command "system.listMethods")))
       (setq mentor-rtorrent-rpc-methods-cache
@@ -650,7 +662,9 @@ functions"
     mentor-rtorrent-rpc-methods-cache))
 
 (defun mentor-rpc-command (&rest args)
-  "Run command as an XML-RPC call via SCGI or http."
+  "Run command as an XML-RPC call to rtorrent.
+
+ARGS is a list of strings to run."
   (let* ((url-http-response-status 200)
          (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
@@ -661,9 +675,10 @@ functions"
   (list (cons "methodName" method) (cons "params" args)))
 
 (defun mentor-sys-multicall (&rest calls)
-  "Perform a system.multicall with `calls'.  Every call should be
-a list where the first element is the method name and all
-consecutive elements is its arguments."
+  "Perform a `system.multicall' with CALLS.
+
+CALLS is a list of lists where the first element is the method
+name and all consecutive elements is its arguments."
   (mentor-rpc-command
    "system.multicall"
    (mapcar (lambda (c)
@@ -900,9 +915,11 @@ to sort according to several properties."
        ,@body)))
 
 (defun mentor-beginning-of-item (&optional real-start)
-  "Goto the beginning of the item at point. If the item at point
-has an item-start property defined and real-start is nil goto
-that point. Otherwise goto the real start point."
+  "Goto the beginning of the item at point.
+
+If the item at point has an item-start property defined and
+REAL-START is nil goto that point.  Otherwise goto the real start
+point."
   (interactive)
   (let ((start (or (get-text-property (point) 'item-start)
                    (field-beginning nil nil (point-at-bol)))))
@@ -916,9 +933,6 @@ that point. Otherwise goto the real start point."
   (mentor-while-same-item (not (bobp)) nil (backward-char)))
 
 (defun mentor-get-item-beginning (&optional real-start)
-  "If real-start is nil and the item at point has a item-start
-property defined return that point. Otherwise return the real
-start point."
   (save-excursion
     (mentor-beginning-of-item real-start)
     (point)))
@@ -954,6 +968,7 @@ start point."
                 (setq done t))))))))
 
 (defun mentor-previous-item (&optional arg no-wrap)
+  "Go to previous item."
   (interactive "P")
   (mentor-next-item (- 0 (or arg 1)) no-wrap))
 
