@@ -189,18 +189,6 @@ using `make-mentor-item'.")
 
   "Additional expressions to highlight in Mentor mode.")
 
-(defconst mentor-volatile-rpc-d-methods
-  '("d.local_id" ;; must not be removed
-    "d.base_path"        "d.bytes_done"
-    "d.directory"        "d.down.rate"
-    "d.hashing"          "d.hashing_failed"
-    "d.priority"         "d.chunk_size"
-    "d.up.rate"          "d.up.total"
-    "d.state"            "d.views"
-    "d.is_active"        "d.is_hash_checked"
-    "d.is_hash_checking" "d.is_open"
-    "d.is_pex_active"))
-
 ;; Variables that should be changed by sub-modes
 
 (defvar mentor-sub-mode nil
@@ -324,7 +312,7 @@ Type \\[mentor] to start Mentor.
          (setq mentor-item-update-this-fun 'mentor-torrent-update-this)
          (setq mentor-set-priority-fun 'mentor-torrent-set-priority-fun)
          (setq mentor-columns-var  'mentor-view-columns)
-         (setq mentor-sort-list '((up_rate . t) name))
+         (setq mentor-sort-list '((up.rate . t) name))
          (mentor-init-header-line)
          (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
                mentor-rtorrent-library-version (mentor-rpc-command "system.library_version")
@@ -640,9 +628,8 @@ name and all consecutive elements is its arguments."
 All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent data...")
-  (let* ((mentor-is-init 'true)
-         (methods (mentor-rpc-list-methods "^d\\.\\(get\\|is\\|views$\\)")))
-    (mentor-rpc-d.multicall methods)
+  (let* ((mentor-is-init 'true))
+    (mentor-rpc-d.multicall mentor-rpc-d-methods)
     (mentor-views-update-views))
   (message "Initializing torrent data... DONE"))
 
@@ -650,8 +637,7 @@ expensive operation."
   (message "Updating torrent data...")
   (condition-case err
       (progn
-        (let* ((methods mentor-volatile-rpc-d-methods))
-          (mentor-rpc-d.multicall methods))
+        (mentor-rpc-d.multicall mentor-volatile-rpc-d-methods)
         (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-torrent-data-init))))
@@ -824,7 +810,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
-  (mentor-sort 'down_rate t append))
+  (mentor-sort 'down.rate t append))
 
 (defun mentor-sort-by-name (append)
   (interactive "P")
@@ -844,7 +830,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-upload-speed (append)
   (interactive "P")
-  (mentor-sort 'up_rate t append))
+  (mentor-sort 'up.rate t append))
 
 
 ;;; Navigation
@@ -1343,6 +1329,95 @@ started after being added."
 
 ;;; Get torrent data from rtorrent
 
+(defconst mentor-rpc-d-methods
+  '("d.hash"
+    "d.local_id"
+    ;; "d.local_id_html"
+    "d.base_filename"
+    "d.base_path"
+    ;; "d.bitfield"
+    "d.bytes_done"
+    "d.chunk_size"
+    ;; "d.chunks_hashed"
+    ;; "d.complete"
+    ;; "d.completed_bytes"
+    ;; "d.completed_chunks"
+    ;; "d.connection_current"
+    ;; "d.connection_leech"
+    ;; "d.connection_seed"
+    ;; "d.creation_date"
+    ;; "d.custom"
+    ;; "d.custom1"
+    ;; "d.custom2"
+    ;; "d.custom3"
+    ;; "d.custom4"
+    ;; "d.custom5"
+    ;; "d.custom_throw"
+    "d.directory"
+    "d.directory_base"
+    "d.down.rate"
+    ;; "d.down.total"
+    ;; "d.free_diskspace"
+    "d.hashing"
+    "d.hashing_failed"
+    ;; "d.ignore_commands"
+    ;; "d.left_bytes"
+    ;; "d.loaded_file"
+    ;; "d.max_file_size"
+    ;; "d.max_size_pex"
+    ;; "d.message"
+    ;; "d.mode"
+    "d.name"
+    ;; "d.peer_exchange"
+    ;; "d.peers_accounted"
+    ;; "d.peers_complete"
+    ;; "d.peers_connected"
+    ;; "d.peers_max"
+    ;; "d.peers_min"
+    ;; "d.peers_not_connected"
+    "d.priority"
+    ;; "d.priority_str"
+    ;; "d.ratio"
+    "d.size_bytes"
+    ;; "d.size_chunks"
+    ;; "d.size_files"
+    ;; "d.size_pex"
+    ;; "d.skip.rate"
+    ;; "d.skip.total"
+    "d.state"
+    ;; "d.state_changed"
+    ;; "d.state_counter"
+    ;; "d.throttle_name"
+    "d.tied_to_file"
+    ;; "d.tracker_focus"
+    ;; "d.tracker_numwant"
+    ;; "d.tracker_size"
+    "d.up.rate"
+    "d.up.total"
+    ;; "d.uploads_max"
+    "d.is_active"
+    "d.is_hash_checked"
+    "d.is_hash_checking"
+    "d.is_multi_file"
+    "d.is_open"
+    "d.is_not_partially_done"
+    "d.is_pex_active"
+    "d.is_partially_done"
+    "d.is_private"
+    "d.views"))
+
+(defconst mentor-volatile-rpc-d-methods
+  '("d.local_id" ;; must not be removed
+    "d.base_path"        "d.bytes_done"
+    "d.directory"        "d.down.rate"
+    "d.hashing"          "d.hashing_failed"
+    "d.priority"         "d.chunk_size"
+    "d.up.rate"          "d.up.total"
+    "d.state"            "d.views"
+    "d.is_active"        "d.is_hash_checked"
+    "d.is_hash_checking" "d.is_open"
+    "d.is_pex_active"))
+
 (defconst mentor-methods-to-get-as-string
   (regexp-opt '("bytes_done" "completed_bytes"
                 "left_bytes" "size_bytes" "chunk_size"
@@ -1382,7 +1457,8 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 (defun mentor-rpc-d.multicall (methods)
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
-         (list-of-values (apply 'mentor-rpc-command "d.multicall2" "" mentor-current-view methods=)))
+         (list-of-values (apply 'mentor-rpc-command "d.multicall2"
+                                "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
       (mentor-torrent-update-from methods values))))
@@ -1476,11 +1552,11 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
 
 (defun mentor-torrent-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-item-property 'down_rate torrent)))
+   (mentor-item-property 'down.rate torrent)))
 
 (defun mentor-torrent-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
-   (mentor-item-property 'up_rate torrent)))
+   (mentor-item-property 'up.rate torrent)))
 
 (defun mentor-torrent-get-size (torrent)
   (let ((done (mentor-item-property 'bytes_done torrent))
