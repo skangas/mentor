@@ -1120,21 +1120,28 @@ this subdir."
       (error "No such file or directory: %s" new))
     new))
 
-;; TODO: Update view after load
-(defun mentor-add-torrent ()
-  (interactive)
+(defun mentor-add-torrent (prefix)
+  "Load and start downloading a torrent file or magnet URL.
+
+If PREFIX is set, the added torrent will not be started after
+being added."
+  (interactive "P")
   (let* ((is-torrent-p (lambda (x)
                          (or (and (not (string-match "^\\." x))
                                   (file-directory-p x))
                              (string-match "\.torrent$" x))))
          (file (read-file-name "Add torrent: " nil nil
                                nil nil is-torrent-p)))
-    (mentor-c-load-raw file)))
+    (if (string-match "^magnet:" file)
+        (mentor-c-load file prefix)
+      (mentor-c-load-raw file prefix)))
+  (mentor-update))
 
 (defun mentor-load (prefix file)
-  "Load a file/url adding it to the current torrents if
-successful. If prefix is set the added torrent is started after
-being added."
+  "Load a file or url adding it to the current torrents if
+successful.  Unlike ``mentor-add-torrent'' this would work with
+files on a remote host.  If prefix is set the added torrent is
+started after being added."
   (interactive "P\nMMentor load: ")
   (mentor-c-load file prefix))
 
@@ -1445,12 +1452,12 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
   (mentor-item-property 'name torrent))
 
 ;; General RPC commands, prefix c
-(defun mentor-c-load (file &optional start)
-  (let ((cmd (if start "load.start_verbose" "load.verbose")))
+(defun mentor-c-load (file &optional stopped)
+  (let ((cmd (if stopped "load.verbose" "load.start_verbose")))
     (mentor-rpc-command cmd "" file)))
 
-(defun mentor-c-load-raw (file &optional start)
-  (let ((cmd (if start "load.raw_start_verbose" "load.raw_verbose"))
+(defun mentor-c-load-raw (file &optional stopped)
+  (let ((cmd (if stopped "load.raw_verbose" "load.raw_start_verbose"))
         (data (with-temp-buffer
                 (insert-file-contents-literally file)
                 (buffer-substring-no-properties (point-min) (point-max)))))
