@@ -277,8 +277,6 @@ using `make-mentor-item'.")
     (define-key map (kbd "M-g") 'mentor-update-item)
 
     ;; navigation
-    (define-key map (kbd "C-p") 'mentor-previous-item)
-    (define-key map (kbd "C-n") 'mentor-next-item)
     (define-key map (kbd "<up>") 'mentor-previous-item)
     (define-key map (kbd "<down>") 'mentor-next-item)
     (define-key map (kbd "p") 'mentor-previous-item)
@@ -893,7 +891,7 @@ to sort according to several properties."
 (defun mentor-item-id-at-point ()
   (get-text-property (point) 'field))
 
-(defmacro mentor-while-same-item (skip-blanks condition &rest body)
+(defmacro mentor-while-same-item (condition skip-blanks &rest body)
   `(let* ((item (mentor-item-id-at-point)))
      (while (and ,condition
                  (or (and ,skip-blanks
@@ -915,7 +913,7 @@ that point. Otherwise goto the real start point."
   "Goto the end of the item at point."
   (interactive)
   (ignore-errors (mentor-next-item 1 t))
-  (mentor-while-same-item nil (not (bobp)) (backward-char)))
+  (mentor-while-same-item (not (bobp)) nil (backward-char)))
 
 (defun mentor-get-item-beginning (&optional real-start)
   "If real-start is nil and the item at point has a item-start
@@ -931,24 +929,29 @@ start point."
     (point)))
 
 (defun mentor-next-item (&optional arg no-wrap)
+  "Go to the next item."
   (interactive "P")
   (let* ((arg (or arg 1))
          (reverse (< arg 0))
-         (i (abs arg)))
+         (i (abs arg))
+         (done nil))
     (while (and (> i 0))
       (decf i)
-      (mentor-while-same-item
-       t t
-       (let ((at-limit (if reverse (bobp) (eobp)))
-             (other-limit (if reverse (point-max) (point-min)))
+      (setq done nil)
+      (mentor-while-same-item (not done) t
+       (let ((at-buf-limit (if reverse (bobp) (eobp)))
              (step (if reverse -1 1)))
-         (if (not at-limit)
-             (forward-line step)
-           (if no-wrap
-               (signal (if reverse 'beginning-of-buffer 'end-of-buffer) t)
-             (goto-char other-limit)
-             (when (not (mentor-get-item-type))
-               (mentor-next-item step t)))))))))
+         (cond ((not at-buf-limit)
+                (forward-line step))
+               (no-wrap
+                (signal (if reverse 'beginning-of-buffer 'end-of-buffer) t))
+               (t
+                (goto-char (if reverse (point-max) (point-min)))
+                (when (not (mentor-get-item-type))
+                  (while (and (not (mentor-item-id-at-point))
+                              (if reverse (bobp) (eobp)))
+                    (forward-line step)))
+                (setq done t))))))))
 
 (defun mentor-previous-item (&optional arg no-wrap)
   (interactive "P")
