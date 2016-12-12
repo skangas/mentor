@@ -1339,7 +1339,7 @@ being added."
         (mentor-insert-torrents)
         (mentor-sort)
         (goto-char (point-max))
-        (insert "\nmentor " mentor-version " - rTorrent "
+        (insert "\n mentor " mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
