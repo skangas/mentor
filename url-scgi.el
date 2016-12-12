@@ -37,33 +37,26 @@
 
 (eval-when-compile (require 'cl))
 
-(defvar url-scgi-content-length)
-(defvar url-scgi-content-type)
 (defvar url-scgi-connection-opened)
-
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
 (defun scgi-string-to-netstring (str)
-  "Converts a string into a netstring as defined by the SCGI
-specification."
-  (let ((len (length str)))
-    (concat (number-to-string len)
-            ":" str ",")))
+  "Converts a string into a SCGI protocol netstring."
+  (format "%d:%s," (length str) str))
 
 (defun scgi-add-null-bytes (&rest args)
   (apply 'concat (mapcar (lambda (a) (concat a "\000")) args)))
 
 (defun scgi-make-request-header (data)
-  (scgi-add-null-bytes "CONTENT_LENGTH"
-                       (number-to-string (length data))
-                       "SCGI" "1"))
+  (scgi-string-to-netstring
+   (scgi-add-null-bytes
+    "CONTENT_LENGTH" (number-to-string (length data))
+    "SCGI" "1")))
 
 (defun url-scgi-create-request ()
   (declare (special url-request-data))
-  (concat
-   (scgi-string-to-netstring
-    (scgi-make-request-header url-request-data))
-   url-request-data))
+  (concat (scgi-make-request-header url-request-data)
+          url-request-data))
 
 (defun url-scgi-activate-callback ()
   "Activate callback specified when this buffer was created."
@@ -71,27 +64,8 @@ specification."
 		    url-callback-arguments))
   (apply url-callback-function url-callback-arguments))
 
-(defun url-scgi-parse-headers ()
-  (declare (special url-scgi-content-length
-                    url-scgi-content-type))
-  (save-restriction
-    (save-match-data
-      (mail-narrow-to-head)
-      (goto-char (point-min))
-      (while (re-search-forward "\r$" nil t)
-        (replace-match ""))
-      (let ((status (mail-fetch-field "status"))
-            (content-length (mail-fetch-field "content-length"))
-            (content-type (mail-fetch-field "content-type")))
-        (when content-length
-          (setq url-scgi-content-length content-length))
-        (when content-type
-          (setq url-scgi-content-length content-type))
-        (when (and status (not (equal status "200 OK")))
-          (error (message (concat "Got status response: " status)))))))
-  t)
-
 (defun url-scgi-get-connection (host port)
+  "Set up a new connection and return it."
   (let ((buf (generate-new-buffer " *url-scgi-temp*")))
     ;; `url-open-stream' needs a buffer in which to do things
     ;; like authentication.  But we use another buffer afterwards.
@@ -114,7 +88,8 @@ specification."
   (let* ((host (url-host url))
 	 (port (url-port url))
 	 (connection (url-scgi-get-connection host port))
-	 (buffer (generate-new-buffer (format " *scgi %s:%d*" host port))))
+	 (buffer (generate-new-buffer
+                  (format " *scgi %s:%d*" host port))))
     (if (not connection)
 	;; Failed to open the connection for some reason
 	(progn
@@ -122,13 +97,10 @@ specification."
 	  (setq buffer nil)
 	  (error "Could not create connection to %s:%d" host port))
       (with-current-buffer buffer
-	(mm-disable-multibyte)
 	(setq url-current-object url
 	      mode-line-format "%b [%s]")
 
 	(dolist (var '(url-scgi-connection-opened
-                       url-scgi-content-type
-		       url-scgi-content-length
 		       url-callback-function
 		       url-callback-arguments))
 	  (set (make-local-variable var) nil))
@@ -138,23 +110,26 @@ specification."
 	      url-scgi-connection-opened nil)
 
 	(set-process-buffer connection buffer)
-	(set-process-filter connection 'url-scgi-filter)
-        (set-process-sentinel connection 'url-scgi-async-sentinel)
-	(let ((status (process-status connection)))
-          (cond ((eq status 'failed)
-                 (error "Could not create connection to %s:%d" host port))  
-                ((eq status 'open)
-                 (process-send-string connection (url-scgi-create-request))
-                 (setq url-scgi-connection-opened t))))))
+	(pcase (process-status connection)
+          (`connect
+           ;; Asynchronous connection
+           (set-process-sentinel connection 'url-scgi-async-sentinel))
+          (`failed
+           ;; Asynchronous connection failed
+           (error "Could not create connection to %s:%d" host port))
+          (_
+           (setq url-scgi-connection-opened t)
+           (process-send-string connection (url-scgi-create-request))))))
     buffer))
 
 (defun url-scgi-async-sentinel (proc why)
+  ;; We are performing an asynchronous connection, and a status change
+  ;; has occurred.
   (declare (special url-callback-arguments))
   (with-current-buffer (process-buffer proc)
     (cond
      (url-scgi-connection-opened
-      (if (url-scgi-parse-headers)
-          (url-scgi-activate-callback)))
+      (url-scgi-activate-callback))
      ((string= (substring why 0 4) "open")
       (setq url-scgi-connection-opened t)
       (process-send-string proc (url-scgi-create-request)))
@@ -165,12 +140,6 @@ specification."
 				      :service (url-port url-current-object)))
 		   (car url-callback-arguments)))
       (url-scgi-activate-callback)))))
-
-(defun url-scgi-filter (proc data)
-  (with-current-buffer (process-buffer proc)
-    (save-excursion
-      (goto-char (point-max))
-      (insert data))))
 
 (provide 'url-scgi)
 
