@@ -74,17 +74,17 @@ Make sure you have xml-rpc.el installed, at least version 1.6.9.
 - Add this to your init.el:
 
    : (require 'mentor)
-   : (setq mentor-rtorrent-url "scgi://localhost:5000")
 
    Evaluate these lines or restart Emacs.
 
-- Add this to your ~/.rtorrent.rc:
+- Add this to your ~/.rtorrent.rc and restart rTorrent:
    
-   : scgi_port = 127.0.0.1:5000
+   : scgi_local = ~/.emacs.d/rtorrent-rpc.socket
    : xmlrpc_dialect = i8
    : encoding_list = UTF-8
-   
-   Make sure `scgi_port' matches `mentor-rtorrent-url' above. Restart rTorrent.
+
+   If you want to put the socket anywhere else, customize
+   `mentor-rtorrent-url' to match.
 
 - To start mentor, run:
 
@@ -109,14 +109,8 @@ https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC
 
 - There is no view for trackers/peers/extra information.
 
-- There is currently no support (patches welcome) for communicating with
-  rtorrent over a local socket using the more secure scgi_local command. This
-  means it is currently not advisable to use mentor on anything but single
-  user systems.
-
 - mentor currently has some performance issues if you have many torrents
   (several hundreds). Be aware.
-
 
 ** Misc
 

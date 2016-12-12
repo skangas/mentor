@@ -36,71 +36,12 @@
 ;; interface, which will feel familiar to Emacs users.  Key bindings are chosen
 ;; to be as close to the vanilla rTorrent curses interface as possible.
 
-;; mentor still has some way to go before it can really be considered a complete
-;; interface, so please moderate your expectations.  It works fine for many
-;; common tasks though, and in some cases (dare we say?) much better than the
-;; standard ncurses interface.
-
-;; * QUICK START
-
-;; Assuming you are installing mentor through MELPA, which is the recommended
-;; way, here are some instructions to get you started.  Otherwise, please see the
-;; README.org file included in the repository for additional instructions.
-
-;; 1. Add this to your init.el:
-;;
-;;    (require 'mentor)
-;;    (setq mentor-rtorrent-url "scgi://localhost:5000")
-;;
-;;    Evaluate these lines or restart Emacs.
-   
-;; 2. Add this to your ~/.rtorrent.rc:
-;;    
-;;    scgi_port = 127.0.0.1:5000
-;;    xmlrpc_dialect = i8
-;;    encoding_list = UTF-8
-;;    
-;;    Make sure `scgi_port' matches `mentor-rtorrent-url' above.  Restart rTorrent.
-
-;; 3. To start mentor, run:
-;;
-;;    M-x mentor
-
-;; ** ADDITIONAL CONFIGURATION
-;;
-;; You can find Mentor in the `External' customize group.
-;;
-;;   M-x customize
-
-;; ** CONFIGURING RTORRENT
-;; 
-;; For more information on configuring rTorrent, refer to:
-;;
-;; http://libtorrent.rakshasa.no/wiki/RTorrentXMLRPCGuide
-
-;; * KNOWN ISSUES
-
-;; - The file view needs much love, and is currently not known to be
-;;   working.  Sorry.
-;;
-;; - There is no view for trackers/peers/extra information.
-;;
-;; - There is currently no support (patches welcome) for communicating with
-;;   rtorrent over a local socket using the more secure scgi_local command.  This
-;;   means it is currently not advisable to use mentor on anything but single
-;;   user systems.
-;;
-;; - mentor currently has some performance issues if you have many torrents
-;;   (several hundreds).  Be aware.
-
-;; * CONTACT
-;;
 ;; You can find the latest development version of mentor here:
 ;;
 ;; http://www.github.com/skangas/mentor
 
 ;; Bug reports, comments, and suggestions are welcome! Send them to
-;; <skangas@skangas.se> or report them on GitHub.
+;; Stefan Kangas <stefankangas@gmail.com> or report them on GitHub.
 
 ;;; Code:
 (eval-when-compile
@@ -146,15 +87,20 @@ set this to something like `/ssh:user@example.com:'."
   :group 'mentor
   :type 'boolean)
 
-(defcustom mentor-rtorrent-url "scgi://~/.emacs.d/rtorrent-rpc.socket"
+(defcustom mentor-rtorrent-url "scgi:///~/.emacs.d/rtorrent-rpc.socket"
   "The URL to the rtorrent XML-RPC socket.
 
-When connecting directly to the scgi_port, use
-`scgi://HOST:PORT'.
+For connection using a local socket bound to a file, use
+`scgi:///~/.rtorrent-rpc.socket'.  Note that there are triple
+slashes in the beginning, as compared to a network connection.
 
 If the connection is over http, which would be the case when
 using a web server in front of rtorrent, you would put
-`http://HOST[:PORT]/PATH'."
+`http://HOST[:PORT]/PATH'.
+
+When connecting directly to a scgi_port, use `scgi://HOST:PORT'.
+For security reasons, we strongly suggest to use one of the above
+methods instead."
   :group 'mentor
   :type 'string)
 

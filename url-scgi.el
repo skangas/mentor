@@ -64,19 +64,11 @@
 		    url-callback-arguments))
   (apply url-callback-function url-callback-arguments))
 
-(defun url-scgi-get-connection (host port)
-  "Set up a new connection and return it."
-  (let ((buf (generate-new-buffer " *url-scgi-temp*")))
-    ;; `url-open-stream' needs a buffer in which to do things
-    ;; like authentication.  But we use another buffer afterwards.
-    (unwind-protect
-        (let ((proc (url-open-stream host buf host port)))
-          ;; url-open-stream might return nil.
-          (when (processp proc)
-            ;; Drop the temp buffer link before killing the buffer.
-            (set-process-buffer proc nil))
-          proc)
-      (kill-buffer buf))))
+(defun url-scgi-handle-home-dir (filename)
+  (expand-file-name
+   (if (string-match "^/~" filename)
+       (substring filename 1)
+     filename)))
 
 ;;;###autoload
 (defun url-scgi (url callback cbargs)
@@ -85,32 +77,42 @@
   (declare (special url-scgi-connection-opened
 		    url-callback-function
 		    url-callback-arguments))
+
   (let* ((host (url-host url))
-	 (port (url-port url))
-	 (connection (url-scgi-get-connection host port))
-	 (buffer (generate-new-buffer
-                  (format " *scgi %s:%d*" host port))))
+         (port (url-port url))
+         (filename (url-filename url))
+         (buffer (generate-new-buffer
+                  (format " *scgi %s:%d%s*" host port filename)))
+         (connection (cond
+                      ((string-match "^/." filename)
+                       ;; local socket
+                       (let ((filename (url-scgi-handle-home-dir filename)))
+                        (make-network-process :name "scgi"
+                                              :buffer buffer
+                                              :remote filename)))
+                      (t
+                       ;; networked scgi
+                       (url-open-stream host buffer host port)))))
     (if (not connection)
-	;; Failed to open the connection for some reason
-	(progn
-	  (kill-buffer buffer)
-	  (setq buffer nil)
-	  (error "Could not create connection to %s:%d" host port))
+        ;; Failed to open the connection for some reason
+        (progn
+          (kill-buffer buffer)
+          (setq buffer nil)
+          (error "Could not create connection to %s:%d" host port))
       (with-current-buffer buffer
-	(setq url-current-object url
-	      mode-line-format "%b [%s]")
+        (setq url-current-object url
+              mode-line-format "%b [%s]")
 
 	(dolist (var '(url-scgi-connection-opened
 		       url-callback-function
 		       url-callback-arguments))
 	  (set (make-local-variable var) nil))
 
-	(setq url-callback-function callback
-	      url-callback-arguments cbargs
-	      url-scgi-connection-opened nil)
+        (setq url-callback-function callback
+              url-callback-arguments cbargs
+              url-scgi-connection-opened nil)
 
-	(set-process-buffer connection buffer)
-	(pcase (process-status connection)
+        (pcase (process-status connection)
           (`connect
            ;; Asynchronous connection
            (set-process-sentinel connection 'url-scgi-async-sentinel))
