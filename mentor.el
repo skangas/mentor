@@ -1,4 +1,4 @@
-;;; mentor.el --- Frontend for the rTorrent bittorrent client
+;;; mentor.el --- Frontend for the rTorrent bittorrent client -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2016 Stefan Kangas.
 ;; Copyright (C) 2011 David Spångberg.
@@ -348,29 +348,28 @@ Type \\[mentor] to start Mentor.
 in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
 
-(defmacro mentor-use-item-at-point (body)
-  `(let ((item (or (and (boundp 'item) item)
-                   (mentor-get-item-at-point)
-                   (error "There is no item here"))))
-     ,body))
-
 (defun mentor-item-property (property &optional item)
   "Get PROPERTY for item at point or ITEM."
-  (mentor-use-item-at-point
-   (cdr (assoc property (mentor-item-data item)))))
+  (let ((it (or item
+                (mentor-get-item-at-point)
+                (error "There is no item here"))))
+   (cdr (assoc property (mentor-item-data it)))))
 
 (defun mentor-item-set-property (property value &optional item must-exist)
   "Set data PROPERTY to given VALUE of an item.
 If ITEM is nil, use torrent at point.
 If MUST-EXIST is non-nil, give a warning if the property does not
   already exist."
-  (mentor-use-item-at-point
+  
+  (let ((it (or item
+                (mentor-get-item-at-point)
+                (error "There is no item here"))))
    (let ((prop (assq property (mentor-item-data item))))
      (if prop
          (setcdr prop value)
        (if must-exist
            (error "Tried updating non-existent property")
-         (push (cons property value) (mentor-item-data item)))))))
+         (push (cons property value) (mentor-item-data it)))))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
@@ -411,7 +410,7 @@ This version skips non-file lines."
     ;; (dired-move-to-filename)
     ))
 
-(defmacro mentor-map-over-marks (body arg &optional show-progress)
+(defmacro mentor-map-over-marks (body arg &optional _show-progress)
   "Eval BODY with point on each marked line.  Return a list of BODY's results.
 If no marked item could be found, execute BODY on the current line.
 ARG, if non-nil, specifies the items to use instead of the marked items.
@@ -550,14 +549,14 @@ Return the position of the beginning of the filename, or nil if none found."
    :marked nil
    :data data))
 
-(defun mentor-torrent-update (new)
+(defun mentor-torrent-update (new &optional is-init)
   "Add or update a torrent using data in NEW."
   (let* ((id  (mentor-item-property 'local_id new))
          (old (mentor-get-item id)))
     (when (and (null old)
-               (not (boundp 'mentor-is-init)))
+               (not is-init))
       (signal 'mentor-need-init `("No such torrent" ,id)))
-    (if (boundp 'mentor-is-init)
+    (if is-init
         (progn (setf (mentor-item-marked new) nil)
                (puthash id new mentor-items))
       (dolist (row (mentor-item-data new))
@@ -599,8 +598,7 @@ If REGEXP is specified it only returns the matching functions."
   "Run command as an XML-RPC call to rtorrent.
 
 ARGS is a list of strings to run."
-  (let* ((url-http-response-status 200)
-         (response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+  (let* ((response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
         (error "Unable to connect to %s" mentor-rtorrent-url)
       response)))
@@ -628,14 +626,13 @@ name and all consecutive elements is its arguments."
 All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent data...")
-  (let* ((mentor-is-init 'true))
-    (mentor-rpc-d.multicall mentor-rpc-d-methods)
-    (mentor-views-update-views))
+  (mentor-rpc-d.multicall mentor-rpc-d-methods t)
+  (mentor-views-update-views)
   (message "Initializing torrent data... DONE"))
 
 (defun mentor-torrent-data-update-all ()
   (message "Updating torrent data...")
-  (condition-case err
+  (condition-case _err
       (progn
         (mentor-rpc-d.multicall mentor-volatile-rpc-d-methods)
         (message "Updating torrent data...DONE"))
@@ -662,7 +659,7 @@ expensive operation."
          (kept-point (point)))
      ,@body
      (if kept-torrent-id
-         (condition-case err
+         (condition-case _err
              (mentor-goto-torrent kept-torrent-id)
            (mentor-missing-torrent
             (goto-char kept-point)))
@@ -846,7 +843,7 @@ to sort according to several properties."
                      (equal item (mentor-item-id-at-point))))
        ,@body)))
 
-(defun mentor-beginning-of-item (&optional real-start)
+(defun mentor-beginning-of-item ()
   "Goto the beginning of the item at point.
 
 If the item at point has an item-start property defined and
@@ -864,9 +861,9 @@ point."
   (ignore-errors (mentor-next-item 1 t))
   (mentor-while-same-item (not (bobp)) nil (backward-char)))
 
-(defun mentor-get-item-beginning (&optional real-start)
+(defun mentor-get-item-beginning ()
   (save-excursion
-    (mentor-beginning-of-item real-start)
+    (mentor-beginning-of-item)
     (point)))
 
 (defun mentor-get-item-end ()
@@ -914,7 +911,7 @@ point."
   (let ((inhibit-read-only t))
     (dolist (it items)
       (goto-char it)
-      (delete-region (mentor-get-item-beginning t)
+      (delete-region (mentor-get-item-beginning)
                      (+ 1 (mentor-get-item-end))))))
 
 (defun mentor-goto-torrent (id)
@@ -930,8 +927,7 @@ point."
 
 (defun mentor-toggle-item ()
   (interactive)
-  (let ((type (mentor-get-item-type))
-        (props (text-properties-at (point))))
+  (let ((type (mentor-get-item-type)))
     (cond ((eq type 'dir)
            (mentor-toggle-file (get-text-property (point) 'file))))))
 
@@ -1006,7 +1002,7 @@ this subdir."
 ;; TODO: Report how it went, including failures.
 (defun mentor-delete-file (file)
   (let ((dired-recursive-deletes nil))
-    (condition-case err
+    (condition-case _err
         (dired-delete-file file)
       (file-error nil))))
 
@@ -1046,7 +1042,7 @@ this subdir."
          (new (read-file-name "New path: " old-prefixed nil t)))
     (when (string-equal old new)
       (error "Source and destination are the same"))
-    (when (not (condition-case err
+    (when (not (condition-case _err
                    (mentor-rpc-command "execute2" "" "ls" "-d" new)
                  (error nil)))
       (error "No such file or directory: %s" new))
@@ -1112,7 +1108,7 @@ started after being added."
                       (or old mentor-last-move-target)))
          (prompt (or prompt "New path: "))
          (new (read-file-name prompt old nil t)))
-    (if (condition-case err
+    (if (condition-case _err
             (mentor-rpc-command "execute2" "" "ls" "-d" new)
           (error nil))
         (setq mentor-last-move-target new)
@@ -1450,18 +1446,22 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
                    (mentor-rpc-value-to-real-value method value)))
            methods values))
 
-(defun mentor-torrent-update-from (methods values)
+(defun mentor-torrent-update-from (methods values &optional is-init)
   (mentor-torrent-update (mentor-torrent-create
-                          (mentor-torrent-data-from methods values))))
+                    (mentor-torrent-data-from methods values))
+                   is-init))
 
-(defun mentor-rpc-d.multicall (methods)
+(defun mentor-rpc-d.multicall (methods &optional is-init)
+  "Call `d.multicall2' with METHODS.
+
+Optional argument IS-INIT if this is initializing."
   (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods+))
          (list-of-values (apply 'mentor-rpc-command "d.multicall2"
                                 "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
-      (mentor-torrent-update-from methods values))))
+      (mentor-torrent-update-from methods values is-init))))
 
 (put 'mentor-need-init
      'error-conditions
@@ -1602,8 +1602,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
           ((= 3 prio) "hig"))))
 
 (defun mentor-torrent-set-priority-fun (val)
-  (let ((tor (mentor-get-item-at-point))
-        (hash (mentor-item-property 'hash))
+  (let ((hash (mentor-item-property 'hash))
         (prio (mentor-item-property 'priority)))
     (list "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
 
@@ -1640,7 +1639,7 @@ of libxmlrpc-c cannot handle integers longer than 4 bytes."
     "incomplete" "hashing" "seeding" "active"))
 
 ;; TODO find out what a valid name is in rtorrent
-(defun mentor-views-valid-view-name (name)
+(defun mentor-views-valid-view-name (_name)
   t)
 
 (defun mentor-set-view (new)
@@ -1767,9 +1766,7 @@ the integer index used by rtorrent to identify this file."
           ((eq prio 2) "hig"))))
 
 (defun mentor-file-progress (file)
-  (let* ((chunk-size (mentor-item-property
-                     'chunk_size mentor-selected-torrent))
-         (done (mentor-file-completed_chunks file))
+  (let* ((done (mentor-file-completed_chunks file))
          (size (mentor-file-size_chunks file)))
     (format "%d" (* 100 (/ (+ 0.0 done) size)))))
 
@@ -1896,14 +1893,14 @@ point."
     (let ((files (cdr (assq 'files mentor-selected-torrent-info)))
           (id -1))
       (dolist (values value-list)
-        (let ((file (gethash (incf id) files)))
+        (let ((_file (gethash (incf id) files)))
           (mapc (lambda (p)
                   (let* ((file-fun (mentor-concat-symbols 'mentor-file- p))
                          (val (if (string-match mentor-methods-to-get-as-string
                                                 (symbol-name p))
                                   (string-to-number (pop values))
                                 (pop values))))
-                    (eval `(setf (,file-fun file) ,val))))
+                    (eval `(setf (,file-fun _file) ,val))))
                 properties)))))
   (mentor-details-redisplay))
 
@@ -2013,7 +2010,7 @@ point."
   (get-text-property (point) 'type))
 
 (defun mentor-prompt-complete (prompt list require-match default)
-  (completing-read prompt list nil require-match nil nil
+  (completing-read prompt list nil require-match nil default
                    mentor-last-used-view))
 
 (defun mentor-get-custom-view-name (view-id)

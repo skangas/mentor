@@ -1,6 +1,6 @@
 ;;; url-scgi.el --- SCGI Uniform Resource Locator retrieval code
 
-;; Copyright (C) 2011 Stefan Kangas.
+;; Copyright (C) 2011-2016 Stefan Kangas.
 
 ;; Author: Stefan Kangas
 ;; Version: 0.2
@@ -38,6 +38,7 @@
 (eval-when-compile (require 'cl))
 
 (defvar url-scgi-connection-opened)
+(defvar url-http-response-status 200)
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
 (defun scgi-string-to-netstring (str)
