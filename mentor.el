@@ -1836,7 +1836,7 @@ point."
     (setq mentor-selected-torrent tor)
     (mentor-files-update t)
     (mentor-details-redisplay)
-    (setq mode-line-buffer-identification (concat "*mentor: torrent details* "
+    (setq mode-line-buffer-identification (concat "*mentor* "
                                                   (mentor-item-property 'name tor)))
     (if (not (mentor-get-item-type))
         (mentor-next-item 1 t)
