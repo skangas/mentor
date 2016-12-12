@@ -15,7 +15,7 @@ ncurses interface.
 
 ** Screenshot
 
-[[screen.png]]
+[[doc/screenshot.png]]
 
 Screenshot of moving a download and its data to another directory using ido
 integration. Sort your downloads in a breeze!
@@ -32,8 +32,6 @@ Here is a summary of some of the features:
 - Swith between views, create new etc. (like numbers)
 - Support for most standard operations. (Start/stop/rehash/move etc.)
 - Use all Emacs features you are used to: macros, Emacs lisp etc.
-
-Patches welcome.
 
 ** Installing mentor
 
