@@ -3,9 +3,9 @@
 ;; Copyright (C) 2010-2016 Stefan Kangas.
 ;; Copyright (C) 2011 David Spångberg.
 
-;; Author: Stefan Kangas <skangas@skangas.se>
+;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.1.1
-;; Keywords: bittorrent, rtorrent
+;; Keywords: comm, processes, bittorrent
 ;; Package-Requires: ((xml-rpc "1.6.9"))
 
 (defconst mentor-version "0.1.1"
