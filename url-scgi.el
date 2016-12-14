@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2011-2016 Stefan Kangas.
 
-;; Author: Stefan Kangas
-;; Version: 0.2
+;; Author: Stefan Kangas <stefankangas@gmail.com>
+;; Version: 0.3
 ;; Keywords: comm, data, processes, scgi
 
 ;; This file is NOT part of GNU Emacs.
@@ -29,6 +29,8 @@
 
 ;;; Change Log:
 
+;; 0.3 Support scgi over local socket
+
 ;; 0.2 Support Emacs 24
 
 ;; 0.1 First public version
@@ -37,8 +39,14 @@
 
 (eval-when-compile (require 'cl))
 
+(defvar url-scgi-version "0.3"
+  "The version of scgi that you're using.")
+
 (defvar url-scgi-connection-opened)
+
+;; This is a hack to keep xmlrpc.el happy for now.  Ugh.
 (defvar url-http-response-status 200)
+
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
 (defun scgi-string-to-netstring (str)
@@ -82,17 +90,18 @@
   (let* ((host (url-host url))
          (port (url-port url))
          (filename (url-filename url))
-         (buffer (generate-new-buffer
-                  (format " *scgi %s:%d%s*" host port filename)))
+         (is-local-socket (string-match "^/." filename))
+         (bufname (format " *scgi %s*" (if is-local-socket
+                                           filename
+                                         (format "%s:%d" host port))))
+         (buffer (generate-new-buffer bufname))
          (connection (cond
-                      ((string-match "^/." filename)
-                       ;; local socket
+                      (is-local-socket
                        (let ((filename (url-scgi-handle-home-dir filename)))
                         (make-network-process :name "scgi"
                                               :buffer buffer
                                               :remote filename)))
-                      (t
-                       ;; networked scgi
+                      (t ; scgi over tcp
                        (url-open-stream host buffer host port)))))
     (if (not connection)
         ;; Failed to open the connection for some reason
