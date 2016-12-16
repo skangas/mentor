@@ -651,16 +651,6 @@ ITEMS should be a list of item names."
                         (concat desc " "
                                 (mentor-mark-prompt arg items) "? "))))
 
-;; FIXME
-(defun mentor-move-to-name ()
-  "Move to the beginning of the name on the current line.
-Return the position of the beginning of the filename, or nil if none found."
-  (let ((eol (line-end-position)))
-    (beginning-of-line)
-    (let ((change (next-single-property-change (point) 'name nil eol)))
-      (when (and change (< change eol))
-        (goto-char change)))))
-
 
 ;;; Torrent data structure
 
@@ -841,9 +831,7 @@ expensive operation."
                 (if (listp prop)
                     (apply (car prop) item (cdr prop))
                   (let ((text (mentor-item-property prop item)))
-                    (if (eq prop 'name)
-                        (propertize text 'name t)
-                      text)))))))))
+                    text))))))))
 
 (defun mentor-reload-header-line ()
   (setq mentor-header-line
