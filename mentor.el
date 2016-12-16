@@ -477,19 +477,21 @@ in a buffer, like a torrent, file, directory, peer etc."
 
 (defun mentor-item-set-property (property value &optional item must-exist)
   "Set data PROPERTY to given VALUE of an item.
+
 If ITEM is nil, use torrent at point.
+
 If MUST-EXIST is non-nil, give a warning if the property does not
   already exist."
   
   (let ((it (or item
                 (mentor-get-item-at-point)
                 (error "There is no item here"))))
-   (let ((prop (assq property (mentor-item-data item))))
-     (if prop
-         (setcdr prop value)
-       (if must-exist
-           (error "Tried updating non-existent property")
-         (push (cons property value) (mentor-item-data it)))))))
+    (let ((prop (assq property (mentor-item-data it))))
+      (if prop
+          (setcdr prop value)
+        (if must-exist
+            (error "Tried updating non-existent property")
+          (push (cons property value) (mentor-item-data it)))))))
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))
@@ -808,7 +810,7 @@ expensive operation."
 (defun mentor-redisplay-torrent ()
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
-    (mentor-delete-item-from-buffer)
+    (mentor-delete-item-from-buffer (point))
     (mentor-insert-torrent id)
     (mentor-previous-item)))
 
@@ -1025,14 +1027,11 @@ point."
      'error-conditions
      '(error mentor-error mentor-missing-torrent))
 
-(defun mentor-delete-item-from-buffer (&optional items)
-  (when (not items)
-    (setq items (list (point))))
+(defun mentor-delete-item-from-buffer (item)
   (let ((inhibit-read-only t))
-    (dolist (it items)
-      (goto-char it)
-      (delete-region (mentor-get-item-beginning)
-                     (+ 1 (mentor-get-item-end))))))
+    (goto-char item)
+    (delete-region (mentor-get-item-beginning)
+                   (+ 1 (mentor-get-item-end)))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -1199,18 +1198,19 @@ started after being added."
          (or (and remove-files "Remove including data")
              "Remove")
          arg)
-    (mentor-delete-item-from-buffer
-     (mentor-map-over-marks
-      (progn
-        (when remove-files
-          (mentor-torrent-get-file-list))
-        (mentor-d-erase)
-        (when remove-files
-          (mentor-do-remove-torrent-files))
-        (mentor-view-torrent-list-delete-all)
-        (remhash (mentor-d-get-local-id) mentor-items)
-        (point))
-      arg))))
+    (dolist (item
+             (mentor-map-over-marks
+              (progn
+                (when remove-files
+                  (mentor-torrent-get-file-list))
+                (mentor-d-erase)
+                (when remove-files
+                  (mentor-do-remove-torrent-files))
+                (mentor-view-torrent-list-delete-all)
+                (remhash (mentor-d-get-local-id) mentor-items)
+                (point))
+              arg))
+      (mentor-delete-item-from-buffer item))))
 
 (defun mentor-torrent-remove (&optional arg)
   (interactive "P")
