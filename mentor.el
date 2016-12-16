@@ -87,12 +87,6 @@ set this to something like `/ssh:user@example.com:'."
   :group 'mentor
   :type 'boolean)
 
-(defcustom mentor-home-dir (expand-file-name (convert-standard-filename "mentor/")
-                                       user-emacs-directory)
-  :package-version '(mentor . "0.2")
-  :group 'mentor
-  :type 'directory)
-
 (defcustom mentor-rtorrent-download-directory nil
   "Directory for downloads for background rtorrent."
   :package-version '(mentor . "0.2")
@@ -150,6 +144,10 @@ methods instead."
 (defvar mentor-mode-hook)
 
 (defvar mentor-current-view)
+
+(defvar mentor-home-dir (expand-file-name (convert-standard-filename "mentor/")
+                                    user-emacs-directory)
+  "Where mentor should put any of its temporary files.")
 
 (defvar mentor-header-line)
 (make-variable-buffer-local 'mentor-header-line)
