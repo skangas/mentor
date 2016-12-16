@@ -96,6 +96,21 @@ using `make-mentor-item'.")
           (mentor-item-set-property p v old 'must-exist))))
     (mentor-view-torrent-list-add new)))
 
+(put 'mentor-need-init
+     'error-conditions
+     '(error mentor-error mentor-need-init))
+
+;; Mentor file data structure
+
+(defstruct mentor-file
+  "The datastructure that contains the information about torrent
+files.  A mentor-file can be either a regular file or a filename
+and if it is the latter it will contain a list of the files it
+contain.  If it is a regular file it will contain an id which is
+the integer index used by rtorrent to identify this file."
+  name show marked size completed_chunks
+  size_chunks priority files type id)
+
 (provide 'mentor-data)
 
 ;; Local Variables:
