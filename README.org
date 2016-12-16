@@ -1,11 +1,12 @@
 * mentor
 
-mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.  It uses
-XML-RPC to communicate with rTorrent, and needs rTorrent to be configured
-accordingly.
+mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
+
+By default, it will start and run rTorrent from within Emacs but can also be
+configured to use an external rTorrent instance over XML-RPC.
 
 This project aims to provide a feature complete and highly customizable
-interface, which will feel familiar to Emacs users. Key bindings are chosen to
+interface, that will feel familiar to Emacs users.  Key bindings are chosen to
 be as close to the vanilla rTorrent curses interface as possible.
 
 mentor still has some way to go before it can really be considered a complete
@@ -29,9 +30,59 @@ Here is a summary of some of the features:
 - Mark and perform operations on more than one torrent at once.
 - Sort torrents according to one or more criteria.
 - Move downloads together with their data in one command.
-- Swith between views, create new etc. (like numbers)
+- Switch between views, create new etc. (like numbers)
 - Support for most standard operations. (Start/stop/rehash/move etc.)
 - Use all Emacs features you are used to: macros, Emacs lisp etc.
+
+** Quick Start
+
+Make sure that you have rTorrent installed on your system.
+
+To start mentor, just run:
+
+: M-x mentor
+
+It should work out of the box, but you may wish to do some additional
+configuration.
+
+If you wish to add a torrent, press <BACKSPACE> and give it's location.
+
+** Configuration
+
+*** General
+
+You can find additional Mentor options in customize.
+
+ : M-x customize-group
+ : mentor <RET>
+
+Two very useful variables to customize are
+`mentor-rtorrent-download-directory' and `mentor-rtorrent-keep-session'.
+
+*** External rtorrent
+
+If you are already running rTorrent outside of Emacs and wish to keep doing
+so, it is easy to configure.
+
+Add this to your ~/.rtorrent.rc and restart rTorrent:
+   
+: scgi_local = ~/.emacs.d/rtorrent-rpc.socket
+: xmlrpc_dialect = i8
+: encoding_list = UTF-8
+
+Add something like this to your init.el or customize "Mentor Rtorrent External
+Rpc":
+
+: (setq mentor-rtorrent-external-rpc "scgi://localhost:5000")
+: (setq mentor-rtorrent-external-rpc "scgi://~/.rtorrent.rpc")
+: (setq mentor-rtorrent-external-rpc "scgi:///path/to/.rtorrent.rpc")
+
+If you want to put the socket anywhere else, customize
+`mentor-rtorrent-url' to match.
+
+*** Configuring rtorrent
+
+For more information on configuring rTorrent, refer to the [[https://github.com/rakshasa/rtorrent/wiki][rTorrent wiki]].
 
 ** Installing mentor
 
@@ -66,39 +117,6 @@ Add this to your init.el:
 Change "~/src/mentor" to the path where you keep the mentor source code.
 
 Make sure you have xml-rpc.el installed, at least version 1.6.9.
-
-** Quick Start
-
-- Add this to your init.el:
-
-   : (require 'mentor)
-
-   Evaluate these lines or restart Emacs.
-
-- Add this to your ~/.rtorrent.rc and restart rTorrent:
-   
-   : scgi_local = ~/.emacs.d/rtorrent-rpc.socket
-   : xmlrpc_dialect = i8
-   : encoding_list = UTF-8
-
-   If you want to put the socket anywhere else, customize
-   `mentor-rtorrent-url' to match.
-
-- To start mentor, run:
-
-   : M-x mentor
-
-** Additional configuration
-
-You can find Mentor in the `External' customize group.
-
- : M-x customize
-
-** Configuring rtorrent
-
-For more information on configuring rTorrent, refer to:
-
-https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC
 
 ** Known issues
 
