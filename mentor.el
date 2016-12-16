@@ -1,4 +1,4 @@
-;;; mentor.el --- Frontend for the rTorrent bittorrent client -*- lexical-binding: t -*-
+;;; mentor.el --- Frontend for the rTorrent bittorrent client  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2016 Stefan Kangas.
 ;; Copyright (C) 2011 David Spångberg.
@@ -49,6 +49,8 @@
 (require 'cl)
 (require 'url-scgi)
 (require 'xml-rpc)
+
+(require 'mentor-data)
 
 
 ;;; Customizable variables
@@ -151,12 +153,6 @@ methods instead."
 
 (defvar mentor-header-line)
 (make-variable-buffer-local 'mentor-header-line)
-
-(defvar mentor-items nil
-  "Hash table containing all items for the current buffer.
-This can be torrents, files, peers etc.  All values should be made
-using `make-mentor-item'.")
-(make-variable-buffer-local 'mentor-items)
 
 (defvar mentor-rtorrent-client-version)
 (make-variable-buffer-local 'mentor-rtorrent-client-version)
@@ -463,39 +459,6 @@ It will use the RPC argument as value for scgi_local."
 
 ;;; Mentor items
 
-(defstruct mentor-item
-  "A structure containing an item that can be displayed
-in a buffer, like a torrent, file, directory, peer etc."
-  id data marked type)
-
-(defun mentor-item-property (property &optional item)
-  "Get PROPERTY for item at point or ITEM."
-  (let ((it (or item
-                (mentor-get-item-at-point)
-                (error "There is no item here"))))
-   (cdr (assoc property (mentor-item-data it)))))
-
-(defun mentor-item-set-property (property value &optional item must-exist)
-  "Set data PROPERTY to given VALUE of an item.
-
-If ITEM is nil, use torrent at point.
-
-If MUST-EXIST is non-nil, give a warning if the property does not
-  already exist."
-  
-  (let ((it (or item
-                (mentor-get-item-at-point)
-                (error "There is no item here"))))
-    (let ((prop (assq property (mentor-item-data it))))
-      (if prop
-          (setcdr prop value)
-        (if must-exist
-            (error "Tried updating non-existent property")
-          (push (cons property value) (mentor-item-data it)))))))
-
-(defun mentor-get-item (id)
-  (gethash id mentor-items))
-
 (defun mentor-get-item-at-point ()
   (mentor-get-item (mentor-item-id-at-point)))
 
@@ -650,32 +613,6 @@ ITEMS should be a list of item names."
     (mentor-mark-pop-up nil items (function y-or-n-p)
                         (concat desc " "
                                 (mentor-mark-prompt arg items) "? "))))
-
-
-;;; Torrent data structure
-
-(defun mentor-torrent-create (data)
-  (make-mentor-item
-   :id   (cdr (assq 'local_id data))
-   :type 'torrent
-   :marked nil
-   :data data))
-
-(defun mentor-torrent-update (new &optional is-init)
-  "Add or update a torrent using data in NEW."
-  (let* ((id  (mentor-item-property 'local_id new))
-         (old (mentor-get-item id)))
-    (when (and (null old)
-               (not is-init))
-      (signal 'mentor-need-init `("No such torrent" ,id)))
-    (if is-init
-        (progn (setf (mentor-item-marked new) nil)
-               (puthash id new mentor-items))
-      (dolist (row (mentor-item-data new))
-        (let* ((p (car row))
-               (v (cdr row)))
-          (mentor-item-set-property p v old 'must-exist))))
-    (mentor-view-torrent-list-add new)))
 
 
 ;;; XML-RPC calls
@@ -1584,11 +1521,6 @@ Optional argument IS-INIT if this is initializing."
      '(error mentor-error mentor-need-init))
 
 
-;;; Torrent information
-
-(defun mentor-item-get-name (torrent)
-  (mentor-item-property 'name torrent))
-
 ;; General RPC commands, prefix c
 (defun mentor-c-load (file &optional stopped)
   (let ((cmd (if stopped "load.verbose" "load.start_verbose")))
@@ -2164,6 +2096,6 @@ point."
 
 ;; Local Variables:
 ;; byte-compile-warnings: (not cl-functions)
+;; indent-tabs-mode: nil
 ;; End:
-
 ;;; mentor.el ends here
