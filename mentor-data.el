@@ -25,18 +25,27 @@
 
 ;;; Mentor items
 
-(defstruct mentor-item
+(require 'cl-lib)
+
+(cl-defstruct mentor-item
   "A structure containing an item that can be displayed
 in a buffer, like a torrent, file, directory, peer etc."
   id data marked type)
 
-;; TODO: Can we change to use assq instead of assoc?
-(defun mentor-item-property (property &optional item)
-  "Get PROPERTY for item at point or ITEM."
-  (let ((it (or item
-                (mentor-get-item-at-point)
-                (error "There is no item here"))))
-    (cdr (assoc property (mentor-item-data it)))))
+(defvar mentor-items nil
+  "Hash table containing all items for the current buffer.
+This can be torrents, files, peers etc.  All values should be made
+using `make-mentor-item'.")
+(make-variable-buffer-local 'mentor-items)
+
+(defun mentor-get-item (id)
+  (gethash id mentor-items))
+
+(defun mentor-get-item-at-point ()
+  (mentor-get-item (mentor-item-id-at-point)))
+
+(defun mentor-item-id-at-point ()
+  (get-text-property (point) 'field))
 
 ;; TODO: Probably get rid of this
 (defun mentor-item-get-name (torrent)
@@ -60,16 +69,13 @@ If MUST-EXIST is non-nil, give a warning if the property does not
             (error "Tried updating non-existent property")
           (push (cons property value) (mentor-item-data it)))))))
 
-;;; Mentor item hash
-
-(defvar mentor-items nil
-  "Hash table containing all items for the current buffer.
-This can be torrents, files, peers etc.  All values should be made
-using `make-mentor-item'.")
-(make-variable-buffer-local 'mentor-items)
-
-(defun mentor-get-item (id)
-  (gethash id mentor-items))
+;; TODO: Can we change to use assq instead of assoc?
+(defun mentor-item-property (property &optional item)
+  "Get PROPERTY for item at point or ITEM."
+  (let ((it (or item
+                (mentor-get-item-at-point)
+                (error "There is no item here"))))
+    (cdr (assoc property (mentor-item-data it)))))
 
 ;;; Torrent data structure
 
@@ -93,8 +99,7 @@ using `make-mentor-item'.")
       (dolist (row (mentor-item-data new))
         (let* ((p (car row))
                (v (cdr row)))
-          (mentor-item-set-property p v old 'must-exist))))
-    (mentor-view-torrent-list-add new)))
+          (mentor-item-set-property p v old 'must-exist))))))
 
 (put 'mentor-need-init
      'error-conditions
@@ -102,7 +107,7 @@ using `make-mentor-item'.")
 
 ;; Mentor file data structure
 
-(defstruct mentor-file
+(cl-defstruct mentor-file
   "The datastructure that contains the information about torrent
 files.  A mentor-file can be either a regular file or a filename
 and if it is the latter it will contain a list of the files it

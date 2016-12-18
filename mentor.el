@@ -165,10 +165,6 @@ methods instead."
 
 (defvar mentor--rtorrent-session-directory nil)
 
-(defvar mentor-rtorrent-url
-  "The current rtorrent XML-RPC api URL.")
-(make-variable-buffer-local 'mentor-rtorrent-url)
-
 (defvar mentor-rtorrent-name)
 (make-variable-buffer-local 'mentor-rtorrent-name)
 
@@ -458,9 +454,6 @@ It will use the RPC argument as value for scgi_local."
 
 
 ;;; Mentor items
-
-(defun mentor-get-item-at-point ()
-  (mentor-get-item (mentor-item-id-at-point)))
 
 (defun mentor-between-items ()
   (not (mentor-item-id-at-point)))
@@ -830,9 +823,6 @@ to sort according to several properties."
 
 
 ;;; Navigation
-
-(defun mentor-item-id-at-point ()
-  (get-text-property (point) 'field))
 
 (defmacro mentor-while-same-item (condition skip-blanks &rest body)
   `(let* ((item (mentor-item-id-at-point)))
@@ -1342,13 +1332,13 @@ started after being added."
 ;;; Get torrent data from rtorrent
 
 (defun mentor-torrent-update-from (methods values &optional is-init)
-  (mentor-torrent-update
-   (mentor-torrent-create
-    (mapcar* (lambda (method value)
-               (cons (mentor-rpc-method-to-property method)
-                     (mentor-rpc-value-to-real-value method value)))
-             methods values))
-   is-init))
+  (let ((tor (mentor-torrent-create
+              (mapcar* (lambda (method value)
+                         (cons (mentor-rpc-method-to-property method)
+                               (mentor-rpc-value-to-real-value method value)))
+                       methods values))))
+    (mentor-torrent-update tor is-init)
+    (mentor-view-torrent-list-add tor)))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))

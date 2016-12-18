@@ -23,6 +23,12 @@
 
 ;;; Code:
 
+(require 'mentor-data)
+
+(defvar mentor-rtorrent-url
+  "The current rtorrent XML-RPC api URL.")
+(make-variable-buffer-local 'mentor-rtorrent-url)
+
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
   "Do not try methods that makes rtorrent crash.")
 
