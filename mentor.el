@@ -45,8 +45,8 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'dired))
-(require 'cl)
+  (require 'dired)
+  (require 'cl))
 (require 'url-scgi)
 (require 'xml-rpc)
 
