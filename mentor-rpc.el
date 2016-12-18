@@ -80,7 +80,7 @@ If REGEXP is specified it only returns the matching functions."
 (defun mentor-d-close (&optional tor)
   (mentor-rpc-command "d.close" (mentor-d-get-hash tor)))
 
-(defun mentor-d-erase (&optional tor)
+(defun mentor-d-erase (tor)
   (mentor-rpc-command "d.erase" (mentor-d-get-hash tor)))
 
 (defun mentor-d-get-base-path (&optional tor)
@@ -92,7 +92,7 @@ If REGEXP is specified it only returns the matching functions."
 (defun mentor-d-get-hash (&optional tor)
   (mentor-item-property 'hash tor))
 
-(defun mentor-d-get-local-id (&optional tor)
+(defun mentor-d-get-local-id (tor)
   (mentor-item-property 'local_id tor))
 
 (defun mentor-d-get-name (&optional tor)

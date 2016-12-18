@@ -905,7 +905,7 @@ point."
   (let ((inhibit-read-only t))
     (goto-char item)
     (delete-region (mentor-get-item-beginning)
-                   (+ 1 (mentor-get-item-end)))))
+                   (+ 2 (mentor-get-item-end)))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
@@ -996,22 +996,6 @@ this subdir."
         (dired-delete-file file)
       (file-error nil))))
 
-(defun mentor-do-remove-torrent-files ()
-  (let* ((base-path (mentor-d-get-base-path))
-         (files (mentor-torrent-get-file-list))
-         dirs)
-    (if (mentor-d-is-multi-file)        
-        (progn
-          (dolist (file files)
-            (let* ((file (concat base-path "/" (caar file)))
-                   (dir (file-name-directory file)))
-              (mentor-delete-file file)
-              (setq dirs (adjoin dir dirs :test 'equal))))
-          (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
-          (dolist (dir dirs)
-            (mentor-delete-file dir)))
-      (mentor-delete-file base-path))))
-
 (defun mentor-get-old-torrent-path (tor)
   (let ((path (or (mentor-item-property 'base_path tor)
                   (and (= (mentor-item-property 'bytes_done tor) 0)
@@ -1067,7 +1051,33 @@ started after being added."
   (interactive "MEnter command: ")
   (apply 'mentor-rpc-command (split-string cmd)))
 
-(defun mentor-torrent-remove-helper (remove-files &optional arg)
+(defun mentor-download-get-file-list (tor)
+  (let ((files (mentor-item-property 'files tor)))
+    (when (not (cdr-safe files))
+      (progn
+        (message "Receiving file list...")
+        (setq files (mentor-rpc-command
+                     "f.multicall" (mentor-d-get-hash tor)
+                     "" "f.path_components="))
+        (mentor-item-set-property 'files files tor)))
+    files))
+
+(defun mentor--do-remove-torrent-files (tor files)
+  (let* ((base-path (mentor-d-get-base-path))
+         dirs)
+    (if (mentor-d-is-multi-file tor)        
+        (progn
+          (dolist (file files)
+            (let* ((file (concat base-path "/" (caar file)))
+                   (dir (file-name-directory file)))
+              (mentor-delete-file file)
+              (setq dirs (adjoin dir dirs :test 'equal))))
+          (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
+          (dolist (dir dirs)
+            (mentor-delete-file dir)))
+      (mentor-delete-file base-path))))
+
+(defun mentor--torrent-remove-helper (remove-files &optional arg)
   (when (mentor-mark-confirm
          (or (and remove-files "Remove including data")
              "Remove")
@@ -1075,24 +1085,25 @@ started after being added."
     (dolist (item
              (mentor-map-over-marks
               (progn
-                (when remove-files
-                  (mentor-torrent-get-file-list))
-                (mentor-d-erase)
-                (when remove-files
-                  (mentor-do-remove-torrent-files))
-                (mentor-view-torrent-list-delete-all)
-                (remhash (mentor-d-get-local-id) mentor-items)
-                (point))
+                (let* ((tor (mentor-get-item-at-point))
+                       (files (and remove-files
+                                   (mentor-download-get-file-list tor))))
+                  (mentor-d-erase tor)
+                  (when remove-files
+                    (mentor--do-remove-torrent-files tor files))
+                  (mentor-view-torrent-list-delete-all tor)
+                  (remhash (mentor-d-get-local-id tor) mentor-items)
+                  (point)))
               arg))
       (mentor-delete-item-from-buffer item))))
 
 (defun mentor-torrent-remove (&optional arg)
   (interactive "P")
-  (mentor-torrent-remove-helper nil arg))
+  (mentor--torrent-remove-helper nil arg))
 
 (defun mentor-torrent-remove-including-files (&optional arg)
   (interactive "P")
-  (mentor-torrent-remove-helper t arg))
+  (mentor--torrent-remove-helper t arg))
 
 (defun mentor-get-new-path (&optional prompt old)
   (let* ((old (concat mentor-directory-prefix
@@ -1379,18 +1390,6 @@ started after being added."
 (defun mentor-torrent-get-size-total (torrent)
   (mentor-bytes-to-human
    (mentor-item-property 'size_bytes torrent)))
-
-;; FIXME: There seems to be some code duplication here...
-(defun mentor-torrent-get-file-list (&optional tor)
-  (let ((files (mentor-item-property 'files tor)))
-    (when (not (cdr-safe files))
-      (progn
-        (message "Receiving file list...")
-        (setq files (mentor-rpc-command
-                     "f.multicall" (mentor-d-get-hash tor)
-                     "" "f.path_components="))
-        (mentor-item-set-property 'files files tor)))
-    files))
 
 (defun mentor-torrent-has-view (tor view)
   "Returns t if the torrent has the specified view."
