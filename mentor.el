@@ -45,7 +45,6 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'dired)
   (require 'cl))
 (require 'url-scgi)
 (require 'xml-rpc)
@@ -573,29 +572,33 @@ Optional argument ARG, if non-nil, specifies items near
       (mentor-item-get-name (mentor-get-item-at-point))
       arg))))
 
+;; Based on `dired-mark-pop-up'
 (defun mentor-mark-pop-up (bufname items function &rest args)
   "Return FUNCTION's result on ARGS after showing which items are marked.
-Displays the file names in a buffer named BUFNAME;
- nil gives \" *Marked Items*\".
-This uses function `dired-pop-to-buffer' to do that.
+Displays the file names in a window showing a buffer named
+BUFNAME; the default name being \" *Marked Items*\".  The window
+is not shown if there is just one item.
+
+ITEMS is the list of marked items.
 
 FUNCTION should not manipulate items, just read input
- (an argument or confirmation).
-The window is not shown if there is just one item.
-ITEMS is the list of marked items.  It can also be (t FILENAME)
-in the case of one marked file, to distinguish that from using
-just the current file."
-  (or bufname (setq bufname  " *Marked Items*"))
+(an argument or confirmation)."
   (if (= (length items) 1)
       (apply function args)
-    (with-current-buffer (get-buffer-create bufname)
-      (erase-buffer)
-      (dired-format-columns-of-files items)
-      (remove-text-properties (point-min) (point-max)
-			      '(mouse-face nil help-echo nil)))
-    (save-window-excursion
-      (dired-pop-to-buffer bufname)
-      (apply function args))))
+    (let ((buffer (get-buffer-create (or bufname " *Marked Items*"))))
+      (with-current-buffer buffer
+        (with-current-buffer-window
+         buffer       
+         (cons 'display-buffer-below-selected
+               '((window-height . fit-window-to-buffer)))
+         #'(lambda (window _value)
+             (with-selected-window window
+               (unwind-protect
+                   (apply function args)
+                 (when (window-live-p window)
+                   (quit-restore-window window 'kill)))))
+         (erase-buffer)
+         (completion--insert-strings items))))))
 
 (defun mentor-mark-prompt (arg items)
   "Return a string suitable for use in a mentor prompt.
@@ -612,8 +615,8 @@ ITEMS should be a list of item names."
 (defun mentor-mark-confirm (desc arg)
   (let ((items (mentor-get-marked-items arg)))
     (mentor-mark-pop-up nil items (function y-or-n-p)
-                        (concat desc " "
-                                (mentor-mark-prompt arg items) "? "))))
+                  (concat desc " "
+                          (mentor-mark-prompt arg items) "? "))))
 
 
 ;;; Getting torrent data
