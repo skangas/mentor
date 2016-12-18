@@ -37,7 +37,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(require 'url-parse)
 
 (defvar url-scgi-version "0.3"
   "The version of scgi that you're using.")
@@ -85,7 +85,8 @@
   (check-type url vector "Need a pre-parsed URL.")
   (declare (special url-scgi-connection-opened
 		    url-callback-function
-		    url-callback-arguments))
+                    url-callback-arguments
+                    url-current-object))
 
   (let* ((host (url-host url))
          (port (url-port url))
@@ -137,7 +138,8 @@
 (defun url-scgi-async-sentinel (proc why)
   ;; We are performing an asynchronous connection, and a status change
   ;; has occurred.
-  (declare (special url-callback-arguments))
+  (declare (special url-callback-arguments
+                    url-current-object))
   (with-current-buffer (process-buffer proc)
     (cond
      (url-scgi-connection-opened
