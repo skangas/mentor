@@ -1566,7 +1566,7 @@ to a view unless the filter is updated."
          (size (mentor-file-size_chunks file)))
     (format "%d" (* 100 (/ (+ 0.0 done) size)))))
 
-(defun mentor-file-size (file)
+(defun mentor-file-readable-size (file)
   (let* ((chunk-size (mentor-item-property
                       'chunk_size mentor-selected-torrent)))
     (mentor-bytes-to-human
@@ -1703,7 +1703,7 @@ point."
 (defvar mentor-file-detail-columns
   '(((mentor-file-progress) -5 "Cmp")
     ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-size) 6 "Size")
+    ((mentor-file-readable-size) 6 "Size")
     (nil 0 "File" 6)))
 (defvar mentor-file-detail-width 22)
 
