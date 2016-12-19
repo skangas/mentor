@@ -42,10 +42,10 @@ To start mentor, just run:
 
 : M-x mentor
 
-It should work out of the box, but you may wish to do some additional
+It should work out of the box, but you may want to do some additional
 configuration.
 
-If you wish to add a torrent, press <BACKSPACE> and give it's location.
+To add a torrent, press <BACKSPACE> and give it's location.
 
 ** Configuration
 
@@ -61,24 +61,26 @@ Two very useful variables to customize are
 
 *** External rtorrent
 
-If you are already running rTorrent outside of Emacs and wish to keep doing
-so, it is easy to configure.
+If you are already running rTorrent outside of Emacs, it is easy to configure
+mentor to use it.
 
 Add this to your ~/.rtorrent.rc and restart rTorrent:
-   
-: scgi_local = ~/.emacs.d/rtorrent-rpc.socket
+
+: scgi_local = ~/.rtorrent-rpc.socket
 : xmlrpc_dialect = i8
 : encoding_list = UTF-8
 
-Add something like this to your init.el or customize "Mentor Rtorrent External
-Rpc":
+Add this to your init.el and restart Emacs, or customize "Mentor Rtorrent
+External Rpc":
 
+: (setq mentor-rtorrent-external-rpc "scgi://~/.rtorrent-rpc.socket")
+
+You can alternatively use something like this:
+
+: ;; Alternative 2: Absolute path
+: (setq mentor-rtorrent-external-rpc "scgi:///path/to/rtorrent-rpc.socket")
+: ;; Alternative 3: Connect over tcp
 : (setq mentor-rtorrent-external-rpc "scgi://localhost:5000")
-: (setq mentor-rtorrent-external-rpc "scgi://~/.rtorrent.rpc")
-: (setq mentor-rtorrent-external-rpc "scgi:///path/to/.rtorrent.rpc")
-
-If you want to put the socket anywhere else, customize
-`mentor-rtorrent-url' to match.
 
 *** Configuring rtorrent
 
@@ -102,8 +104,8 @@ command:
 
 *** Installing mentor manually
 
-If you for some reason do not use Emacs 24 (e.g. using Debian wheezy), or do not
-want to use ELPA, you can install mentor manually.
+If you for some reason do not use Emacs 24, or if you don't want to use ELPA,
+you can install mentor manually.
 
 Clone the repository using:
 
