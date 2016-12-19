@@ -4,11 +4,11 @@
 ;; Copyright (C) 2011 David Spångberg.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
-;; Version: 0.1.1
+;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
 ;; Package-Requires: ((xml-rpc "1.6.9"))
 
-(defconst mentor-version "0.1.1"
+(defconst mentor-version "0.2"
   "The version of Mentor that you're using.")
 
 ;; This file is NOT part of GNU Emacs.
