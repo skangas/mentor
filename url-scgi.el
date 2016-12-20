@@ -70,7 +70,7 @@
 (defun url-scgi-activate-callback ()
   "Activate callback specified when this buffer was created."
   (declare (special url-callback-function
-		    url-callback-arguments))
+                    url-callback-arguments))
   (apply url-callback-function url-callback-arguments))
 
 (defun url-scgi-handle-home-dir (filename)
@@ -84,7 +84,7 @@
   "Handle SCGI URLs from internal Emacs functions."
   (check-type url vector "Need a pre-parsed URL.")
   (declare (special url-scgi-connection-opened
-		    url-callback-function
+                    url-callback-function
                     url-callback-arguments
                     url-current-object))
 
@@ -114,10 +114,10 @@
         (setq url-current-object url
               mode-line-format "%b [%s]")
 
-	(dolist (var '(url-scgi-connection-opened
-		       url-callback-function
-		       url-callback-arguments))
-	  (set (make-local-variable var) nil))
+        (dolist (var '(url-scgi-connection-opened
+                       url-callback-function
+                       url-callback-arguments))
+          (set (make-local-variable var) nil))
 
         (setq url-callback-function callback
               url-callback-arguments cbargs
@@ -149,10 +149,10 @@
       (process-send-string proc (url-scgi-create-request)))
      (t
       (setf (car url-callback-arguments)
-	    (nconc (list :error (list 'error 'connection-failed why
-				      :host (url-host url-current-object)
-				      :service (url-port url-current-object)))
-		   (car url-callback-arguments)))
+            (nconc (list :error (list 'error 'connection-failed why
+                                      :host (url-host url-current-object)
+                                      :service (url-port url-current-object)))
+                   (car url-callback-arguments)))
       (url-scgi-activate-callback)))))
 
 (provide 'url-scgi)
