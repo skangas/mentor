@@ -45,7 +45,37 @@ To start mentor, just run:
 It should work out of the box, but you may want to do some additional
 configuration.
 
-To add a torrent, press <BACKSPACE> and give it's location.
+** Key Bindings
+
+| <Backspace> | Add a torrent                    |
+| s           | Start torrent                    |
+| d           | Stop torrent                     |
+| k           | Remove torrent                   |
+| K           | Remove torrent incl. data        |
+| r           | Hash check                       |
+| g           | Update screen                    |
+| G           | Re-initialize information        |
+|-------------+----------------------------------|
+| m           | Mark torrent                     |
+| u           | Unmark torrent                   |
+| M           | Mark all torrents                |
+| U           | Unmark all torrents              |
+|-------------+----------------------------------|
+| t c         | Sort downloads by state          |
+| t D         | Sort downloads by directory      |
+| t d         | Sort downloads by dl speed       |
+| t n         | Sort downloads by name           |
+| t p         | Sort downloads by size           |
+| t t         | Sort downloads by tied file name |
+| t u         | Sort downloads by ul speed       |
+|-------------+----------------------------------|
+| R           | Move download data               |
+| <Enter>     | Enter file detail screen         |
+|-------------+----------------------------------|
+| x           | Call XML-RPC command             |
+|-------------+----------------------------------|
+| q           | Bury mentor                      |
+| Q           | Shutdown mentor                  |
 
 ** Configuration
 
