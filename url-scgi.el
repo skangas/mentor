@@ -49,22 +49,22 @@
 
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
-(defun scgi-string-to-netstring (str)
+(defun url-scgi-string-to-netstring (str)
   "Converts a string into a SCGI protocol netstring."
   (format "%d:%s," (length str) str))
 
-(defun scgi-add-null-bytes (&rest args)
+(defun url-scgi-add-null-bytes (&rest args)
   (apply 'concat (mapcar (lambda (a) (concat a "\000")) args)))
 
-(defun scgi-make-request-header (data)
-  (scgi-string-to-netstring
-   (scgi-add-null-bytes
+(defun url-scgi-make-request-header (data)
+  (url-scgi-string-to-netstring
+   (url-scgi-add-null-bytes
     "CONTENT_LENGTH" (number-to-string (length data))
     "SCGI" "1")))
 
 (defun url-scgi-create-request ()
   (declare (special url-request-data))
-  (concat (scgi-make-request-header url-request-data)
+  (concat (url-scgi-make-request-header url-request-data)
           url-request-data))
 
 (defun url-scgi-activate-callback ()
