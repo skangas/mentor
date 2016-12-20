@@ -144,7 +144,7 @@ Optional argument IS-INIT if this is initializing."
                                 "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
     (dolist (values list-of-values)
-      (mentor-torrent-update-from methods values is-init))))
+      (mentor-download-update-from methods values is-init))))
 
 ;; Download data
 

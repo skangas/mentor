@@ -129,12 +129,12 @@ methods instead."
   :type 'string)
 
 (defcustom mentor-view-columns
-  '(((mentor-torrent-get-state) -3 "State")
-    ((mentor-torrent-get-progress) -3 "Cmp")
+  '(((mentor-download-get-state) -3 "State")
+    ((mentor-download-get-progress) -3 "Cmp")
     (name -50 "Name")
-    ((mentor-torrent-get-speed-up) -6 "Up")
-    ((mentor-torrent-get-speed-down) -6 "Down")
-    ((mentor-torrent-get-size) -15 "     Size")
+    ((mentor-download-get-speed-up) -6 "Up")
+    ((mentor-download-get-speed-down) -6 "Down")
+    ((mentor-download-get-size) -15 "     Size")
     (message -40 "Message"))
   "A list of all columns to show in mentor view."
   :group 'mentor
@@ -248,20 +248,20 @@ methods instead."
     (define-key map (kbd "-") 'mentor-decrease-priority)
 
     ;; single torrent actions
-    (define-key map (kbd "C") 'mentor-torrent-copy-data)
-    (define-key map (kbd "R") 'mentor-torrent-move)
-    (define-key map (kbd "b") 'mentor-torrent-set-inital-seeding)
-    (define-key map (kbd "e") 'mentor-torrent-recreate-files)
-    (define-key map (kbd "o") 'mentor-torrent-change-target-directory)
-    (define-key map (kbd "d") 'mentor-torrent-stop)
-    (define-key map (kbd "K") 'mentor-torrent-remove-including-files)
-    (define-key map (kbd "k") 'mentor-torrent-remove)
-    (define-key map (kbd "r") 'mentor-torrent-hash-check)
-    (define-key map (kbd "s") 'mentor-torrent-start)
+    (define-key map (kbd "C") 'mentor-download-copy-data)
+    (define-key map (kbd "R") 'mentor-download-move)
+    (define-key map (kbd "b") 'mentor-download-set-inital-seeding)
+    (define-key map (kbd "e") 'mentor-download-recreate-files)
+    (define-key map (kbd "o") 'mentor-download-change-target-directory)
+    (define-key map (kbd "d") 'mentor-download-stop)
+    (define-key map (kbd "K") 'mentor-download-remove-including-files)
+    (define-key map (kbd "k") 'mentor-download-remove)
+    (define-key map (kbd "r") 'mentor-download-hash-check)
+    (define-key map (kbd "s") 'mentor-download-start)
     (define-key map (kbd "x") 'mentor-call-command)
 
     ;; misc actions
-    (define-key map (kbd "RET") 'mentor-torrent-detail-screen)
+    (define-key map (kbd "RET") 'mentor-download-detail-screen)
     (define-key map (kbd "TAB") 'mentor-toggle-item)
 
     (define-key map (kbd "m") 'mentor-mark)
@@ -412,8 +412,8 @@ It will use the RPC argument as value for scgi_local."
     (switch-to-buffer (get-buffer-create "*mentor*"))
     (mentor-mode)
     (mentor-setup-rtorrent)
-    (setq mentor-item-update-this-fun 'mentor-torrent-update-this)
-    (setq mentor-set-priority-fun 'mentor-torrent-set-priority-fun)
+    (setq mentor-item-update-this-fun 'mentor-download-update-this)
+    (setq mentor-set-priority-fun 'mentor-download-set-priority-fun)
     (setq mentor-columns-var  'mentor-view-columns)
     (setq mentor-sort-list '((up.rate . t) name))
     (mentor-init-header-line)
@@ -426,7 +426,7 @@ It will use the RPC argument as value for scgi_local."
     (mentor-set-view mentor-default-view)
     (when (equal mentor-current-view mentor-last-used-view)
       (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
-    (mentor-torrent-data-init)
+    (mentor-download-data-init)
     (mentor-views-init)
     (mentor-redisplay)
     (goto-char (point-min))))
@@ -605,7 +605,7 @@ ITEMS should be a list of item names."
 
 ;;; Getting torrent data
 
-(defun mentor-torrent-data-init ()
+(defun mentor-download-data-init ()
   "Initialize torrent data from rtorrent.
 
 All torrent information will be re-fetched, making this an
@@ -615,16 +615,16 @@ expensive operation."
   (mentor-views-update-views)
   (message "Initializing torrent data... DONE"))
 
-(defun mentor-torrent-data-update-all ()
+(defun mentor-download-data-update-all ()
   (message "Updating torrent data...")
   (condition-case _err
       (progn
         (mentor-rpc-d.multicall mentor-volatile-rpc-d-methods)
         (message "Updating torrent data...DONE"))
     (mentor-need-init
-     (mentor-torrent-data-init))))
+     (mentor-download-data-init))))
 
-(defun mentor-torrent-update-this ()
+(defun mentor-download-update-this ()
   (let* ((tor (mentor-get-item-at-point))
          (hash (mentor-item-property 'hash tor))
          (methods mentor-volatile-rpc-d-methods)
@@ -632,7 +632,7 @@ expensive operation."
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
-    (mentor-torrent-update-from methods values)
+    (mentor-download-update-from methods values)
     (mentor-redisplay-torrent)))
 
 
@@ -1081,11 +1081,11 @@ started after being added."
               arg))
       (mentor-delete-item-from-buffer item))))
 
-(defun mentor-torrent-remove (&optional arg)
+(defun mentor-download-remove (&optional arg)
   (interactive "P")
   (mentor--torrent-remove-helper nil arg))
 
-(defun mentor-torrent-remove-including-files (&optional arg)
+(defun mentor-download-remove-including-files (&optional arg)
   (interactive "P")
   (mentor--torrent-remove-helper t arg))
 
@@ -1103,7 +1103,7 @@ started after being added."
 ;; TODO: Sort out the "copied" and "moved" messages below to give a summary
 ;; instead of just the last file.
 
-(defun mentor-torrent-copy-data (&optional arg)
+(defun mentor-download-copy-data (&optional arg)
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
@@ -1117,7 +1117,7 @@ started after being added."
       (mentor-redisplay-torrent))
     arg)))
 
-(defun mentor-torrent-move (&optional no-move arg)
+(defun mentor-download-move (&optional no-move arg)
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (verbstr (or (and no-move "Change directory of ") "Move "))
@@ -1134,7 +1134,7 @@ started after being added."
          ;; to look for the file.
          (when (not (file-exists-p old))
            (error (concat "Download base path %s does not exist\n"
-                          "Try `mentor-torrent-change-target-directory'")
+                          "Try `mentor-download-change-target-directory'")
                   old))
          (let ((target (concat new (file-name-nondirectory old))))
           (when (file-exists-p target)
@@ -1151,7 +1151,7 @@ started after being added."
              (mentor-d-set-directory new)
              (when was-started
                (mentor-d-start))
-             (mentor-torrent-update-this)
+             (mentor-download-update-this)
              (if no-move
                  (message "Changed %s target directory to %s" (mentor-d-get-name) new)
                (message "Moved %s to %s" (mentor-d-get-name) new)))
@@ -1160,12 +1160,12 @@ started after being added."
        (mentor-redisplay-torrent))
      arg)))
 
-(defun mentor-torrent-change-target-directory (&optional arg)
+(defun mentor-download-change-target-directory (&optional arg)
   "Change torrents target directory without moving data."
   (interactive "P")
-  (mentor-torrent-move t arg))
+  (mentor-download-move t arg))
 
-(defun mentor-torrent-hash-check (&optional arg)
+(defun mentor-download-hash-check (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn
@@ -1173,63 +1173,63 @@ started after being added."
        (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
        (mentor-item-set-property 'hashing 1 tor)
        (mentor-item-set-property 'is_open 1 tor)
-       (mentor-torrent-update-this)))
+       (mentor-download-update-this)))
    arg))
 
-(defun mentor-torrent-pause (&optional arg)
+(defun mentor-download-pause (&optional arg)
   "Pause torrent. This is probably not what you want, use
-`mentor-torrent-stop' instead."
+`mentor-download-stop' instead."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-resume (&optional arg)
+(defun mentor-download-resume (&optional arg)
   "Resume torrent. This is probably not what you want, use
-`mentor-torrent-start' instead."
+`mentor-download-start' instead."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-start (&optional arg)
+(defun mentor-download-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-d-start)
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-stop (&optional arg)
+(defun mentor-download-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-d-stop)
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-open (&optional arg)
+(defun mentor-download-open (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-close (&optional arg)
+(defun mentor-download-close (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.close" (mentor-item-property 'hash))
-          (mentor-torrent-update-this))
+          (mentor-download-update-this))
    arg))
 
-(defun mentor-torrent-recreate-files ()
+(defun mentor-download-recreate-files ()
   "Set the 'create/resize queued' flags on all files in a torrent."
   (interactive)
-  (message "TODO: mentor-torrent-recreate-files"))
+  (message "TODO: mentor-download-recreate-files"))
 
-(defun mentor-torrent-set-inital-seeding ()
+(defun mentor-download-set-inital-seeding ()
   (interactive)
-  (message "TODO: mentor-torrent-set-inital-seeding"))
+  (message "TODO: mentor-download-set-inital-seeding"))
 
 (defun mentor-view-in-dired ()
   (interactive)
@@ -1252,7 +1252,7 @@ started after being added."
          (mentor-keep-position
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
-          (mentor-torrent-data-update-all)
+          (mentor-download-data-update-all)
           (mentor-redisplay)))))
 
 (defun mentor-reload ()
@@ -1264,7 +1264,7 @@ started after being added."
           (when (mentor-views-is-custom-view mentor-current-view)
             (mentor-views-update-filter mentor-current-view))
           (setq mentor-items (make-hash-table :test 'equal))
-          (mentor-torrent-data-init)
+          (mentor-download-data-init)
           (mentor-redisplay)))))
 
 (defun mentor-redisplay ()
@@ -1322,16 +1322,16 @@ started after being added."
 
 ;;; Get torrent data from rtorrent
 
-(defun mentor-torrent-update-from (methods values &optional is-init)
-  (mentor-torrent-update
-   (mentor-torrent-create
+(defun mentor-download-update-from (methods values &optional is-init)
+  (mentor-download-update
+   (mentor-download-create
     (mapcar* (lambda (method value)
                (cons (mentor-rpc-method-to-property method)
                      (mentor-rpc-value-to-real-value method value)))
              methods values))
    is-init))
 
-(defun mentor-torrent-get-progress (torrent)
+(defun mentor-download-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
          (totalv (mentor-item-property 'size_bytes torrent))
          (done (abs (or donev 0)))
@@ -1342,7 +1342,7 @@ started after being added."
       (format "%d%%" percent))))
 
 ;; TODO show an "I" for incomplete torrents
-(defun mentor-torrent-get-state (tor)
+(defun mentor-download-get-state (tor)
   (let* ((h (mentor-item-property 'hashing tor))
          (a (mentor-item-property 'is_active tor))
          (o (mentor-item-property 'is_open tor))
@@ -1350,15 +1350,15 @@ started after being added."
          (second-char (if (= o 1) " " "C")))
     (concat first-char second-char)))
 
-(defun mentor-torrent-get-speed-down (torrent)
+(defun mentor-download-get-speed-down (torrent)
   (mentor-bytes-to-kilobytes
    (mentor-item-property 'down.rate torrent)))
 
-(defun mentor-torrent-get-speed-up (torrent)
+(defun mentor-download-get-speed-up (torrent)
   (mentor-bytes-to-kilobytes
    (mentor-item-property 'up.rate torrent)))
 
-(defun mentor-torrent-get-size (torrent)
+(defun mentor-download-get-size (torrent)
   (let ((done (mentor-item-property 'bytes_done torrent))
         (total (mentor-item-property 'size_bytes torrent)))
     (if (= done total)
@@ -1367,29 +1367,29 @@ started after being added."
               (mentor-bytes-to-human done)
               (mentor-bytes-to-human total)))))
 
-(defun mentor-torrent-get-size-done (torrent)
+(defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human
    (mentor-item-property 'bytes_done torrent)))
 
-(defun mentor-torrent-get-size-total (torrent)
+(defun mentor-download-get-size-total (torrent)
   (mentor-bytes-to-human
    (mentor-item-property 'size_bytes torrent)))
 
-(defun mentor-torrent-has-view (tor view)
+(defun mentor-download-has-view (tor view)
   "Returns t if the torrent has the specified view."
-  (member view (mentor-torrent-get-views tor)))
+  (member view (mentor-download-get-views tor)))
 
-(defun mentor-torrent-get-views (tor)
+(defun mentor-download-get-views (tor)
   (mentor-item-property 'views tor))
 
-(defun mentor-torrent-get-prio (tor)
+(defun mentor-download-get-prio (tor)
   (let ((prio (mentor-item-property 'priority tor)))
     (cond ((= 0 prio) "off")
           ((= 1 prio) "low")
           ((= 2 prio) "")
           ((= 3 prio) "hig"))))
 
-(defun mentor-torrent-set-priority-fun (val)
+(defun mentor-download-set-priority-fun (val)
   (let ((hash (mentor-item-property 'hash))
         (prio (mentor-item-property 'priority)))
     (list "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
@@ -1397,8 +1397,8 @@ started after being added."
 
 ;;; View functions
 
-(defvar mentor-torrent-views)
-(make-variable-buffer-local 'mentor-torrent-views)
+(defvar mentor-download-views)
+(make-variable-buffer-local 'mentor-download-views)
 
 (defconst mentor-custom-view-prefix "mentor-"
   "The string to add to the view name before adding it to
@@ -1408,7 +1408,7 @@ started after being added."
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
                                  (remove-if-not 'mentor-views-is-custom-view
-                                                mentor-torrent-views)
+                                                mentor-download-views)
                                  nil mentor-current-view)))
   (let ((tor (mentor-get-item-at-point)))
    (when (not (mentor-views-is-custom-view view))
@@ -1422,7 +1422,7 @@ started after being added."
                              (mentor-item-property 'hash tor) view)
        (message "Nothing done")))))
 
-(defconst mentor-torrent-default-views
+(defconst mentor-download-default-views
   '("main" "name" "started" "stopped" "complete"
     "incomplete" "hashing" "seeding" "active"))
 
@@ -1440,7 +1440,7 @@ started after being added."
   (interactive)
   (when (null new)
     (setq new (mentor-prompt-complete
-               "Show view: " mentor-torrent-views
+               "Show view: " mentor-download-views
                1 mentor-last-used-view)))
   (when (numberp new)
     (setq new (mentor-get-custom-view-name new)))
@@ -1455,7 +1455,7 @@ the new views view_filter. SHOULD BE USED WITH CARE! Atleast in
 rtorrent 0.8.6, rtorrent crashes if you try to add the same view
 twice!"
   (mentor-rpc-command "view.add" view)
-  (setq mentor-torrent-views (cons view mentor-torrent-views))
+  (setq mentor-download-views (cons view mentor-download-views))
   (mentor-views-update-filter view))
 
 (defun mentor-views-init ()
@@ -1477,7 +1477,7 @@ already in view_list and sets all new view_filters."
 
 (defun mentor-views-update-views ()
   "Updates the view list with all views defined by rtorrent."
-  (setq mentor-torrent-views (mentor-rpc-command "view.list")))
+  (setq mentor-download-views (mentor-rpc-command "view.list")))
 
 (defun mentor-views-update-filter (view)
   "Updates the view_filter for the specified view. You need to do
@@ -1492,17 +1492,17 @@ to a view unless the filter is updated."
   (mapc (lambda (view)
           (when (mentor-views-is-custom-view  view)
             (mentor-views-update-filter view)))
-        mentor-torrent-views))
+        mentor-download-views))
 
 (defun mentor-views-is-view-defined (view)
-  (member view mentor-torrent-views))
+  (member view mentor-download-views))
 
 (defun mentor-views-is-custom-view (view)
-  ;;(not (member view mentor-torrent-default-views)))
+  ;;(not (member view mentor-download-default-views)))
   (string-match (concat "^" mentor-custom-view-prefix) view))
 
 (defun mentor-views-is-default-view (view)
-  (member view mentor-torrent-default-views))
+  (member view mentor-download-default-views))
 
 
 ;;; Utility functions

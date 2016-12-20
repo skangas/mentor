@@ -79,14 +79,14 @@ If MUST-EXIST is non-nil, give a warning if the property does not
 
 ;;; Torrent data structure
 
-(defun mentor-torrent-create (data)
+(defun mentor-download-create (data)
   (make-mentor-item
    :id   (cdr (assq 'local_id data))
    :type 'torrent
    :marked nil
    :data data))
 
-(defun mentor-torrent-update (new &optional is-init)
+(defun mentor-download-update (new &optional is-init)
   "Add or update a torrent using data in NEW."
   (let* ((id  (mentor-item-property 'local_id new))
          (old (mentor-get-item id)))

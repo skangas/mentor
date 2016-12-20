@@ -27,22 +27,22 @@
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-torrent-details-mode-map
+(defvar mentor-download-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "N") 'mentor-details-next-directory)
     (define-key map (kbd "P") 'mentor-details-previous-directory)
     map)
-  "Keymap used in `mentor-torrent-details-mode'.")
+  "Keymap used in `mentor-download-details-mode'.")
 
 (defconst mentor-volatile-rpc-f-methods
   '("f.priority" "f.completed_chunks" "f.size_chunks"))
 
-(define-minor-mode mentor-torrent-details-mode
+(define-minor-mode mentor-download-details-mode
   "Minor mode for managing a torrent in mentor."
   :group mentor
   :init-value nil
   :lighter nil
-  :keymap mentor-torrent-details-mode-map)
+  :keymap mentor-download-details-mode-map)
 
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
@@ -109,7 +109,7 @@
           'file file
           'show (mentor-file-show file))))
 
-(defun mentor-torrent-detail-screen ()
+(defun mentor-download-detail-screen ()
   "Show information about the specified torrent or the torrent at
 point."
   (interactive)
@@ -120,7 +120,7 @@ point."
     (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
     (setq mentor-columns-var  'mentor-file-detail-columns)
     (mentor-reload-header-line)
-    (mentor-torrent-details-mode t)
+    (mentor-download-details-mode t)
     (setq mentor-selected-torrent tor)
     (mentor-files-update t)
     (mentor-details-redisplay)
