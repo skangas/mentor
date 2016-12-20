@@ -898,7 +898,7 @@ point."
   (let ((inhibit-read-only t))
     (goto-char item)
     (delete-region (mentor-get-item-beginning)
-                   (+ 2 (mentor-get-item-end)))))
+                   (+ 1 (mentor-get-item-end)))))
 
 (defun mentor-goto-torrent (id)
   (let ((pos (save-excursion
