@@ -124,7 +124,10 @@ point."
           'show (mentor-file-show file))))
 
 (defun mentor-details-add-files (name-list)
-  (let ((root (make-mentor-file :name "/" :type 'dir :id -1 :show t))
+  (let ((root (make-mentor-file :name "/"
+                                :type 'dir
+                                :id -1
+                                :show t))
         (all-files (make-hash-table :test 'eql))
         (dir-id -1)
         (file-id -1))
@@ -137,7 +140,8 @@ point."
           (if (mentor-file-get-file last-dir file)
               (setq last-dir (mentor-file-get-file last-dir file))
             (setq curr-dir (make-mentor-file :name file
-                                             :type 'dir :show nil
+                                             :type 'dir
+                                             :show nil
                                              :id (decf dir-id)))
             (mentor-file-add-file last-dir curr-dir)
             (setq last-dir curr-dir))
@@ -167,19 +171,20 @@ point."
                     mentor-volatile-rpc-f-methods))
          (methods= (mapcar (lambda (m) (concat m "=")) methods))
          (value-list (apply 'mentor-rpc-command
-                            "f.multicall" hash "" methods=))
-         (properties (mapcar 'mentor-rpc-method-to-property methods)))
+                            "f.multicall" hash "" methods=)))
     (when add-files
       (mentor-details-add-files (mapcar 'car value-list))
       (setq value-list (mapcar 'cdr value-list)))
     (let ((files (cdr (assq 'files mentor-selected-torrent-info)))
-          (id -1))
+          (id -1)
+          (properties (mapcar 'mentor-rpc-method-to-property
+                              mentor-volatile-rpc-f-methods)))
       (dolist (values value-list)
-        (let ((_file (gethash (incf id) files)))
+        (let ((filex (gethash (incf id) files)))
           (mapc (lambda (p)
                   (let* ((file-fun (mentor--concat-symbols 'mentor-file- p))
                          (val (pop values)))
-                    (eval `(setf (,file-fun _file) ,val))))
+                    (eval `(setf (,file-fun ,filex) ,val))))
                 properties)))))
   (mentor-details-redisplay))
 
