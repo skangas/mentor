@@ -99,7 +99,8 @@ If MUST-EXIST is non-nil, give a warning if the property does not
       (dolist (row (mentor-item-data new))
         (let* ((p (car row))
                (v (cdr row)))
-          (mentor-item-set-property p v old 'must-exist))))))
+          (mentor-item-set-property p v old 'must-exist))))
+    (mentor-view-torrent-list-add new)))
 
 (put 'mentor-need-init
      'error-conditions

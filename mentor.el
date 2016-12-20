@@ -1331,13 +1331,13 @@ started after being added."
 ;;; Get torrent data from rtorrent
 
 (defun mentor-torrent-update-from (methods values &optional is-init)
-  (let ((tor (mentor-torrent-create
-              (mapcar* (lambda (method value)
-                         (cons (mentor-rpc-method-to-property method)
-                               (mentor-rpc-value-to-real-value method value)))
-                       methods values))))
-    (mentor-torrent-update tor is-init)
-    (mentor-view-torrent-list-add tor)))
+  (mentor-torrent-update
+   (mentor-torrent-create
+    (mapcar* (lambda (method value)
+               (cons (mentor-rpc-method-to-property method)
+                     (mentor-rpc-value-to-real-value method value)))
+             methods values))
+   is-init))
 
 (defun mentor-torrent-get-progress (torrent)
   (let* ((donev (mentor-item-property 'bytes_done torrent))
