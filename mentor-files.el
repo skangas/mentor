@@ -168,13 +168,10 @@ point."
           (assq-delete-all 'files mentor-selected-torrent-info)))
   (let* ((tor mentor-selected-torrent)
          (hash (mentor-item-property 'hash tor))
-         (methods mentor-volatile-rpc-f-methods)
-         (methods+ (mapcar
-                    'mentor-get-some-methods-as-string
-                    (if add-files
-                        (cons "f.path_components" methods)
-                      methods)))
-         (methods= (mapcar (lambda (m) (concat m "=")) methods+))
+         (methods (if add-files
+                      (cons "f.path_components" mentor-volatile-rpc-f-methods)
+                    mentor-volatile-rpc-f-methods))
+         (methods= (mapcar (lambda (m) (concat m "=")) methods))
          (value-list (apply 'mentor-rpc-command
                             "f.multicall" hash "" methods=))
          (properties (mapcar 'mentor-rpc-method-to-property methods)))
@@ -187,10 +184,7 @@ point."
         (let ((_file (gethash (incf id) files)))
           (mapc (lambda (p)
                   (let* ((file-fun (mentor-concat-symbols 'mentor-file- p))
-                         (val (if (string-match mentor-methods-to-get-as-string
-                                                (symbol-name p))
-                                  (string-to-number (pop values))
-                                (pop values))))
+                         (val (pop values)))
                     (eval `(setf (,file-fun _file) ,val))))
                 properties)))))
   (mentor-details-redisplay))

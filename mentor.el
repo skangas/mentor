@@ -1326,8 +1326,7 @@ started after being added."
   (mentor-download-update
    (mentor-download-create
     (mapcar* (lambda (method value)
-               (cons (mentor-rpc-method-to-property method)
-                     (mentor-rpc-value-to-real-value method value)))
+               (cons (mentor-rpc-method-to-property method) value))
              methods values))
    is-init))
 

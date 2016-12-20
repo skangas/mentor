@@ -138,8 +138,7 @@ If REGEXP is specified it only returns the matching functions."
   "Call `d.multicall2' with METHODS.
 
 Optional argument IS-INIT if this is initializing."
-  (let* ((methods+ (mapcar 'mentor-get-some-methods-as-string methods))
-         (methods= (mapcar (lambda (m) (concat m "=")) methods+))
+  (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
          (list-of-values (apply 'mentor-rpc-command "d.multicall2"
                                 "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
@@ -148,31 +147,9 @@ Optional argument IS-INIT if this is initializing."
 
 ;; Download data
 
-(defconst mentor-methods-to-get-as-string
-  (regexp-opt '("bytes_done" "completed_bytes"
-                "left_bytes" "size_bytes" "chunk_size"
-                "completed_chunks" "size_chunks"))
-  "Methods that should be prefixed with cat= when fetched.")
-
-(defun mentor-get-some-methods-as-string (method)
-  "Used to get some properties as a string, since older versions
-of libxmlrpc-c cannot handle integers longer than 4 bytes."
-  (let ((re (concat "\\(?:[df]\\.get_"
-                    mentor-methods-to-get-as-string
-                    "\\)")))
-    (if (string-match re method)
-        (concat "cat=$" method)
-      method)))
-
 (defun mentor-rpc-method-to-property (method)
   (intern
    (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
-
-(defun mentor-rpc-value-to-real-value (method value)
-  (if (and (string-match mentor-methods-to-get-as-string method)
-           (stringp value))
-      (string-to-number value)
-    value))
 
 (defconst mentor-rpc-d-methods
   '("d.hash"
