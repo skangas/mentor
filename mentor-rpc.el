@@ -39,7 +39,12 @@
 ARGS is a list of strings to run."
   (let* ((response (apply 'xml-rpc-method-call mentor--rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
-        (error "Unable to connect to %s" mentor--rtorrent-url)
+        ;; Add warning about bug#23606.
+        ;; Remove when Emacs 25 hits Debian stable.
+        (if (and (string-match "localhost" mentor--rtorrent-url)
+                 (< emacs-major-version 25))
+            (error "Unable to connect to %s [try using 127.0.0.1 instead -- see bug#23606]" mentor--rtorrent-url)
+          (error "Unable to connect to %s" mentor--rtorrent-url))
       response)))
 
 (defun mentor-rpc-list-methods (&optional regexp)
