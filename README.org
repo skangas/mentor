@@ -141,7 +141,7 @@ command:
 
 *** Installing mentor manually
 
-If you for some reason do not use Emacs 24, or if you don't want to use ELPA,
+If you for some reason do not use Emacs 24, or if you do not want to use ELPA,
 you can install mentor manually.
 
 Clone the repository using:
@@ -157,26 +157,24 @@ Change "~/src/mentor" to the path where you keep the mentor source code.
 
 Make sure you have xml-rpc.el installed, at least version 1.6.9.
 
+If you wish to byte-compile mentor, go into the source directory and run:
+
+: make
+
+Here is how you setup autoload.  See the Emacs manual for more information on
+this.
+
+: (autoload 'mentor "mentor" nil t)
+
 ** Known issues
 
 - The file view needs much love, and is currently not known to be
-  working. Sorry.
+  working.  Sorry.
 
 - There is no view for trackers/peers/extra information.
 
 - mentor currently has some performance issues if you have many torrents
   (several hundreds). Be aware.
-
-** Misc
-
-- If you wish to byte-compile mentor, go into the source directory and run:
-
-  : make
-
-- Here is how you setup autoload. See the Emacs manual for more information on
-  this.
-
-  : (autoload 'mentor "mentor" nil t)
 
 ** Contact
 
