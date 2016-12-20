@@ -402,13 +402,15 @@ It will use the RPC argument as value for scgi_local."
       (setq mentor-rtorrent-url rpc-url)
       (message "Waiting for rtorrent to start...")
       (while (not rtorrent-started)
-        (condition-case error
+        (condition-case err
             (progn (mentor-rpc-command "system.pid")
                    (setq rtorrent-started t))
           (error
-           (if (< (float-time) (+ since 10))
-               (sleep-for 0.1)
-             (error "mentor: xmlrpc not up after 10 seconds: %s" error))))))))
+           (if (string-match "^Bad url: " (error-message-string err))
+               (signal (car err) (cdr err))
+             (if (< (float-time) (+ since 10))
+                 (sleep-for 0.1)
+               (error "xmlrpc not up after 10 seconds: %s" err)))))))))
 
 ;;;###autoload
 (defun mentor ()
