@@ -1511,9 +1511,6 @@ to a view unless the filter is updated."
         ((> num max) max)
         (t num)))
 
-(defun mentor-concat-symbols (&rest symbols)
-  (intern (apply 'concat (mapcar 'symbol-name symbols))))
-
 (defun mentor-get-item-type ()
   (interactive)
   (get-text-property (point) 'type))

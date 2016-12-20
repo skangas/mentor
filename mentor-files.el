@@ -23,6 +23,15 @@
 
 ;;; Code:
 
+(cl-defstruct mentor-file
+  "The datastructure that contains the information about torrent
+files.  A mentor-file can be either a regular file or a filename
+and if it is the latter it will contain a list of the files it
+contain.  If it is a regular file it will contain an id which is
+the integer index used by rtorrent to identify this file."
+  name show marked size completed_chunks
+  size_chunks priority files type id)
+
 (defvar mentor-selected-torrent nil)
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
@@ -44,28 +53,33 @@
   :lighter nil
   :keymap mentor-download-details-mode-map)
 
+(defun mentor-download-detail-screen ()
+  "Show information about the specified torrent or the torrent at
+point."
+  (interactive)
+  (let ((tor (mentor-get-item-at-point)))
+    (switch-to-buffer "*mentor: torrent details*")
+    (setq mentor-sub-mode 'file-details)
+    (mentor-mode)
+    (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
+    (setq mentor-columns-var  'mentor-file-detail-columns)
+    (mentor-reload-header-line)
+    (mentor-download-details-mode t)
+    (setq mentor-selected-torrent tor)
+    (mentor-files-update t)
+    (mentor-details-redisplay)
+    (setq mode-line-buffer-identification
+          (concat "*mentor* "
+                  (mentor-item-property 'name tor)))
+    (if (not (mentor-get-item-type))
+        (mentor-next-item 1 t)
+      (mentor-beginning-of-item))))
+
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
 
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
-
-(defun mentor-file-prio-string (file)
-  (let ((prio (mentor-file-priority file)))
-    (cond ((eq prio 0) "off")
-          ((eq prio 1) "")
-          ((eq prio 2) "hig"))))
-
-(defun mentor-file-progress (file)
-  (let* ((done (mentor-file-completed_chunks file))
-         (size (mentor-file-size_chunks file)))
-    (format "%d" (* 100 (/ (+ 0.0 done) size)))))
-
-(defun mentor-file-readable-size (file)
-  (let* ((chunk-size (mentor-item-property
-                      'chunk_size mentor-selected-torrent)))
-    (mentor-bytes-to-human
-     (* chunk-size (mentor-file-size_chunks file)))))
 
 (defun mentor-file-set-priority-fun (val)
   (let* ((file (mentor-file-at-point))
@@ -109,27 +123,6 @@
           'file file
           'show (mentor-file-show file))))
 
-(defun mentor-download-detail-screen ()
-  "Show information about the specified torrent or the torrent at
-point."
-  (interactive)
-  (let ((tor (mentor-get-item-at-point)))
-    (switch-to-buffer "*mentor: torrent details*")
-    (setq mentor-sub-mode 'file-details)
-    (mentor-mode)
-    (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
-    (setq mentor-columns-var  'mentor-file-detail-columns)
-    (mentor-reload-header-line)
-    (mentor-download-details-mode t)
-    (setq mentor-selected-torrent tor)
-    (mentor-files-update t)
-    (mentor-details-redisplay)
-    (setq mode-line-buffer-identification (concat "*mentor* "
-                                                  (mentor-item-property 'name tor)))
-    (if (not (mentor-get-item-type))
-        (mentor-next-item 1 t)
-      (mentor-beginning-of-item))))
-
 (defun mentor-details-add-files (name-list)
   (let ((root (make-mentor-file :name "/" :type 'dir :id -1 :show t))
         (all-files (make-hash-table :test 'eql))
@@ -157,8 +150,9 @@ point."
     (push (cons 'files all-files) mentor-selected-torrent-info)
     (push (cons 'root root) mentor-selected-torrent-info)))
 
-;; TODO: benchmark if add-files nil really means any performance gain
-;;       for large examples
+(defun mentor--concat-symbols (&rest symbols)
+  (intern (apply 'concat (mapcar 'symbol-name symbols))))
+
 (defun mentor-files-update (&optional add-files)
   (interactive)
   (when add-files
@@ -183,18 +177,11 @@ point."
       (dolist (values value-list)
         (let ((_file (gethash (incf id) files)))
           (mapc (lambda (p)
-                  (let* ((file-fun (mentor-concat-symbols 'mentor-file- p))
+                  (let* ((file-fun (mentor--concat-symbols 'mentor-file- p))
                          (val (pop values)))
                     (eval `(setf (,file-fun _file) ,val))))
                 properties)))))
   (mentor-details-redisplay))
-
-(defvar mentor-file-detail-columns
-  '(((mentor-file-progress) -5 "Cmp")
-    ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-readable-size) 6 "Size")
-    (nil 0 "File" 6)))
-(defvar mentor-file-detail-width 22)
 
 (defun mentor-insert-file (file infix &optional last)
   (interactive)
@@ -279,6 +266,31 @@ point."
   (when (not no-redisplay)
     (mentor-details-redisplay)))
 
+;; Table
+
+(defvar mentor-file-detail-columns
+  '(((mentor-file-progress) -5 "Cmp")
+    ((mentor-file-prio-string) -5 "Pri")
+    ((mentor-file-readable-size) 6 "Size")
+    (nil 0 "File" 6)))
+(defvar mentor-file-detail-width 22)
+
+(defun mentor-file-prio-string (file)
+  (let ((prio (mentor-file-priority file)))
+    (cond ((eq prio 0) "off")
+          ((eq prio 1) "")
+          ((eq prio 2) "hig"))))
+
+(defun mentor-file-progress (file)
+  (let* ((done (mentor-file-completed_chunks file))
+         (size (mentor-file-size_chunks file)))
+    (format "%d" (* 100 (/ (+ 0.0 done) size)))))
+
+(defun mentor-file-readable-size (file)
+  (let* ((chunk-size (mentor-item-property
+                      'chunk_size mentor-selected-torrent)))
+    (mentor-bytes-to-human
+     (* chunk-size (mentor-file-size_chunks file)))))
 
 ;; Local Variables:
 ;; indent-tabs-mode: nil
