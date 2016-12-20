@@ -144,29 +144,22 @@ methods instead."
 ;; Internal variables
 
 (defvar mentor-mode-hook)
-
 (defvar mentor-current-view)
-
-(defvar mentor-home-dir (expand-file-name (convert-standard-filename "mentor/")
-                                    user-emacs-directory)
+(defvar mentor-home-dir (expand-file-name
+                         (convert-standard-filename "mentor/")
+                         user-emacs-directory)
   "Where mentor should put any of its temporary files.")
-
-(defvar mentor-header-line)
-(make-variable-buffer-local 'mentor-header-line)
+(defvar mentor--header-line)
+(make-variable-buffer-local 'mentor--header-line)
 
 (defvar mentor-rtorrent-client-version)
-(make-variable-buffer-local 'mentor-rtorrent-client-version)
-
 (defvar mentor-rtorrent-library-version)
-(make-variable-buffer-local 'mentor-rtorrent-library-version)
-
 (defvar mentor-rtorrent-buffer-name "*mentor-term*"
   "Name of the buffer that will run rtorrent process.")
 
 (defvar mentor--rtorrent-session-directory nil)
 
 (defvar mentor-rtorrent-name)
-(make-variable-buffer-local 'mentor-rtorrent-name)
 
 (defvar mentor-sort-list '(name))
 (make-variable-buffer-local 'mentor-sort-list)
@@ -181,7 +174,6 @@ methods instead."
   "A list of torrents in given views.")
 
 (defvar mentor-marker-char ?*)
-
 (defvar mentor-re-mark "^[^ \n]")
 
 (defface mentor-highlight-face
@@ -447,8 +439,8 @@ It will use the RPC argument as value for scgi_local."
   (setq header-line-format
         '(:eval (concat
                  (propertize " " 'display '((space :align-to 1)))
-                 (substring mentor-header-line
-                            (min (length mentor-header-line)
+                 (substring mentor--header-line
+                            (min (length mentor--header-line)
                                  (window-hscroll)))))))
 
 
@@ -715,7 +707,7 @@ expensive operation."
                     text))))))))
 
 (defun mentor-reload-header-line ()
-  (setq mentor-header-line
+  (setq mentor--header-line
         (mentor-process-view-header-columns (eval mentor-columns-var))))
 
 (defvar mentor-highlight-overlay nil)

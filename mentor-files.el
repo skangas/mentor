@@ -27,10 +27,6 @@
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
-(defvar mentor-selected-torrent-info nil)
-(make-variable-buffer-local 'mentor-selected-torrent)
-(put 'mentor-selected-torrent 'permanent-local t)
-
 (defvar mentor-torrent-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "N") 'mentor-details-next-directory)
