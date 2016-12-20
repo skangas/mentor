@@ -75,10 +75,14 @@ If REGEXP is specified it only returns the matching functions."
     (mentor-rpc-command cmd "" file)))
 
 (defun mentor-c-load-raw (file &optional stopped)
-  (let ((cmd (if stopped "load.raw_verbose" "load.raw_start_verbose"))
-        (data (with-temp-buffer
-                (insert-file-contents-literally file)
-                (buffer-substring-no-properties (point-min) (point-max)))))
+  (let ((cmd (if stopped "load.raw" "load.raw_start"))
+        (data (list
+               :base64
+               (with-temp-buffer
+                 (set-buffer-multibyte nil)
+                 (setq buffer-file-coding-system 'binary)
+                 (insert-file-contents-literally file)
+                 (buffer-substring-no-properties (point-min) (point-max))))))
     (mentor-rpc-command cmd "" data)))
 
 (defun mentor-c-use-deprecated-set (arg)
