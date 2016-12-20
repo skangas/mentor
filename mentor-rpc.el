@@ -25,9 +25,8 @@
 
 (require 'mentor-data)
 
-(defvar mentor-rtorrent-url
+(defvar mentor--rtorrent-url nil
   "The current rtorrent XML-RPC api URL.")
-(make-variable-buffer-local 'mentor-rtorrent-url)
 
 (defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
   "Do not try methods that makes rtorrent crash.")
@@ -38,9 +37,9 @@
   "Run command as an XML-RPC call to rtorrent.
 
 ARGS is a list of strings to run."
-  (let* ((response (apply 'xml-rpc-method-call mentor-rtorrent-url args)))
+  (let* ((response (apply 'xml-rpc-method-call mentor--rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
-        (error "Unable to connect to %s" mentor-rtorrent-url)
+        (error "Unable to connect to %s" mentor--rtorrent-url)
       response)))
 
 (defun mentor-rpc-list-methods (&optional regexp)

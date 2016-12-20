@@ -351,13 +351,12 @@ It will use the RPC argument as value for scgi_local."
     (with-temp-file filename
       (insert output))))
 
-(defun mentor-rtorrent-already-running (buf rpc)
+(defun mentor-rtorrent-already-running (buf)
   (if (and buf (get-buffer buf))
       (condition-case _error
           ;; Already running
           (progn
-            (let ((mentor-rtorrent-url rpc))
-              (mentor-rpc-command "system.pid"))
+            (mentor-rpc-command "system.pid")
             t)
         (error
          ;; Running with problems -- restart it
@@ -368,16 +367,16 @@ It will use the RPC argument as value for scgi_local."
 (defun mentor-rtorrent-run-in-background ()
   "Start rtorrent in a new buffer."
   (make-directory mentor-home-dir t)
-  (if mentor-rtorrent-keep-session
+  (when mentor-rtorrent-keep-session
       (make-directory
-       (setq mentor--rtorrent-session-directory (expand-file-name
-                                           "session" mentor-home-dir)) t))
+       (setq mentor--rtorrent-session-directory
+             (expand-file-name "session" mentor-home-dir)) t))
   (let ((bufname mentor-rtorrent-buffer-name)
         (buf nil)
-        (rpc (concat mentor-home-dir "rtorrent.rpc"))
-        (conf (expand-file-name (convert-standard-filename "rtorrent.rc")
-                                mentor-home-dir)))
-    (when (not (mentor-rtorrent-already-running bufname (concat "scgi://" rpc)))
+        (rpc (expand-file-name "rtorrent.rpc" mentor-home-dir))
+        (conf (expand-file-name "rtorrent.rc" mentor-home-dir)))
+    (setq mentor--rtorrent-url (concat "scgi://" rpc))
+    (when (not (mentor-rtorrent-already-running bufname))
       (mentor-rtorrent-create-conf conf rpc)
       (let ((rtorrent (executable-find "rtorrent")))
         (if (not rtorrent)
@@ -390,16 +389,14 @@ It will use the RPC argument as value for scgi_local."
         (term-char-mode)
         (let (term-escape-char)
           (term-set-escape-char ?\C-x))
-        (bury-buffer)))
-    (concat "scgi://" rpc)))
+        (bury-buffer)))))
 
 (defun mentor-setup-rtorrent ()
   (if mentor-rtorrent-external-rpc
-      (setq mentor-rtorrent-url mentor-rtorrent-external-rpc)
-    (let ((rpc-url (mentor-rtorrent-run-in-background))
-          (rtorrent-started nil)
+      (setq mentor--rtorrent-url mentor-rtorrent-external-rpc)
+    (let ((rtorrent-started nil)
           (since (float-time)))
-      (setq mentor-rtorrent-url rpc-url)
+      (mentor-rtorrent-run-in-background)
       (message "Waiting for rtorrent to start...")
       (while (not rtorrent-started)
         (condition-case err
