@@ -632,7 +632,8 @@ expensive operation."
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
-    (mentor-download-update-from methods values)
+    (let ((properties (mentor-rpc-methods-to-properties methods)))
+      (mentor-download-update-from properties values))
     (mentor-redisplay-torrent)))
 
 
@@ -1325,9 +1326,7 @@ started after being added."
 (defun mentor-download-update-from (methods values &optional is-init)
   (mentor-download-update
    (mentor-download-create
-    (mapcar* (lambda (method value)
-               (cons (mentor-rpc-method-to-property method) value))
-             methods values))
+    (mapcar* (lambda (m v) (cons m v)) methods values))
    is-init))
 
 (defun mentor-download-get-progress (torrent)

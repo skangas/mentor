@@ -142,14 +142,18 @@ Optional argument IS-INIT if this is initializing."
          (list-of-values (apply 'mentor-rpc-command "d.multicall2"
                                 "" mentor-current-view methods=)))
     (mentor-view-torrent-list-clear)
-    (dolist (values list-of-values)
-      (mentor-download-update-from methods values is-init))))
+    (let ((properties (mentor-rpc-methods-to-properties methods)))
+      (dolist (values list-of-values)
+        (mentor-download-update-from properties values is-init)))))
 
 ;; Download data
 
-(defun mentor-rpc-method-to-property (method)
-  (intern
-   (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
+(defun mentor-rpc-methods-to-properties (methods)
+  (mapcar
+   (lambda (method)
+    (intern
+     (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
+   methods))
 
 (defconst mentor-rpc-d-methods
   '("d.hash"

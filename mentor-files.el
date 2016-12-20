@@ -176,8 +176,8 @@ the integer index used by rtorrent to identify this file."
       (setq value-list (mapcar 'cdr value-list)))
     (let ((files (cdr (assq 'files mentor-selected-torrent-info)))
           (id -1)
-          (properties (mapcar 'mentor-rpc-method-to-property
-                              mentor-volatile-rpc-f-methods)))
+          (properties (mentor-rpc-methods-to-properties
+                       mentor-volatile-rpc-f-methods)))
       (dolist (values value-list)
         (let ((filex (gethash (incf id) files)))
           (mapc (lambda (p)
