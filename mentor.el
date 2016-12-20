@@ -221,8 +221,8 @@ methods instead."
 (defvar mentor-set-priority-fun)
 (make-variable-buffer-local 'mentor-set-priority-fun)
 
-(defvar mentor-columns-var)
-(make-variable-buffer-local 'mentor-columns-var)
+(defvar mentor--columns-var)
+(make-variable-buffer-local 'mentor--columns-var)
 
 
 ;;; Mentor major-mode
@@ -414,7 +414,7 @@ It will use the RPC argument as value for scgi_local."
     (mentor-setup-rtorrent)
     (setq mentor-item-update-this-fun 'mentor-download-update-this)
     (setq mentor-set-priority-fun 'mentor-download-set-priority-fun)
-    (setq mentor-columns-var  'mentor-view-columns)
+    (setq mentor--columns-var  'mentor-view-columns)
     (setq mentor-sort-list '((up.rate . t) name))
     (mentor-init-header-line)
     (setq mentor-rtorrent-client-version (mentor-rpc-command "system.client_version")
@@ -708,7 +708,7 @@ expensive operation."
 
 (defun mentor-reload-header-line ()
   (setq mentor--header-line
-        (mentor-process-view-header-columns (eval mentor-columns-var))))
+        (mentor-process-view-header-columns (eval mentor--columns-var))))
 
 (defvar mentor-highlight-overlay nil)
 (make-variable-buffer-local 'mentor-highlight-overlay)

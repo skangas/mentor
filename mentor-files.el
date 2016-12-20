@@ -54,16 +54,14 @@ the integer index used by rtorrent to identify this file."
   :keymap mentor-download-details-mode-map)
 
 (defun mentor-download-detail-screen ()
-  "Show information about the specified torrent or the torrent at
-point."
+  "Show file details about for download at point."
   (interactive)
   (let ((tor (mentor-get-item-at-point)))
     (switch-to-buffer "*mentor: torrent details*")
     (setq mentor-sub-mode 'file-details)
     (mentor-mode)
     (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
-    (setq mentor-columns-var  'mentor-file-detail-columns)
-    (mentor-reload-header-line)
+    (setq mentor--columns-var  'mentor-file-detail-columns)
     (mentor-download-details-mode t)
     (setq mentor-selected-torrent tor)
     (mentor-files-update t)
@@ -71,6 +69,7 @@ point."
     (setq mode-line-buffer-identification
           (concat "*mentor* "
                   (mentor-item-property 'name tor)))
+    (mentor-init-header-line)
     (if (not (mentor-get-item-type))
         (mentor-next-item 1 t)
       (mentor-beginning-of-item))))
