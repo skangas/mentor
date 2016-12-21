@@ -232,7 +232,7 @@ methods instead."
     (suppress-keymap map t)
 
     ;; torrent list actions
-    (define-key map (kbd "DEL") 'mentor-add-torrent)
+    (define-key map (kbd "DEL") 'mentor-download-add)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
     (define-key map (kbd "M-g") 'mentor-update-item)
@@ -269,7 +269,7 @@ methods instead."
     (define-key map (kbd "M") 'mentor-mark-all)
     (define-key map (kbd "U") 'mentor-unmark-all)
 
-    (define-key map (kbd "v") 'mentor-view-in-dired)
+    (define-key map (kbd "v") 'mentor-dired-jump)
 
     (define-key map (kbd "l") 'mentor-load)
 
@@ -298,6 +298,9 @@ methods instead."
     (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
     map))
+
+(eval-after-load 'dired-x
+  '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rtorrent from emacs
@@ -1007,11 +1010,11 @@ this subdir."
       (error "No such file or directory: %s" new))
     new))
 
-(defun mentor-add-torrent (prefix)
-  "Load and start downloading a torrent file or magnet URL.
+(defun mentor-download-add (prefix)
+  "Start downloading given torrent file or magnet URL.
 
-If PREFIX is set, the added torrent will not be started after
-being added."
+If PREFIX is set, the added torrent will only be added, but not
+started."
   (interactive "P")
   (let* ((is-torrent-p (lambda (x)
                          (or (and (not (string-match "^\\." x))
@@ -1026,7 +1029,7 @@ being added."
 
 (defun mentor-load (prefix file)
   "Load a file or url adding it to the current torrents if
-successful.  Unlike ``mentor-add-torrent'' this would work with
+successful.  Unlike ``mentor-download-add'' this would work with
 files on a remote host.  If prefix is set the added torrent is
 started after being added."
   (interactive "P\nMMentor load: ")
@@ -1232,7 +1235,8 @@ started after being added."
   (interactive)
   (message "TODO: mentor-download-set-inital-seeding"))
 
-(defun mentor-view-in-dired ()
+(defun mentor-dired-jump ()
+  "Visit file at point using Dired."
   (interactive)
   (let* ((tor (mentor-get-item-at-point))
          (is-multi-file (= 1 (mentor-item-property 'is_multi_file tor)))
