@@ -44,9 +44,6 @@
 
 (defvar url-scgi-connection-opened)
 
-;; This is a hack to keep xmlrpc.el happy for now.  Ugh.
-(defvar url-http-response-status 200)
-
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
 (defun url-scgi-string-to-netstring (str)

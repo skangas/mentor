@@ -33,11 +33,14 @@
 
 (defvar mentor-rtorrent-rpc-methods-cache nil)
 
+(defvar url-http-response-status)
+
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call to rtorrent.
 
 ARGS is a list of strings to run."
-  (let* ((response (apply 'xml-rpc-method-call mentor--rtorrent-url args)))
+  (let* ((url-http-response-status 200)
+         (response (apply 'xml-rpc-method-call mentor--rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
         ;; Add warning about bug#23606.
         ;; Remove when Emacs 25 hits Debian stable.
