@@ -49,12 +49,12 @@
   (require 'sort))
 
 (require 'term)
-(require 'url-scgi)
 (require 'xml-rpc)
 
 (require 'mentor-data)
 (require 'mentor-files)
 (require 'mentor-rpc)
+(require 'url-scgi)
 
 
 ;;; Customizable variables
@@ -402,11 +402,12 @@ It will use the RPC argument as value for scgi_local."
             (progn (mentor-rpc-command "system.pid")
                    (setq rtorrent-started t))
           (error
-           (if (string-match "^Bad url: " (error-message-string err))
-               (signal (car err) (cdr err))
-             (if (< (float-time) (+ since 10))
-                 (sleep-for 0.1)
-               (error "xmlrpc not up after 10 seconds: %s" err)))))))))
+           (if (string-match "make client process failed: connection refused"
+                             (error-message-string err))
+               (if (< (float-time) (+ since 10))
+                   (sleep-for 0.1)
+                 (error "xmlrpc not up after 10 seconds: %s" err))
+             (signal (car err) (cdr err)))))))))
 
 ;;;###autoload
 (defun mentor ()
