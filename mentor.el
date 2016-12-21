@@ -1293,7 +1293,7 @@ started after being added."
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
 
-(defun mentor-shutdown-rtorrent ()
+(defun mentor-shutdown ()
   "Exit mentor, killing any running rtorrent processes."
   (interactive)
   (when (y-or-n-p "Really shutdown mentor?")
