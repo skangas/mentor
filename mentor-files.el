@@ -296,7 +296,9 @@ the integer index used by rtorrent to identify this file."
     (mentor-bytes-to-human
      (* chunk-size (mentor-file-size_chunks file)))))
 
+(provide 'mentor-files)
+
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:
-;;; mentor.el ends here
+;;; mentor-files.el ends here

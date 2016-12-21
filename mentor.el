@@ -45,11 +45,15 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'cl))
+  (require 'cl)
+  (require 'sort))
+
+(require 'term)
 (require 'url-scgi)
 (require 'xml-rpc)
 
 (require 'mentor-data)
+(require 'mentor-files)
 (require 'mentor-rpc)
 
 
