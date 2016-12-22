@@ -25,13 +25,13 @@
 
 (require 'mentor-data)
 
-(defvar mentor--rtorrent-url nil
+(defvar mentor-rpc--rtorrent-url nil
   "The current rtorrent XML-RPC api URL.")
 
-(defvar mentor-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
+(defconst mentor-rpc-method-exclusions-regexp "d\\.get_\\(mode\\|custom.*\\|bitfield\\)"
   "Do not try methods that makes rtorrent crash.")
 
-(defvar mentor-rtorrent-rpc-methods-cache nil)
+(defvar mentor-rpc--rtorrent-methods-cache nil)
 
 (defvar url-http-response-status)
 
@@ -40,14 +40,14 @@
 
 ARGS is a list of strings to run."
   (let* ((url-http-response-status 200)
-         (response (apply 'xml-rpc-method-call mentor--rtorrent-url args)))
+         (response (apply 'xml-rpc-method-call mentor-rpc--rtorrent-url args)))
     (if (equal response '((nil . "URL/HTTP Error: 200")))
         ;; Add warning about bug#23606.
         ;; Remove when Emacs 25 hits Debian stable.
-        (if (and (string-match "localhost" mentor--rtorrent-url)
+        (if (and (string-match "localhost" mentor-rpc--rtorrent-url)
                  (< emacs-major-version 25))
-            (error "Unable to connect to %s [try using 127.0.0.1 instead -- see bug#23606]" mentor--rtorrent-url)
-          (error "Unable to connect to %s" mentor--rtorrent-url))
+            (error "Unable to connect to %s [try using 127.0.0.1 instead -- see bug#23606]" mentor-rpc--rtorrent-url)
+          (error "Unable to connect to %s" mentor-rpc--rtorrent-url))
       response)))
 
 (defun mentor-rpc-list-methods (&optional regexp)
@@ -56,28 +56,28 @@ ARGS is a list of strings to run."
 This uses the RPC method `system.listMethods'.
 
 If REGEXP is specified it only returns the matching functions."
-  (when (not mentor-rtorrent-rpc-methods-cache)
+  (when (not mentor-rpc--rtorrent-methods-cache)
     (let ((methods (mentor-rpc-command "system.listMethods")))
-      (setq mentor-rtorrent-rpc-methods-cache
+      (setq mentor-rpc--rtorrent-methods-cache
             (delq nil
                   (mapcar (lambda (m)
-                            (when (not (string-match mentor-method-exclusions-regexp m))
+                            (when (not (string-match mentor-rpc-method-exclusions-regexp m))
                               m))
                           methods)))))
   (if regexp
       (delq nil (mapcar (lambda (m)
                           (when (string-match regexp m)
                             m))
-                        mentor-rtorrent-rpc-methods-cache))
-    mentor-rtorrent-rpc-methods-cache))
+                        mentor-rpc--rtorrent-methods-cache))
+    mentor-rpc--rtorrent-methods-cache))
 
 ;; General RPC commands, prefix c
 
-(defun mentor-c-load (file &optional stopped)
+(defun mentor-rpc-c-load (file &optional stopped)
   (let ((cmd (if stopped "load.verbose" "load.start_verbose")))
     (mentor-rpc-command cmd "" file)))
 
-(defun mentor-c-load-raw (file &optional stopped)
+(defun mentor-rpc-c-load-raw (file &optional stopped)
   (let ((cmd (if stopped "load.raw" "load.raw_start"))
         (data (list
                :base64
@@ -88,49 +88,45 @@ If REGEXP is specified it only returns the matching functions."
                  (buffer-substring-no-properties (point-min) (point-max))))))
     (mentor-rpc-command cmd "" data)))
 
-(defun mentor-c-use-deprecated-set (arg)
-  "Same as command line -D flag."
-  (mentor-rpc-command "method.use_deprecated.set" "" arg))
-
 ;; Download RPC commands, prefix d
 
-(defun mentor-d-close (&optional tor)
-  (mentor-rpc-command "d.close" (mentor-d-get-hash tor)))
+(defun mentor-rpc-d-close (&optional tor)
+  (mentor-rpc-command "d.close" (mentor-rpc-d-hash tor)))
 
-(defun mentor-d-erase (tor)
-  (mentor-rpc-command "d.erase" (mentor-d-get-hash tor)))
+(defun mentor-rpc-d-erase (tor)
+  (mentor-rpc-command "d.erase" (mentor-rpc-d-hash tor)))
 
-(defun mentor-d-get-base-path (&optional tor)
+(defun mentor-rpc-d-base-path (&optional tor)
   (mentor-item-property 'base_path tor))
 
-(defun mentor-d-get-directory (&optional tor)
+(defun mentor-rpc-d-directory (&optional tor)
   (mentor-item-property 'directory tor))
 
-(defun mentor-d-get-hash (&optional tor)
+(defun mentor-rpc-d-hash (&optional tor)
   (mentor-item-property 'hash tor))
 
-(defun mentor-d-get-local-id (tor)
+(defun mentor-rpc-d-local-id (tor)
   (mentor-item-property 'local_id tor))
 
-(defun mentor-d-get-name (&optional tor)
+(defun mentor-rpc-d-name (&optional tor)
   (mentor-item-property 'name tor))
 
-(defun mentor-d-is-active (&optional tor)
+(defun mentor-rpc-d-is-active (&optional tor)
   (= (mentor-item-property 'is_active tor) 1))
 
-(defun mentor-d-is-multi-file (&optional tor)
+(defun mentor-rpc-d-is-multi-file (&optional tor)
   (= (mentor-item-property 'is_multi_file tor) 1))
 
-(defun mentor-d-set-directory (new &optional tor)
+(defun mentor-rpc-d-set-directory (new &optional tor)
   ;; FIXME: Is this the only property that needs updating?
   (mentor-item-set-property 'directory new)
-  (mentor-rpc-command "d.directory.set" (mentor-d-get-hash tor) new))
+  (mentor-rpc-command "d.directory.set" (mentor-rpc-d-hash tor) new))
 
-(defun mentor-d-start (&optional tor)
-  (mentor-rpc-command "d.start" (mentor-d-get-hash tor)))
+(defun mentor-rpc-d-start (&optional tor)
+  (mentor-rpc-command "d.start" (mentor-rpc-d-hash tor)))
 
-(defun mentor-d-stop (&optional tor)
-  (mentor-rpc-command "d.stop" (mentor-d-get-hash tor)))
+(defun mentor-rpc-d-stop (&optional tor)
+  (mentor-rpc-command "d.stop" (mentor-rpc-d-hash tor)))
 
 (defun mentor-execute (&rest args)
   (apply 'mentor-rpc-command "execute2" "" args))
@@ -235,7 +231,7 @@ Optional argument IS-INIT if this is initializing."
     "d.is_private"
     "d.views"))
 
-(defconst mentor-volatile-rpc-d-methods
+(defconst mentor-rpc-volatile-d-methods
   '("d.local_id" ;; must not be removed
     "d.base_path"        "d.bytes_done"
     "d.directory"        "d.down.rate"
@@ -259,10 +255,10 @@ Optional argument IS-INIT if this is initializing."
 ;;     when you need to make lots of small calls without lots of round
 ;;     trips. See rTorrent-system_multicall for syntax.
 
-(defun mentor--multicall-string (method &rest args)
+(defun mentor-rpc--multicall-string (method &rest args)
   (list (cons "methodName" method) (cons "params" args)))
 
-(defun mentor-sys-multicall (&rest calls)
+(defun mentor-rpc-sys-multicall (&rest calls)
   "Perform a `system.multicall' with CALLS.
 
 CALLS is a list of lists where the first element is the method

@@ -379,7 +379,7 @@ It will use the RPC argument as value for scgi_local."
         (buf nil)
         (rpc (expand-file-name "rtorrent.rpc" mentor-home-dir))
         (conf (expand-file-name "rtorrent.rc" mentor-home-dir)))
-    (setq mentor--rtorrent-url (concat "scgi://" rpc))
+    (setq mentor-rpc--rtorrent-url (concat "scgi://" rpc))
     (when (not (mentor-rtorrent-already-running bufname))
       (mentor-rtorrent-create-conf conf rpc)
       (let ((rtorrent (executable-find "rtorrent")))
@@ -397,7 +397,7 @@ It will use the RPC argument as value for scgi_local."
 
 (defun mentor-setup-rtorrent ()
   (if mentor-rtorrent-external-rpc
-      (setq mentor--rtorrent-url mentor-rtorrent-external-rpc)
+      (setq mentor-rpc--rtorrent-url mentor-rtorrent-external-rpc)
     (let ((rtorrent-started nil)
           (since (float-time)))
       (mentor-rtorrent-run-in-background)
@@ -632,7 +632,7 @@ expensive operation."
   (message "Updating torrent data...")
   (condition-case _err
       (progn
-        (mentor-rpc-d.multicall mentor-volatile-rpc-d-methods)
+        (mentor-rpc-d.multicall mentor-rpc-volatile-d-methods)
         (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-download-data-init))))
@@ -640,7 +640,7 @@ expensive operation."
 (defun mentor-download-update-this ()
   (let* ((tor (mentor-get-item-at-point))
          (hash (mentor-item-property 'hash tor))
-         (methods mentor-volatile-rpc-d-methods)
+         (methods mentor-rpc-volatile-d-methods)
          (values (mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
@@ -1045,8 +1045,8 @@ started."
          (file (read-file-name "Add torrent: " nil nil
                                nil nil is-torrent-p)))
     (if (string-match "^magnet:" file)
-        (mentor-c-load file prefix)
-      (mentor-c-load-raw file prefix)))
+        (mentor-rpc-c-load file prefix)
+      (mentor-rpc-c-load-raw file prefix)))
   (mentor-update))
 
 (defun mentor-load (prefix file)
@@ -1055,7 +1055,7 @@ successful.  Unlike ``mentor-download-add'' this would work with
 files on a remote host.  If prefix is set the added torrent is
 started after being added."
   (interactive "P\nMMentor load: ")
-  (mentor-c-load file prefix))
+  (mentor-rpc-c-load file prefix))
 
 (defun mentor-call-command (&optional cmd)
   (interactive "MEnter command: ")
@@ -1067,15 +1067,15 @@ started after being added."
       (progn
         (message "Receiving file list...")
         (setq files (mentor-rpc-command
-                     "f.multicall" (mentor-d-get-hash tor)
+                     "f.multicall" (mentor-rpc-d-hash tor)
                      "" "f.path_components="))
         (mentor-item-set-property 'files files tor)))
     files))
 
 (defun mentor--do-remove-torrent-files (tor files)
-  (let* ((base-path (mentor-d-get-base-path))
+  (let* ((base-path (mentor-rpc-d-base-path))
          dirs)
-    (if (mentor-d-is-multi-file tor)        
+    (if (mentor-rpc-d-is-multi-file tor)
         (progn
           (dolist (file files)
             (let* ((file (concat base-path "/" (caar file)))
@@ -1098,11 +1098,11 @@ started after being added."
                 (let* ((tor (mentor-get-item-at-point))
                        (files (and remove-files
                                    (mentor-download-get-file-list tor))))
-                  (mentor-d-erase tor)
+                  (mentor-rpc-d-erase tor)
                   (when remove-files
                     (mentor--do-remove-torrent-files tor files))
                   (mentor-view-torrent-list-delete-all tor)
-                  (remhash (mentor-d-get-local-id tor) mentor-items)
+                  (remhash (mentor-rpc-d-local-id tor) mentor-items)
                   (point)))
               arg))
       (mentor-delete-item-from-buffer item))))
@@ -1135,11 +1135,11 @@ started after being added."
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
    (mentor-map-over-marks
-    (let* ((old (mentor-d-get-base-path)))
+    (let* ((old (mentor-rpc-d-base-path)))
       (when (and (not (null old))
                  (file-exists-p old))
         (mentor-execute "cp" "-Rn" old new))
-      (message "Copied %s to %s" (mentor-d-get-name) new)
+      (message "Copied %s to %s" (mentor-rpc-d-name) new)
       (mentor-redisplay-torrent))
     arg)))
 
@@ -1150,9 +1150,9 @@ started after being added."
          (prompt (concat verbstr (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
     (mentor-map-over-marks
-     (let* ((old (or (and no-move (mentor-d-get-directory))
-                     (mentor-d-get-base-path)))
-            (was-started (mentor-d-is-active)))
+     (let* ((old (or (and no-move (mentor-rpc-d-directory))
+                     (mentor-rpc-d-base-path)))
+            (was-started (mentor-rpc-d-is-active)))
        (when (not no-move)
          (when (null old)
            (error "Torrent has no base path"))
@@ -1165,24 +1165,24 @@ started after being added."
          (let ((target (concat new (file-name-nondirectory old))))
           (when (file-exists-p target)
             (error "Destination already exists: %s" target)))
-         (when (and (not (mentor-d-is-multi-file))
+         (when (and (not (mentor-rpc-d-is-multi-file))
                     (file-directory-p old))
            (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
        (if (not (equal (file-name-directory old) new))
            (progn
              (when was-started
-               (mentor-d-stop))
+               (mentor-rpc-d-stop))
              (if (not no-move)
                  (mentor-execute "mv" "-u" old new))
-             (mentor-d-set-directory new)
+             (mentor-rpc-d-set-directory new)
              (when was-started
-               (mentor-d-start))
+               (mentor-rpc-d-start))
              (mentor-download-update-this)
              (if no-move
-                 (message "Changed %s target directory to %s" (mentor-d-get-name) new)
-               (message "Moved %s to %s" (mentor-d-get-name) new)))
+                 (message "Changed %s target directory to %s" (mentor-rpc-d-name) new)
+               (message "Moved %s to %s" (mentor-rpc-d-name) new)))
          (message "Skipping %s since it is already in %s"
-                  (mentor-d-get-name) new))
+                  (mentor-rpc-d-name) new))
        (mentor-redisplay-torrent))
      arg)))
 
@@ -1223,14 +1223,14 @@ started after being added."
 (defun mentor-download-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-d-start)
+   (progn (mentor-rpc-d-start)
           (mentor-download-update-this))
    arg))
 
 (defun mentor-download-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-d-stop)
+   (progn (mentor-rpc-d-stop)
           (mentor-download-update-this))
    arg))
 
@@ -1340,7 +1340,7 @@ started after being added."
 (defun mentor-view-torrent-list-delete (&optional tor view)
   (let* ((view (or view (intern mentor-current-view)))
          (list (assq view mentor-view-torrent-list)))
-    (delete (mentor-d-get-local-id tor) list)))
+    (delete (mentor-rpc-d-local-id tor) list)))
 
 (defun mentor-view-torrent-list-delete-all (&optional tor)
   (dolist (view mentor-view-torrent-list)
