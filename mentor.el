@@ -1531,17 +1531,26 @@ to a view unless the filter is updated."
   (cdr (assoc view-id mentor-custom-views)))
 
 (defun mentor-bytes-to-human (bytes)
+  "Convert bytes to human readable and try to keep it short."
   (if bytes
       (let* ((bytes (if (stringp bytes) (string-to-number bytes) bytes))
              (kb 1024.0)
-             (mb 1048576.0)
-             (gb 1073741824.0)
-             (tb 1099511627776.0))
+             (mb (* kb 1024.0))
+             (gb (* mb 1024.0)))
         (cond ((< bytes 0) "???") ;; workaround for old xmlrpc-c
-              ((< bytes kb) bytes)
-              ((< bytes mb) (concat (format "%.1f" (/ bytes kb)) "K"))
-              ((< bytes gb) (concat (format "%.1f" (/ bytes mb)) "M"))
-              ((< bytes tb) (concat (format "%.1f" (/ bytes gb)) "G"))
+              ((= bytes 0.0) (format "%d" bytes))
+              ((< bytes 999.0) (format "%dB" bytes))
+              ((< bytes (* kb 999.5)) (format "%.0fK" (/ bytes kb)))
+              ((< bytes (* mb 999.5))
+               (let ((fmt (if (< bytes (* 9.95 mb))
+                              "%.1fM"
+                            "%.0fM")))
+                 (format fmt (/ bytes mb))))
+              ((< bytes (* gb 1000))
+               (let ((fmt (if (< bytes (* 9.95 gb))
+                              "%.1fG"
+                            "%.0fG")))
+                 (format fmt (/ bytes gb))))
               (t "1TB+")))
     ""))
 
