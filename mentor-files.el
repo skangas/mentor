@@ -276,7 +276,7 @@ the integer index used by rtorrent to identify this file."
   '(((mentor-file-progress) -5 "Cmp")
     ((mentor-file-prio-string) -5 "Pri")
     ((mentor-file-readable-size) 6 "Size")
-    (nil 0 "File" 6)))
+    (nil 6 "File")))
 (defvar mentor-file-detail-width 22)
 
 (defun mentor-file-prio-string (file)

@@ -132,14 +132,42 @@ methods instead."
   :group 'mentor
   :type 'string)
 
+(defface mentor-download-name '((t :foreground "#94BFF3"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-state '((t :foreground "#DCA3A3"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-progress '((t :foreground "#DCDCCC"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-speed-up '((t :foreground "#F0DFAF"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-speed-down '((t :foreground "#8FB28F"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-size '((t :foreground "#4C7073"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
+(defface mentor-download-message '((t :foreground "#AC7373"))
+  "Face for mentor download name."
+  :group 'mentor-faces)
+
 (defcustom mentor-view-columns
-  '(((mentor-download-get-state) -3 "State")
-    ((mentor-download-get-progress) -3 "Cmp")
-    (name -50 "Name")
-    ((mentor-download-get-speed-up) -6 "Up")
-    ((mentor-download-get-speed-down) -6 "Down")
-    ((mentor-download-get-size) -15 "     Size")
-    (message -40 "Message"))
+  '(((mentor-download-get-state) -3 "State" mentor-download-state)
+    ((mentor-download-get-speed-up) -5 "Up" mentor-download-speed-up)
+    ((mentor-download-get-speed-down) -5 "Down" mentor-download-speed-down)
+    ((mentor-download-get-progress) -3 "Cmp" mentor-download-progress)
+    ((mentor-download-get-size) -13 "     Size" mentor-download-size)
+    (name -50 "Name" mentor-download-name)
+    (message -40 "Message" mentor-download-message))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(repeat (list symbol integer string)))
@@ -178,7 +206,6 @@ methods instead."
   "A list of torrents in given views.")
 
 (defvar mentor-marker-char ?*)
-(defvar mentor-re-mark "^[^ \n]")
 
 (defface mentor-highlight-face
   '((((class color) (background light))
@@ -188,29 +215,9 @@ methods instead."
   "Face for highlighting the current torrent."
   :group 'mentor)
 
-(defface mentor-mark
-  '((t :inherit font-lock-warning-face))
-  "Face used for marked items."
-  :group 'mentor)
-(defvar mentor-mark-face 'mentor-mark)
-
-(defface mentor-directory-face
-  '((t :inherit font-lock-function-name-face))
-  "Face for highlighting directories."
-  :group 'mentor)
-
 (defvar mentor-default-item-faces
   '((torrent . nil) (file . nil) (dir . mentor-directory-face))
   "An alist with the default face for item types.")
-
-(defvar mentor-font-lock-keywords
-  (list
-   ;;
-   ;; Mentor marks.
-   (list mentor-re-mark '(0 mentor-mark-face)))
-  ;; TODO: Highlight marked items
-
-  "Additional expressions to highlight in Mentor mode.")
 
 ;; Variables that should be changed by sub-modes
 
@@ -320,8 +327,6 @@ Type \\[mentor] to start Mentor.
         buffer-read-only t
         truncate-lines t)
   (set (make-local-variable 'line-move-visual) t)
-  (set (make-local-variable 'font-lock-defaults)
-     '(mentor-font-lock-keywords t nil nil beginning-of-line))
   (setq mentor-current-view mentor-default-view
         mentor-items (make-hash-table :test 'equal))
   (add-hook 'post-command-hook 'mentor-post-command-hook t t)
@@ -687,33 +692,45 @@ expensive operation."
     (mentor-previous-item)))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
-  (mapcar (lambda (column)
-            (let* ((len (funcall lenfun column))
-                   (str (funcall strfun column)))
-              (concat (mentor-enforce-length str len) " ")))
-          cols))
+  ;; Remove trailing whitespace
+  (replace-regexp-in-string
+   " *$" ""
+   (apply 'concat
+    (mapcar (lambda (column)
+              (let* ((len (funcall lenfun column))
+                     (str (funcall strfun column)))
+                (concat (mentor-enforce-length str len) " ")))
+            cols))))
 
 (defun mentor-process-view-header-columns (cols)
-  (apply 'concat
-         (mentor-process-columns-helper
-          cols
-          (lambda (col) (or (cadddr col)
-                            (cadr col)))
-          (lambda (col) (caddr col)))))
+  (mentor-process-columns-helper
+   cols
+   (lambda (col) ;lenfun
+     (cadr col))
+   (lambda (col) ; strfun
+     (caddr col))))
 
 (defun mentor-process-view-columns (item cols)
-  (apply 'concat " "
-         (mentor-process-columns-helper
-          cols
-          (lambda (col) (cadr col))
-          (lambda (col)
-            (let ((prop (car col)))
-              (if (not prop)
-                  ""
-                (if (listp prop)
-                    (apply (car prop) item (cdr prop))
-                  (let ((text (mentor-item-property prop item)))
-                    text))))))))
+  (concat
+   " "
+   (mentor-process-columns-helper
+    cols
+    (lambda (col) ; lenfun
+      (cadr col))
+    (lambda (col) ; strfun
+      (let* ((col-name (car col))
+             (text
+              (cond ((not col-name) "")
+                    ((listp col-name)
+                     (apply (car col-name) item (cdr col-name)))
+                    (t
+                     (let ((text (mentor-item-property col-name item)))
+                       (if text text "")))))
+             (col-face (cadddr col)))
+        (if col-face
+            (propertize text
+                        'face col-face)
+          text))))))
 
 (defun mentor-reload-header-line ()
   (setq mentor--header-line
