@@ -71,7 +71,7 @@ the integer index used by rtorrent to identify this file."
                   (mentor-item-property 'name tor)))
     (mentor-init-header-line)
     (if (not (mentor-get-item-type))
-        (mentor-next-item 1 t)
+        (mentor-forward-item 1 t)
       (mentor-beginning-of-item))))
 
 (defun mentor-file-at-point ()
@@ -243,9 +243,9 @@ the integer index used by rtorrent to identify this file."
 (defun mentor-details-next-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
-    (mentor-next-item))
+    (mentor-forward-item 1))
   (while (not (mentor-file-is-dir (mentor-file-at-point)))
-    (mentor-next-item))
+    (mentor-forward-item 1))
   (mentor-beginning-of-item))
 
 (defun mentor-details-previous-directory ()

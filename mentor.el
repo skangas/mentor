@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9"))
+;; Package-Requires: ((xml-rpc "1.6.9") (dash))
 
 (defconst mentor-version "0.2"
   "The version of Mentor that you're using.")
@@ -48,6 +48,7 @@
   (require 'cl)
   (require 'sort))
 
+(require 'dash)
 (require 'term)
 (require 'xml-rpc)
 
@@ -232,7 +233,7 @@ methods instead."
 (defvar mentor-set-priority-fun)
 (make-variable-buffer-local 'mentor-set-priority-fun)
 
-(defvar mentor--columns-var)
+(defvar mentor--columns-var 'mentor-view-columns)
 (make-variable-buffer-local 'mentor--columns-var)
 
 
@@ -648,7 +649,8 @@ expensive operation."
                   methods)))
     (let ((properties (mentor-rpc-methods-to-properties methods)))
       (mentor-download-update-from properties values))
-    (mentor-redisplay-torrent)))
+    (mentor-redisplay-torrent)
+    (mentor-goto-item-name-column)))
 
 
 ;;; Main torrent view
@@ -733,6 +735,14 @@ expensive operation."
                         'face col-face)
           text))))))
 
+(defun mentor--find-name-column (cols)
+  (1+ (apply '+ (mapcar
+                 (lambda (col) (1+ (abs (cadr col))))
+                 (-take-while
+                  (lambda (fmt)
+                    (not (eq (car fmt) 'name)))
+                  cols)))))
+
 (defun mentor-reload-header-line ()
   (setq mentor--header-line
         (mentor-process-view-header-columns (eval mentor--columns-var))))
@@ -769,7 +779,7 @@ expensive operation."
      (let ((sort-fold-case t)
            (inhibit-read-only t))
        (sort-subr nil
-                  (lambda () (ignore-errors (mentor-next-item 1 t)))
+                  (lambda () (ignore-errors (mentor-forward-item 1 t)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
                   (lambda ()
                     (let ((item (mentor-get-item-at-point)))
@@ -865,7 +875,7 @@ point."
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
-  (ignore-errors (mentor-next-item 1 t))
+  (ignore-errors (mentor-forward-item 1 t))
   (mentor-while-same-item (not (bobp)) nil (backward-char)))
 
 (defun mentor-get-item-beginning ()
@@ -878,9 +888,16 @@ point."
     (mentor-end-of-item)
     (point)))
 
-(defun mentor-next-item (&optional arg no-wrap)
-  "Go to the next item."
-  (interactive "P")
+(defun mentor-goto-item-name-column ()
+  "Go to the column where the item name starts."
+  (beginning-of-line)
+  (goto-char (+ (point) (mentor--find-name-column
+                         (eval mentor--columns-var)))))
+
+(defun mentor-forward-item (&optional arg no-wrap)
+  "Move point forward ARG items.
+When NO-WRAP is non-nil, do not wrap around end and beginning of
+buffer."
   (let* ((arg (or arg 1))
          (reverse (< arg 0))
          (i (abs arg))
@@ -903,10 +920,16 @@ point."
                     (forward-line step)))
                 (setq done t))))))))
 
-(defun mentor-previous-item (&optional arg no-wrap)
-  "Go to previous item."
+(defun mentor-next-item (&optional arg)
+  "Move cursor down ARG items."
   (interactive "P")
-  (mentor-next-item (- 0 (or arg 1)) no-wrap))
+  (mentor-forward-item arg)
+  (mentor-goto-item-name-column))
+
+(defun mentor-previous-item (&optional arg)
+  "Move cursor vertically up ARG items."
+  (interactive "P")
+  (mentor-next-item (- 0 (or arg 1))))
 
 (put 'mentor-missing-torrent
      'error-conditions
@@ -923,7 +946,7 @@ point."
                (goto-char (point-min))
                (while (and (not (equal id (mentor-item-id-at-point)))
                            (not (= (point) (point-max))))
-                 (mentor-next-item 1 t))
+                 (mentor-forward-item 1 t))
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos)
@@ -974,7 +997,8 @@ this subdir."
                  ;; insert at point-at-bol + 1 to inherit all properties
                  (goto-char (1+ (point-at-bol)))
                  (insert-and-inherit mentor-marker-char)
-                 (delete-region (point-at-bol) (+ 1 (point-at-bol))))))))
+                 (delete-region (point-at-bol) (+ 1 (point-at-bol)))))))
+  (mentor-goto-item-name-column))
 
 (defun mentor-unmark (&optional arg)
   "Unmark the current (or next ARG) items."
@@ -1185,7 +1209,8 @@ started after being added."
                (message "Moved %s to %s" (mentor-rpc-d-name) new)))
          (message "Skipping %s since it is already in %s"
                   (mentor-rpc-d-name) new))
-       (mentor-redisplay-torrent))
+       (mentor-redisplay-torrent)
+       (mentor-goto-item-name-column))
      arg)))
 
 (defun mentor-download-change-target-directory (&optional arg)
