@@ -265,6 +265,7 @@ methods instead."
     (define-key map (kbd "e") 'mentor-download-recreate-files)
     (define-key map (kbd "o") 'mentor-download-change-target-directory)
     (define-key map (kbd "d") 'mentor-download-stop)
+    (define-key map (kbd "D") 'mentor-download-close)
     (define-key map (kbd "K") 'mentor-download-remove-including-files)
     (define-key map (kbd "k") 'mentor-download-remove)
     (define-key map (kbd "r") 'mentor-download-hash-check)
@@ -1172,6 +1173,7 @@ started after being added."
            (progn
              (when was-started
                (mentor-rpc-d-stop))
+             (mentor-rpc-d-close)
              (if (not no-move)
                  (mentor-execute "mv" "-u" old new))
              (mentor-rpc-d-set-directory new)
@@ -1242,9 +1244,12 @@ started after being added."
    arg))
 
 (defun mentor-download-close (&optional arg)
+  "Close a torrent and its files.
+
+Should be equivalent to the ^K command in the ncurses gui."
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-command "d.close" (mentor-item-property 'hash))
+   (progn (mentor-rpc-d-close)
           (mentor-download-update-this))
    arg))
 
