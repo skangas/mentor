@@ -166,7 +166,7 @@ methods instead."
     ((mentor-download-get-speed-up) -5 "Up" mentor-download-speed-up)
     ((mentor-download-get-speed-down) -5 "Down" mentor-download-speed-down)
     ((mentor-download-get-progress) -3 "Cmp" mentor-download-progress)
-    ((mentor-download-get-size) -13 "     Size" mentor-download-size)
+    ((mentor-download-get-size) -4 "     Size" mentor-download-size)
     (name -50 "Name" mentor-download-name)
     (message -40 "Message" mentor-download-message))
   "A list of all columns to show in mentor view."
@@ -1393,7 +1393,7 @@ Should be equivalent to the ^K command in the ncurses gui."
          (percent (* 100 (/ (+ 0.0 done) total))))
     (if (= (truncate percent) 100)
         ""
-      (format "%d%%" percent))))
+      (format "%2d%%" percent))))
 
 ;; TODO show an "I" for incomplete torrents
 (defun mentor-download-get-state (tor)
@@ -1412,7 +1412,7 @@ Should be equivalent to the ^K command in the ncurses gui."
   (mentor-bytes-to-kilobytes
    (mentor-item-property 'up.rate torrent)))
 
-(defun mentor-download-get-size (torrent)
+(defun mentor-download-get-size-progress (torrent)
   (let ((done (mentor-item-property 'bytes_done torrent))
         (total (mentor-item-property 'size_bytes torrent)))
     (if (= done total)
@@ -1420,6 +1420,10 @@ Should be equivalent to the ^K command in the ncurses gui."
       (format "%6s / %-6s"
               (mentor-bytes-to-human done)
               (mentor-bytes-to-human total)))))
+
+(defun mentor-download-get-size (torrent)
+  (let ((total (mentor-item-property 'size_bytes torrent)))
+    (format "%4.6s" (mentor-bytes-to-human total))))
 
 (defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human
