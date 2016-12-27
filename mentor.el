@@ -259,16 +259,16 @@ methods instead."
     (define-key map (kbd "+") 'mentor-increase-priority)
     (define-key map (kbd "-") 'mentor-decrease-priority)
 
-    ;; single torrent actions
+    ;; single download actions
     (define-key map (kbd "C") 'mentor-download-copy-data)
     (define-key map (kbd "R") 'mentor-download-move)
     (define-key map (kbd "b") 'mentor-download-set-inital-seeding)
     (define-key map (kbd "e") 'mentor-download-recreate-files)
     (define-key map (kbd "o") 'mentor-download-change-target-directory)
     (define-key map (kbd "d") 'mentor-download-stop)
-    (define-key map (kbd "D") 'mentor-download-close)
+    (define-key map (kbd "D") 'mentor-download-remove)
+    (define-key map (kbd "k") 'mentor-download-close)
     (define-key map (kbd "K") 'mentor-download-remove-including-files)
-    (define-key map (kbd "k") 'mentor-download-remove)
     (define-key map (kbd "r") 'mentor-download-hash-check)
     (define-key map (kbd "s") 'mentor-download-start)
     (define-key map (kbd "x") 'mentor-call-command)

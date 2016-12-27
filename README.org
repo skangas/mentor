@@ -49,15 +49,15 @@ configuration.
 
 *** Downloads
 
-| <Backspace> | Add a torrent                    |
-| s           | Start download                   |
-| d           | Stop download                    |
-| k           | Remove download                  |
-| K           | Remove download incl. data       |
-| r           | Hash check                       |
-|             |                                  |
-| g           | Update screen                    |
-| G           | Re-initialize information        |
+| <DEL> | Add torrent file or magnet URL |
+| s     | Start download                 |
+| d     | Stop download                  |
+| D     | Remove download                |
+| k     | Close download                 |
+| K     | Remove download incl. data     |
+| r     | Initiate hash check            |
+| g     | Update screen                  |
+| G     | Re-initialize information      |
 
 *** Marking
 
@@ -78,11 +78,12 @@ configuration.
 
 *** Misc
 
-| R       | Move download data               |
-| <Enter> | Enter file detail screen         |
-| x       | Call XML-RPC command             |
-| q       | Bury mentor                      |
-| Q       | Shutdown mentor                  |
+| <RET> | Enter file detail screen |
+| R     | Move download data       |
+| C     | Copy download data       |
+| x     | Call XML-RPC command     |
+| q     | Bury mentor              |
+| Q     | Shutdown mentor          |
 
 ** Configuration
 
