@@ -101,7 +101,7 @@ set this to something like `/ssh:user@example.com:'."
   :type 'string)
 
 (defcustom mentor-rtorrent-keep-session nil
-  "If non nil, save session in background rtorrent."
+  "If non-nil, save session in background rtorrent."
   :package-version '(mentor . "0.2")
   :group 'mentor
   :type 'boolean)
@@ -162,13 +162,14 @@ methods instead."
   :group 'mentor-faces)
 
 (defcustom mentor-view-columns
-  '(((mentor-download-get-state) -3 "State" mentor-download-state)
-    ((mentor-download-get-speed-up) -5 "Up" mentor-download-speed-up)
-    ((mentor-download-get-speed-down) -5 "Down" mentor-download-speed-down)
-    ((mentor-download-get-progress) -3 "Cmp" mentor-download-progress)
-    ((mentor-download-get-size) -4 "     Size" mentor-download-size)
+  '(((mentor-download-state-column) -2 "State" mentor-download-state)
+    ((mentor-download-speed-up-column) -5 "Up" mentor-download-speed-up)
+    ((mentor-download-speed-down-column) -5 "Down" mentor-download-speed-down)
+    ((mentor-download-progress-column) -3 "Cmp" mentor-download-progress)
+    ((mentor-download-size-column) -4 "Size" mentor-download-size)
     (name -50 "Name" mentor-download-name)
-    (message -40 "Message" mentor-download-message))
+    (message -40 "Message" mentor-download-message)
+    (directory -100 "Directory"))
   "A list of all columns to show in mentor view."
   :group 'mentor
   :type '(repeat (list symbol integer string)))
@@ -1367,17 +1368,11 @@ Should be equivalent to the ^K command in the ncurses gui."
     (mentor-view-torrent-list-delete tor (car view))))
 
 
-;;; Get torrent data from rtorrent
+;;; Download columns
 
-(defun mentor-download-update-from (methods values &optional is-init)
-  (mentor-download-update
-   (mentor-download-create
-    (mapcar* (lambda (m v) (cons m v)) methods values))
-   is-init))
-
-(defun mentor-download-get-progress (torrent)
-  (let* ((donev (mentor-item-property 'bytes_done torrent))
-         (totalv (mentor-item-property 'size_bytes torrent))
+(defun mentor-download-progress-column (download)
+  (let* ((donev (mentor-item-property 'bytes_done download))
+         (totalv (mentor-item-property 'size_bytes download))
          (done (abs (or donev 0)))
          (total (abs (or totalv 1)))
          (percent (* 100 (/ (+ 0.0 done) total))))
@@ -1385,35 +1380,53 @@ Should be equivalent to the ^K command in the ncurses gui."
         ""
       (format "%2d%%" percent))))
 
-;; TODO show an "I" for incomplete torrents
-(defun mentor-download-get-state (tor)
-  (let* ((h (mentor-item-property 'hashing tor))
-         (a (mentor-item-property 'is_active tor))
-         (o (mentor-item-property 'is_open tor))
+(defun mentor-download-state-column (download)
+  (let* ((h (mentor-item-property 'hashing download))
+         (a (mentor-item-property 'is_active download))
+         (o (mentor-item-property 'is_open download))
          (first-char (if (> h 0) "H" (if (= a 1) " " "S")))
          (second-char (if (= o 1) " " "C")))
     (concat first-char second-char)))
 
-(defun mentor-download-get-speed-down (torrent)
-  (mentor-bytes-to-kilobytes
-   (mentor-item-property 'down.rate torrent)))
+(defun mentor-download-speed-down-column (download)
+  (let ((bytes (mentor-item-property 'down.rate download)))
+    (if (> bytes 0)
+        (mentor-bytes-to-kilobytes bytes)
+      "")))
 
-(defun mentor-download-get-speed-up (torrent)
-  (mentor-bytes-to-kilobytes
-   (mentor-item-property 'up.rate torrent)))
+(defun mentor-download-speed-up-column (download)
+  (let ((bytes (mentor-item-property 'up.rate download)))
+    (if (> bytes 0)
+        (mentor-bytes-to-kilobytes bytes)
+      "")))
 
-(defun mentor-download-get-size-progress (torrent)
-  (let ((done (mentor-item-property 'bytes_done torrent))
-        (total (mentor-item-property 'size_bytes torrent)))
+(defun mentor-download-size-progress-column (download)
+  (let ((done (mentor-item-property 'bytes_done download))
+        (total (mentor-item-property 'size_bytes download)))
     (if (= done total)
         (format "         %-.6s" (mentor-bytes-to-human total))
       (format "%6s / %-6s"
               (mentor-bytes-to-human done)
               (mentor-bytes-to-human total)))))
 
-(defun mentor-download-get-size (torrent)
-  (let ((total (mentor-item-property 'size_bytes torrent)))
+(defun mentor-download-priority-column (download)
+  (let ((prio (mentor-item-property 'priority download)))
+    (cond ((= 0 prio) "off")
+          ((= 1 prio) "low")
+          ((= 2 prio) "")
+          ((= 3 prio) "hig"))))
+
+(defun mentor-download-size-column (download)
+  (let ((total (mentor-item-property 'size_bytes download)))
     (format "%4.6s" (mentor-bytes-to-human total))))
+
+;;; Get dowload data from rtorrent
+
+(defun mentor-download-update-from (methods values &optional is-init)
+  (mentor-download-update
+   (mentor-download-create
+    (mapcar* (lambda (m v) (cons m v)) methods values))
+   is-init))
 
 (defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human
@@ -1429,13 +1442,6 @@ Should be equivalent to the ^K command in the ncurses gui."
 
 (defun mentor-download-get-views (tor)
   (mentor-item-property 'views tor))
-
-(defun mentor-download-get-prio (tor)
-  (let ((prio (mentor-item-property 'priority tor)))
-    (cond ((= 0 prio) "off")
-          ((= 1 prio) "low")
-          ((= 2 prio) "")
-          ((= 3 prio) "hig"))))
 
 (defun mentor-download-set-priority-fun (val)
   (let ((hash (mentor-item-property 'hash))
