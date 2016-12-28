@@ -779,7 +779,7 @@ expensive operation."
      (let ((sort-fold-case t)
            (inhibit-read-only t))
        (sort-subr nil
-                  (lambda () (ignore-errors (mentor-forward-item 1 t)))
+                  (lambda () (ignore-errors (mentor-forward-item 1)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
                   (lambda ()
                     (let ((item (mentor-get-item-at-point)))
@@ -875,7 +875,7 @@ point."
 (defun mentor-end-of-item ()
   "Goto the end of the item at point."
   (interactive)
-  (ignore-errors (mentor-forward-item 1 t))
+  (ignore-errors (mentor-forward-item 1))
   (mentor-while-same-item (not (bobp)) nil (backward-char)))
 
 (defun mentor-get-item-beginning ()
@@ -894,10 +894,8 @@ point."
   (goto-char (+ (point) (mentor--find-name-column
                          (eval mentor--columns-var)))))
 
-(defun mentor-forward-item (&optional arg no-wrap)
-  "Move point forward ARG items.
-When NO-WRAP is non-nil, do not wrap around end and beginning of
-buffer."
+(defun mentor-forward-item (&optional arg)
+  "Move point forward ARG items."
   (let* ((arg (or arg 1))
          (reverse (< arg 0))
          (i (abs arg))
@@ -908,17 +906,9 @@ buffer."
       (mentor-while-same-item (not done) t
        (let ((at-buf-limit (if reverse (bobp) (eobp)))
              (step (if reverse -1 1)))
-         (cond ((not at-buf-limit)
-                (forward-line step))
-               (no-wrap
-                (signal (if reverse 'beginning-of-buffer 'end-of-buffer) t))
-               (t
-                (goto-char (if reverse (point-max) (point-min)))
-                (when (not (mentor-get-item-type))
-                  (while (and (not (mentor-item-id-at-point))
-                              (if reverse (bobp) (eobp)))
-                    (forward-line step)))
-                (setq done t))))))))
+         (if (not at-buf-limit)
+             (forward-line step)
+           (setq done t)))))))
 
 (defun mentor-next-item (&optional arg)
   "Move cursor down ARG items."
@@ -946,7 +936,7 @@ buffer."
                (goto-char (point-min))
                (while (and (not (equal id (mentor-item-id-at-point)))
                            (not (= (point) (point-max))))
-                 (mentor-forward-item 1 t))
+                 (mentor-forward-item 1))
                (point))))
     (if (not (= pos (point-max)))
         (goto-char pos)
