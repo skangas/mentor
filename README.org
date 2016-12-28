@@ -63,8 +63,8 @@ configuration.
 
 | m       | Mark item                        |
 | u       | Unmark item                      |
-| M       | Mark all item                    |
-| U       | Unmark all item                  |
+| M       | Mark all items                   |
+| U       | Unmark all items                 |
 
 *** Sorting
 
@@ -120,10 +120,10 @@ You can find additional Mentor options in customize.
 Two very useful variables to customize are
 `mentor-rtorrent-download-directory' and `mentor-rtorrent-keep-session'.
 
-*** External rtorrent
+*** External rTorrent
 
 If you are already running rTorrent outside of Emacs, it is easy to configure
-mentor to use it.
+Mentor to use it.
 
 Add this to your ~/.rtorrent.rc and restart rTorrent:
 
