@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9") (dash))
+;; Package-Requires: ((xml-rpc "1.6.9") (seq))
 
 (defconst mentor-version "0.2"
   "The version of Mentor that you're using.")
@@ -48,7 +48,7 @@
   (require 'cl)
   (require 'sort))
 
-(require 'dash)
+(require 'seq)
 (require 'term)
 (require 'xml-rpc)
 
@@ -739,7 +739,7 @@ expensive operation."
 (defun mentor--find-name-column (cols)
   (1+ (apply '+ (mapcar
                  (lambda (col) (1+ (abs (cadr col))))
-                 (-take-while
+                 (seq-take-while
                   (lambda (fmt)
                     (not (eq (car fmt) 'name)))
                   cols)))))
