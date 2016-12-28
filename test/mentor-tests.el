@@ -23,7 +23,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'ert)
 
 (ert-deftest mentor-rtorrent-already-running ()

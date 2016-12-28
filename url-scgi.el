@@ -5,6 +5,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.3
 ;; Keywords: comm, data, processes, scgi
+;; Package-Requires: ((cl-lib "0.5"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,6 +38,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'url-parse)
 
 (defvar url-scgi-version "0.3"
@@ -82,7 +84,7 @@
 ;;;###autoload
 (defun url-scgi (url callback cbargs)
   "Handle SCGI URLs from internal Emacs functions."
-  (check-type url vector "Need a pre-parsed URL.")
+  (cl-check-type url vector "Need a pre-parsed URL.")
   (declare (special url-scgi-connection-opened
                     url-callback-function
                     url-callback-arguments

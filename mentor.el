@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9") (seq))
+;; Package-Requires: ((xml-rpc "1.6.9") (seq) (cl-lib "0.5"))
 
 (defconst mentor-version "0.2"
   "The version of Mentor that you're using.")
@@ -45,9 +45,9 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'cl)
   (require 'sort))
 
+(require 'cl-lib)
 (require 'dired)
 (require 'seq)
 (require 'term)
@@ -645,7 +645,7 @@ expensive operation."
   (let* ((tor (mentor-get-item-at-point))
          (hash (mentor-item-property 'hash tor))
          (methods mentor-rpc-volatile-d-methods)
-         (values (mapcar
+         (values (cl-mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
@@ -701,7 +701,7 @@ expensive operation."
   (replace-regexp-in-string
    " *$" ""
    (apply 'concat
-    (mapcar (lambda (column)
+    (cl-mapcar (lambda (column)
               (let* ((len (funcall lenfun column))
                      (str (funcall strfun column)))
                 (concat (mentor-enforce-length str len) " ")))
@@ -738,7 +738,7 @@ expensive operation."
           text))))))
 
 (defun mentor--find-name-column (cols)
-  (1+ (apply '+ (mapcar
+  (1+ (apply '+ (cl-mapcar
                  (lambda (col) (1+ (abs (cadr col))))
                  (seq-take-while
                   (lambda (fmt)
@@ -785,7 +785,7 @@ expensive operation."
                   (lambda () (ignore-errors (mentor-end-of-item)))
                   (lambda ()
                     (let ((item (mentor-get-item-at-point)))
-                      (mapcar* (lambda (p)
+                      (cl-mapcar (lambda (p)
                                  (let ((prop (or (and (listp p) (car p)) p)))
                                   (mentor-item-property prop item)))
                                mentor-sort-list)))
@@ -1426,7 +1426,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-download-update-from (methods values &optional is-init)
   (mentor-download-update
    (mentor-download-create
-    (mapcar* (lambda (m v) (cons m v)) methods values))
+    (cl-mapcar (lambda (m v) (cons m v)) methods values))
    is-init))
 
 (defun mentor-download-get-size-done (torrent)
@@ -1523,7 +1523,7 @@ already in view_list and sets all new view_filters."
 ;; FIXME: this was part of mentor-views-init, but why?
   ;; (maphash
   ;;  (lambda (id torrent)
-  ;;    (mapcar (lambda (view)
+  ;;    (cl-mapcar (lambda (view)
   ;;              (when (and (mentor-views-is-custom-view view)
   ;;                         (not (mentor-views-is-view-defined view)))
   ;;                (mentor-views-add view)))

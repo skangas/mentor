@@ -23,6 +23,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (cl-defstruct mentor-file
   "The datastructure that contains the information about torrent
 files.  A mentor-file can be either a regular file or a filename
@@ -67,8 +69,6 @@ the integer index used by rtorrent to identify this file."
 (declare-function mentor-beginning-of-item "mentor.el")
 (declare-function mentor-limit-num "mentor.el")
 (declare-function find-if "mentor.el")
-(declare-function decf "mentor.el")
-(declare-function incf "mentor.el")
 (declare-function mentor-rpc-methods-to-properties "mentor.el")
 (declare-function mentor-process-view-columns "mentor.el")
 (declare-function mentor-previous-item "mentor.el")
@@ -171,13 +171,13 @@ the integer index used by rtorrent to identify this file."
             (setq curr-dir (make-mentor-file :name file
                                              :type 'dir
                                              :show nil
-                                             :id (decf dir-id)))
+                                             :id (cl-decf dir-id)))
             (mentor-file-add-file last-dir curr-dir)
             (setq last-dir curr-dir))
           (setq file (pop names))
-          (decf len))
+          (cl-decf len))
         (setq file (make-mentor-file :name file :type 'file
-                                     :id (incf file-id)))
+                                     :id (cl-incf file-id)))
         (mentor-file-add-file last-dir file)
         (puthash file-id file all-files)))
     (push (cons 'files all-files) mentor-selected-torrent-info)
@@ -209,7 +209,7 @@ the integer index used by rtorrent to identify this file."
           (properties (mentor-rpc-methods-to-properties
                        mentor-volatile-rpc-f-methods)))
       (dolist (values value-list)
-        (let ((filex (gethash (incf id) files)))
+        (let ((filex (gethash (cl-incf id) files)))
           (mapc (lambda (p)
                   (let* ((file-fun (mentor--concat-symbols 'mentor-file- p))
                          (val (pop values)))
@@ -258,7 +258,7 @@ the integer index used by rtorrent to identify this file."
         (save-excursion
           (mentor-previous-item t)
           (mentor-mark)))
-      (incf count))))
+      (cl-incf count))))
 
 (defun mentor-details-redisplay ()
   (interactive)
