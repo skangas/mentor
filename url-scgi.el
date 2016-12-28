@@ -1,4 +1,4 @@
-;;; url-scgi.el --- SCGI Uniform Resource Locator retrieval code
+;;; url-scgi.el --- SCGI Uniform Resource Locator retrieval code  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2016 Stefan Kangas.
 
