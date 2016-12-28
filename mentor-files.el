@@ -46,6 +46,36 @@ the integer index used by rtorrent to identify this file."
 (defconst mentor-volatile-rpc-f-methods
   '("f.priority" "f.completed_chunks" "f.size_chunks"))
 
+(defvar mentor-file-detail-columns
+  '(((mentor-file-progress) -5 "Cmp")
+    ((mentor-file-prio-string) -5 "Pri")
+    ((mentor-file-readable-size) 6 "Size")
+    (nil 6 "File")))
+(defvar mentor-file-detail-width 22)
+
+;; Silence compiler warnings
+(defvar mentor-sub-mode)
+(defvar mentor-set-priority-fun)
+(defvar mentor--columns-var)
+(defvar mentor-selected-torrent-info)
+(declare-function mentor-get-item-at-point "mentor.el")
+(declare-function mentor-mode "mentor.el")
+(declare-function mentor-item-property "mentor.el")
+(declare-function mentor-init-header-line "mentor.el")
+(declare-function mentor-get-item-type "mentor.el")
+(declare-function mentor-forward-item "mentor.el")
+(declare-function mentor-beginning-of-item "mentor.el")
+(declare-function mentor-limit-num "mentor.el")
+(declare-function find-if "mentor.el")
+(declare-function decf "mentor.el")
+(declare-function incf "mentor.el")
+(declare-function mentor-rpc-methods-to-properties "mentor.el")
+(declare-function mentor-process-view-columns "mentor.el")
+(declare-function mentor-previous-item "mentor.el")
+(declare-function mentor-mark "mentor.el")
+(declare-function mentor-reload-header-line "mentor.el")
+(declare-function mentor-bytes-to-human "mentor.el")
+
 (define-minor-mode mentor-download-details-mode
   "Minor mode for managing a torrent in mentor."
   :group mentor
@@ -54,7 +84,7 @@ the integer index used by rtorrent to identify this file."
   :keymap mentor-download-details-mode-map)
 
 (defun mentor-download-detail-screen ()
-  "Show file details about for download at point."
+  "Show file details for download at point."
   (interactive)
   (let ((tor (mentor-get-item-at-point)))
     (switch-to-buffer "*mentor: torrent details*")
@@ -271,13 +301,6 @@ the integer index used by rtorrent to identify this file."
     (mentor-details-redisplay)))
 
 ;; Table
-
-(defvar mentor-file-detail-columns
-  '(((mentor-file-progress) -5 "Cmp")
-    ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-readable-size) 6 "Size")
-    (nil 6 "File")))
-(defvar mentor-file-detail-width 22)
 
 (defun mentor-file-prio-string (file)
   (let ((prio (mentor-file-priority file)))

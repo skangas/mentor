@@ -35,6 +35,11 @@
 
 (defvar url-http-response-status)
 
+;; Silence compiler warnings
+(defvar mentor-current-view)
+(declare-function mentor-view-torrent-list-clear "mentor.el")
+(declare-function mentor-download-update-from "mentor.el")
+
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call to rtorrent.
 

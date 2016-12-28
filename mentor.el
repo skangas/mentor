@@ -48,6 +48,7 @@
   (require 'cl)
   (require 'sort))
 
+(require 'dired)
 (require 'seq)
 (require 'term)
 (require 'xml-rpc)

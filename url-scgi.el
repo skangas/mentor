@@ -46,6 +46,12 @@
 
 (defconst url-scgi-asynchronous-p t "SCGI retrievals are asynchronous.")
 
+;; Silence byte-compiler
+(defvar url-callback-function)
+(defvar url-callback-arguments)
+(defvar url-current-object)
+(defvar url-request-data)
+
 (defun url-scgi-string-to-netstring (str)
   "Converts a string into a SCGI protocol netstring."
   (format "%d:%s," (length str) str))
@@ -60,14 +66,11 @@
     "SCGI" "1")))
 
 (defun url-scgi-create-request ()
-  (declare (special url-request-data))
   (concat (url-scgi-make-request-header url-request-data)
           url-request-data))
 
 (defun url-scgi-activate-callback ()
   "Activate callback specified when this buffer was created."
-  (declare (special url-callback-function
-                    url-callback-arguments))
   (apply url-callback-function url-callback-arguments))
 
 (defun url-scgi-handle-home-dir (filename)
@@ -135,8 +138,6 @@
 (defun url-scgi-async-sentinel (proc why)
   ;; We are performing an asynchronous connection, and a status change
   ;; has occurred.
-  (declare (special url-callback-arguments
-                    url-current-object))
   (with-current-buffer (process-buffer proc)
     (cond
      (url-scgi-connection-opened

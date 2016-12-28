@@ -27,6 +27,8 @@
 
 (require 'cl-lib)
 
+(declare-function mentor-view-torrent-list-add "mentor.el")
+
 (cl-defstruct mentor-item
   "A structure containing an item that can be displayed
 in a buffer, like a torrent, file, directory, peer etc."
