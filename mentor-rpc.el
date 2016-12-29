@@ -93,29 +93,26 @@ If REGEXP is specified it only returns the matching functions."
                  (buffer-substring-no-properties (point-min) (point-max))))))
     (mentor-rpc-command cmd "" data)))
 
+(defun mentor-rpc-c-execute2 (&rest args)
+  (apply 'mentor-rpc-command "execute2" "" args))
+
 ;; Download RPC commands, prefix d
 
 (defun mentor-rpc-d-close (&optional tor)
   (mentor-rpc-command "d.close" (mentor-item-property 'hash tor)))
 
-(defun mentor-rpc-d-erase (tor)
-  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor)))
-
-(defun mentor-rpc-d-set-directory (new &optional tor)
-  ;; FIXME: Is this the only property that needs updating?
+(defun mentor-rpc-d-directory-set (new &optional tor)
   (mentor-item-set-property 'directory new)
   (mentor-rpc-command "d.directory.set" (mentor-item-property 'hash tor) new))
+
+(defun mentor-rpc-d-erase (tor)
+  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor)))
 
 (defun mentor-rpc-d-start (&optional tor)
   (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
 
 (defun mentor-rpc-d-stop (&optional tor)
   (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
-
-(defun mentor-execute (&rest args)
-  (apply 'mentor-rpc-command "execute2" "" args))
-
-;; Multicall
 
 (defun mentor-rpc-d.multicall (methods &optional is-init)
   "Call `d.multicall2' with METHODS.
