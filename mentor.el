@@ -570,7 +570,7 @@ Optional argument ARG, if non-nil, specifies items near
   (save-excursion
     (nreverse
      (mentor-map-over-marks
-      (mentor-item-get-name (mentor-get-item-at-point))
+      (mentor-item-property 'name (mentor-get-item-at-point))
       arg))))
 
 ;; Based on `dired-mark-pop-up'
@@ -1084,15 +1084,15 @@ started after being added."
       (progn
         (message "Receiving file list...")
         (setq files (mentor-rpc-command
-                     "f.multicall" (mentor-rpc-d-hash tor)
+                     "f.multicall" (mentor-item-property 'hash tor)
                      "" "f.path_components="))
         (mentor-item-set-property 'files files tor)))
     files))
 
 (defun mentor--do-remove-torrent-files (tor files)
-  (let* ((base-path (mentor-rpc-d-base-path))
+  (let* ((base-path (mentor-item-property 'base_path))
          dirs)
-    (if (mentor-rpc-d-is-multi-file tor)
+    (if (= (mentor-item-property 'is_multi_file tor) 1)
         (progn
           (dolist (file files)
             (let* ((file (concat base-path "/" (caar file)))
@@ -1119,7 +1119,7 @@ started after being added."
                   (when remove-files
                     (mentor--do-remove-torrent-files tor files))
                   (mentor-view-torrent-list-delete-all tor)
-                  (remhash (mentor-rpc-d-local-id tor) mentor-items)
+                  (remhash (mentor-item-property 'local_id tor) mentor-items)
                   (point)))
               arg))
       (mentor-delete-item-from-buffer item))))
@@ -1152,11 +1152,11 @@ started after being added."
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
    (mentor-map-over-marks
-    (let* ((old (mentor-rpc-d-base-path)))
+    (let* ((old (mentor-item-property 'base_path)))
       (when (and (not (null old))
                  (file-exists-p old))
         (mentor-execute "cp" "-Rn" old new))
-      (message "Copied %s to %s" (mentor-rpc-d-name) new)
+      (message "Copied %s to %s" (mentor-item-property 'name) new)
       (mentor-redisplay-torrent))
     arg)))
 
@@ -1167,9 +1167,9 @@ started after being added."
          (prompt (concat verbstr (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
     (mentor-map-over-marks
-     (let* ((old (or (and no-move (mentor-rpc-d-directory))
-                     (mentor-rpc-d-base-path)))
-            (was-started (mentor-rpc-d-is-active)))
+     (let* ((old (or (and no-move (mentor-item-property 'directory))
+                     (mentor-item-property 'base_path)))
+            (was-started (= (mentor-item-property 'is_active) 1)))
        (when (not no-move)
          (when (null old)
            (error "Torrent has no base path"))
@@ -1182,7 +1182,7 @@ started after being added."
          (let ((target (concat new (file-name-nondirectory old))))
           (when (file-exists-p target)
             (error "Destination already exists: %s" target)))
-         (when (and (not (mentor-rpc-d-is-multi-file))
+         (when (and (not (= (mentor-item-property 'is_multi_file) 1))
                     (file-directory-p old))
            (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
        (if (not (equal (file-name-directory old) new))
@@ -1197,10 +1197,10 @@ started after being added."
                (mentor-rpc-d-start))
              (mentor-download-update-this)
              (if no-move
-                 (message "Changed %s target directory to %s" (mentor-rpc-d-name) new)
-               (message "Moved %s to %s" (mentor-rpc-d-name) new)))
+                 (message "Changed %s target directory to %s" (mentor-item-property 'name) new)
+               (message "Moved %s to %s" (mentor-item-property 'name) new)))
          (message "Skipping %s since it is already in %s"
-                  (mentor-rpc-d-name) new))
+                  (mentor-item-property 'name) new))
        (mentor-redisplay-torrent)
        (mentor-goto-item-name-column))
      arg)))
@@ -1362,7 +1362,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-view-torrent-list-delete (&optional tor view)
   (let* ((view (or view (intern mentor-current-view)))
          (list (assq view mentor-view-torrent-list)))
-    (delete (mentor-rpc-d-local-id tor) list)))
+    (delete (mentor-item-property 'local_id tor) list)))
 
 (defun mentor-view-torrent-list-delete-all (&optional tor)
   (dolist (view mentor-view-torrent-list)

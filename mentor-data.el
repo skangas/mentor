@@ -49,10 +49,6 @@ using `make-mentor-item'.")
 (defun mentor-item-id-at-point ()
   (get-text-property (point) 'field))
 
-;; TODO: Probably get rid of this
-(defun mentor-item-get-name (torrent)
-  (mentor-item-property 'name torrent))
-
 (defun mentor-item-set-property (property value &optional item must-exist)
   "Set data PROPERTY to given VALUE of an item.
 
@@ -71,15 +67,14 @@ If MUST-EXIST is non-nil, give a warning if the property does not
             (error "Tried updating non-existent property")
           (push (cons property value) (mentor-item-data it)))))))
 
-;; TODO: Can we change to use assq instead of assoc?
 (defun mentor-item-property (property &optional item)
   "Get PROPERTY for item at point or ITEM."
   (let ((it (or item
                 (mentor-get-item-at-point)
                 (error "There is no item here"))))
-    (cdr (assoc property (mentor-item-data it)))))
+    (cdr (assq property (mentor-item-data it)))))
 
-;;; Torrent data structure
+;;; Download data structure
 
 (defun mentor-download-create (data)
   (make-mentor-item

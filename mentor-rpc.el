@@ -96,42 +96,21 @@ If REGEXP is specified it only returns the matching functions."
 ;; Download RPC commands, prefix d
 
 (defun mentor-rpc-d-close (&optional tor)
-  (mentor-rpc-command "d.close" (mentor-rpc-d-hash tor)))
+  (mentor-rpc-command "d.close" (mentor-item-property 'hash tor)))
 
 (defun mentor-rpc-d-erase (tor)
-  (mentor-rpc-command "d.erase" (mentor-rpc-d-hash tor)))
-
-(defun mentor-rpc-d-base-path (&optional tor)
-  (mentor-item-property 'base_path tor))
-
-(defun mentor-rpc-d-directory (&optional tor)
-  (mentor-item-property 'directory tor))
-
-(defun mentor-rpc-d-hash (&optional tor)
-  (mentor-item-property 'hash tor))
-
-(defun mentor-rpc-d-local-id (tor)
-  (mentor-item-property 'local_id tor))
-
-(defun mentor-rpc-d-name (&optional tor)
-  (mentor-item-property 'name tor))
-
-(defun mentor-rpc-d-is-active (&optional tor)
-  (= (mentor-item-property 'is_active tor) 1))
-
-(defun mentor-rpc-d-is-multi-file (&optional tor)
-  (= (mentor-item-property 'is_multi_file tor) 1))
+  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor)))
 
 (defun mentor-rpc-d-set-directory (new &optional tor)
   ;; FIXME: Is this the only property that needs updating?
   (mentor-item-set-property 'directory new)
-  (mentor-rpc-command "d.directory.set" (mentor-rpc-d-hash tor) new))
+  (mentor-rpc-command "d.directory.set" (mentor-item-property 'hash tor) new))
 
 (defun mentor-rpc-d-start (&optional tor)
-  (mentor-rpc-command "d.start" (mentor-rpc-d-hash tor)))
+  (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
 
 (defun mentor-rpc-d-stop (&optional tor)
-  (mentor-rpc-command "d.stop" (mentor-rpc-d-hash tor)))
+  (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
 
 (defun mentor-execute (&rest args)
   (apply 'mentor-rpc-command "execute2" "" args))
