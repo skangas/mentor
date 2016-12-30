@@ -158,6 +158,10 @@ methods instead."
   "Face for mentor download name."
   :group 'mentor-faces)
 
+(defface mentor-tracker-name '((t :foreground "#4C7073"))
+  "Face for mentor tracker name."
+  :group 'mentor-faces)
+
 (defface mentor-download-message '((t :foreground "#AC7373"))
   "Face for mentor download name."
   :group 'mentor-faces)
@@ -169,6 +173,7 @@ methods instead."
     ((mentor-download-progress-column) -3 "Cmp" mentor-download-progress)
     ((mentor-download-size-column) -4 "Size" mentor-download-size)
     (name -50 "Name" mentor-download-name)
+    ((mentor-download-tracker-name-column) -20 "Tracker" mentor-tracker-name)
     (message -40 "Message" mentor-download-message)
     (directory -100 "Directory"))
   "A list of all columns to show in mentor view."
@@ -1420,6 +1425,26 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-download-size-column (download)
   (let ((total (mentor-item-property 'size_bytes download)))
     (format "%4.6s" (mentor-bytes-to-human total))))
+
+(defun mentor-remove-subdomains (domain)
+  (replace-regexp-in-string
+   "^\\([^.]*\\.\\)+\\([^.]+\\.[^.]+\\)" "\\2"
+   domain))
+
+(defun mentor-keep-domain-name (url)
+  (replace-regexp-in-string
+   "https?://\\([^/:]+\\)\\(:[0-9]+\\)?.*" "\\1"
+   url))
+
+(defun mentor-download-tracker-name-column (&optional download)
+  (let* ((trackers (mentor-rpc-t-get-tracker-info download))
+         (active-trackers (seq-filter (lambda (x) (= (cadr x) 1)) trackers))
+         (main-tracker (if (length active-trackers) (caar active-trackers) ""))
+         (shortened (mentor-remove-subdomains
+                     (mentor-keep-domain-name main-tracker))))
+    (if (>= (length shortened) 20)
+        (seq-subseq shortened -20)
+      (format "%20s" shortened))))
 
 ;;; Get dowload data from rtorrent
 

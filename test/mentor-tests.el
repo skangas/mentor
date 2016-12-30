@@ -26,6 +26,8 @@
 (require 'cl-lib)
 (require 'ert)
 
+(require 'mentor)
+
 (ert-deftest mentor-rtorrent-already-running ()
   (let ((existent (generate-new-buffer "fooa")) ; incl. buffer
         (non-existent (generate-new-buffer-name "foob")) ; only name
@@ -36,11 +38,21 @@
       (should (equal (mentor-rtorrent-already-running existent rpc) t))
       (should (equal (mentor-rtorrent-already-running non-existent rpc) nil)))))
 
+(ert-deftest mentor-rtorrent-keep-domain-name ()
+  (should (equal (mentor-keep-domain-name "http://foo.bar1.com/announce?xxxx")
+                 "foo.bar1.com")))
+
+(ert-deftest mentor-remove-subdomains ()
+  (should (equal (mentor-remove-subdomains "foo.bar.baz.com") "baz.com"))
+  (should (equal (mentor-remove-subdomains "bar.baz1.com") "baz1.com"))
+  (should (equal (mentor-remove-subdomains "baz1.com") "baz1.com"))
+  (should (equal (mentor-remove-subdomains "localhost") "localhost")))
+
 (ert-deftest mentor-rtorrent-bytes-to-human ()
   (let* ((kb 1024.0)
          (mb (* 1024.0 kb))
          (gb (* 1024.0 mb))
-         (tb (* 1024.0 tb)))
+         (tb (* 1024.0 gb)))
     (should (equal (mentor-bytes-to-human 0)            "0"))
     (should (equal (mentor-bytes-to-human 1)            "1B"))
     (should (equal (mentor-bytes-to-human 998)          "998B"))

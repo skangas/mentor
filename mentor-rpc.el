@@ -225,6 +225,14 @@ Optional argument IS-INIT if this is initializing."
     "d.is_hash_checking" "d.is_open"
     "d.is_pex_active"))
 
+(defun mentor-rpc-t-multicall (&rest args)
+  (apply 'mentor-rpc-command "t.multicall" args))
+
+(defun mentor-rpc-t-get-tracker-info (download)
+  (mentor-rpc-t-multicall
+   (mentor-item-property 'hash download)
+   "" "t.url=" "t.is_enabled="))
+
 ;; sys.multicall -- unused?
 
 ;; TODO: Is sys.multicall a possible optimization for later?  From wiki:
