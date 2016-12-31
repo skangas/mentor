@@ -31,11 +31,16 @@
 (ert-deftest mentor-rtorrent-already-running ()
   (let ((existent (generate-new-buffer "fooa")) ; incl. buffer
         (non-existent (generate-new-buffer-name "foob"))) ; only name
-    (cl-letf (((symbol-function 'mentor-rpc-command)
-               (lambda (_) t)))
-      (should (equal (mentor-rtorrent-already-running nil) nil))
-      (should (equal (mentor-rtorrent-already-running existent) t))
-      (should (equal (mentor-rtorrent-already-running non-existent) nil)))))
+    (unwind-protect
+     (cl-letf (((symbol-function 'mentor-rpc-command)
+                (lambda (_) t)))
+       (should (equal (mentor-rtorrent-already-running nil) nil))
+       (should (equal (mentor-rtorrent-already-running existent) t))
+       (should (equal (mentor-rtorrent-already-running non-existent) nil)))
+     (ignore-errors
+       (kill-buffer existent))
+     (ignore-errors
+       (kill-buffer non-existent)))))
 
 (ert-deftest mentor-rtorrent-keep-domain-name ()
   (should (equal (mentor-keep-domain-name "http://foo.bar1.com/announce?xxxx")
