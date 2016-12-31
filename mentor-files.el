@@ -92,6 +92,8 @@ the integer index used by rtorrent to identify this file."
     (setq mentor-sub-mode 'file-details)
     (mentor-mode)
     (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
+    ;; FIXME: Add function to update only one item
+    (setq mentor-item-update-this-fun 'mentor-files-update)
     (setq mentor--columns-var  'mentor-file-detail-columns)
     (mentor-download-details-mode t)
     (setq mentor-selected-torrent tor)
@@ -117,7 +119,8 @@ the integer index used by rtorrent to identify this file."
          (prio (mentor-file-priority file))
          (hash (mentor-item-property 'hash mentor-selected-torrent)))
     (when (not (mentor-file-is-dir file))
-      (list "f.priority.set" hash id (mentor-limit-num (+ prio val) 0 2)))))
+      (mentor-rpc-command "f.priority.set" (format "%s:f%s" hash id) (mentor-limit-num (+ prio val) 0 2))
+      (mentor-rpc-command "d.update_priorities" hash))))
 
 (defun mentor-toggle-file (file)
   (interactive)

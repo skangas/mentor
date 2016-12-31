@@ -959,11 +959,12 @@ point."
 ;;; Interactive item commands
 
 (defun mentor-item-update-this ()
-  (funcall mentor-item-update-this-fun))
+  (when mentor-item-update-this-fun
+    (funcall mentor-item-update-this-fun)))
 
 (defun mentor-set-priority (val)
   (setq val (or val 1))
-  (apply 'mentor-rpc-command (funcall mentor-set-priority-fun val)))
+  (funcall mentor-set-priority-fun val))
 
 (defun mentor-decrease-priority ()
   (interactive)
@@ -1472,7 +1473,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-download-set-priority-fun (val)
   (let ((hash (mentor-item-property 'hash))
         (prio (mentor-item-property 'priority)))
-    (list "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
+    (mentor-rpc-command "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
 
 
 ;;; View functions
