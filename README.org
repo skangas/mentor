@@ -191,10 +191,6 @@ this.
 : (autoload 'mentor "mentor" nil t)
 
 ** Known issues
-
-- The file view needs much love, and is currently not known to be
-  working.  Sorry.
-
 - There is no view for trackers/peers/extra information.
 
 - mentor currently has some performance issues if you have many torrents

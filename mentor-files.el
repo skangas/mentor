@@ -38,6 +38,8 @@ the integer index used by rtorrent to identify this file."
 (make-variable-buffer-local 'mentor-selected-torrent)
 (put 'mentor-selected-torrent 'permanent-local t)
 
+(defvar mentor-selected-torrent-info '())
+
 (defvar mentor-download-details-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "N") 'mentor-details-next-directory)
@@ -51,15 +53,14 @@ the integer index used by rtorrent to identify this file."
 (defvar mentor-file-detail-columns
   '(((mentor-file-progress) -5 "Cmp")
     ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-readable-size) 6 "Size")
+    ((mentor-file-readable-size) 4 "Size")
     (nil 6 "File")))
-(defvar mentor-file-detail-width 22)
+(defvar mentor-file-detail-width 18)
 
 ;; Silence compiler warnings
 (defvar mentor-sub-mode)
 (defvar mentor-set-priority-fun)
 (defvar mentor--columns-var)
-(defvar mentor-selected-torrent-info)
 (declare-function mentor-get-item-at-point "mentor.el")
 (declare-function mentor-mode "mentor.el")
 (declare-function mentor-item-property "mentor.el")
