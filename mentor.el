@@ -372,8 +372,7 @@ It will use the RPC argument as value for scgi_local."
             (mentor-rpc-command "system.pid")
             t)
         (error
-         ;; Running with problems -- restart it
-         (kill-buffer buf)
+         ;; Running with problems -- needs restart
          nil))
     nil))
 
@@ -390,6 +389,7 @@ It will use the RPC argument as value for scgi_local."
         (conf (expand-file-name "rtorrent.rc" mentor-home-dir)))
     (setq mentor-rpc--rtorrent-url (concat "scgi://" rpc))
     (when (not (mentor-rtorrent-already-running bufname))
+      (kill-buffer bufname)
       (mentor-rtorrent-create-conf conf rpc)
       (let ((rtorrent (executable-find "rtorrent")))
         (if (not rtorrent)
