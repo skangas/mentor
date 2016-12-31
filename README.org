@@ -134,12 +134,12 @@ Add this to your ~/.rtorrent.rc and restart rTorrent:
 Add this to your init.el and restart Emacs, or customize "Mentor Rtorrent
 External Rpc":
 
-: (setq mentor-rtorrent-external-rpc "scgi://~/.rtorrent-rpc.socket")
+: (setq mentor-rtorrent-external-rpc "~/.rtorrent-rpc.socket")
 
 You can alternatively use something like this:
 
 : ;; Alternative 2: Absolute path
-: (setq mentor-rtorrent-external-rpc "scgi:///path/to/rtorrent-rpc.socket")
+: (setq mentor-rtorrent-external-rpc "/path/to/rtorrent-rpc.socket")
 : ;; Alternative 3: Connect over tcp
 : (setq mentor-rtorrent-external-rpc "scgi://127.0.0.1:5000")
 

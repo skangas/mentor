@@ -406,7 +406,10 @@ It will use the RPC argument as value for scgi_local."
 
 (defun mentor-setup-rtorrent ()
   (if mentor-rtorrent-external-rpc
-      (setq mentor-rpc--rtorrent-url mentor-rtorrent-external-rpc)
+      (setq mentor-rpc--rtorrent-url
+            (if (string-match "^[~/]" mentor-rtorrent-external-rpc)
+                (concat "scgi://" mentor-rtorrent-external-rpc)
+              mentor-rtorrent-external-rpc))
     (let ((rtorrent-started nil)
           (since (float-time)))
       (mentor-rtorrent-run-in-background)
