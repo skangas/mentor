@@ -34,9 +34,9 @@ the integer index used by rtorrent to identify this file."
   name show marked size completed_chunks
   size_chunks priority files type id)
 
-(defvar mentor-selected-torrent nil)
-(make-variable-buffer-local 'mentor-selected-torrent)
-(put 'mentor-selected-torrent 'permanent-local t)
+(defvar mentor-files-selected-torrent nil)
+(make-variable-buffer-local 'mentor-files-selected-torrent)
+(put 'mentor-files-selected-torrent 'permanent-local t)
 
 (defvar mentor-selected-torrent-info '())
 
@@ -91,12 +91,12 @@ the integer index used by rtorrent to identify this file."
     (switch-to-buffer "*mentor: torrent details*")
     (setq mentor-sub-mode 'file-details)
     (mentor-mode)
-    (setq mentor-set-priority-fun 'mentor-file-set-priority-fun)
+    (setq mentor-set-priority-fun 'mentor-files-set-priority-fun)
     ;; FIXME: Add function to update only one item
     (setq mentor-item-update-this-fun 'mentor-files-update)
     (setq mentor--columns-var  'mentor-file-detail-columns)
     (mentor-download-details-mode t)
-    (setq mentor-selected-torrent tor)
+    (setq mentor-files-selected-torrent tor)
     (mentor-files-update t)
     (mentor-details-redisplay)
     (setq mode-line-buffer-identification
@@ -113,14 +113,21 @@ the integer index used by rtorrent to identify this file."
 (defun mentor-file-is-dir (file)
   (and (mentor-file-p file) (eq 'dir (mentor-file-type file))))
 
-(defun mentor-file-set-priority-fun (val)
-  (let* ((file (mentor-file-at-point))
-         (id   (mentor-file-id file))
-         (prio (mentor-file-priority file))
-         (hash (mentor-item-property 'hash mentor-selected-torrent)))
-    (when (not (mentor-file-is-dir file))
-      (mentor-rpc-command "f.priority.set" (format "%s:f%s" hash id) (mentor-limit-num (+ prio val) 0 2))
-      (mentor-rpc-command "d.update_priorities" hash))))
+(defun mentor-files--priority-set (hash file val)
+  (mentor-rpc-command "f.priority.set"
+                      (format "%s:f%s" hash (mentor-file-id file))
+                      (mentor-limit-num (+ (mentor-file-priority file) val)
+                                        0 2)))
+
+(defun mentor-files-set-priority-fun (val &optional file)
+  (let* ((hash (mentor-item-property 'hash mentor-files-selected-torrent))
+         (file (or file
+                  (mentor-file-at-point))))
+    (if (mentor-file-is-dir file)
+        (dolist (file (mentor-file-files file))
+          (mentor-files-set-priority-fun val file))
+      (mentor-files--priority-set hash file val))
+    (mentor-rpc-command "d.update_priorities" hash)))
 
 (defun mentor-toggle-file (file)
   (interactive)
@@ -197,7 +204,7 @@ the integer index used by rtorrent to identify this file."
           (assq-delete-all 'root mentor-selected-torrent-info))
     (setq mentor-selected-torrent-info
           (assq-delete-all 'files mentor-selected-torrent-info)))
-  (let* ((tor mentor-selected-torrent)
+  (let* ((tor mentor-files-selected-torrent)
          (hash (mentor-item-property 'hash tor))
          (methods (if add-files
                       (cons "f.path_components" mentor-volatile-rpc-f-methods)
@@ -319,7 +326,7 @@ the integer index used by rtorrent to identify this file."
 
 (defun mentor-file-readable-size (file)
   (let* ((chunk-size (mentor-item-property
-                      'chunk_size mentor-selected-torrent)))
+                      'chunk_size mentor-files-selected-torrent)))
     (mentor-bytes-to-human
      (* chunk-size (mentor-file-size_chunks file)))))
 
