@@ -136,11 +136,26 @@ External Rpc":
 
 : (setq mentor-rtorrent-external-rpc "~/.rtorrent-rpc.socket")
 
-You can alternatively use something like this:
+You can also specify an absolute path:
 
 : ;; Alternative 2: Absolute path
 : (setq mentor-rtorrent-external-rpc "/path/to/rtorrent-rpc.socket")
-: ;; Alternative 3: Connect over tcp
+
+It is also possible to connect to rtorrent over http.  There are instructions on
+configuring this on the [[https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC][rtorrent wiki]].
+
+: ;; Alternative 3: Use a web server
+: (setq mentor-rtorrent-external-rpc "http://127.0.0.1:8080/RPC2")
+
+Finally, you can connect directly to rtorrent over scgi.  However, anyone that
+can send rtorrent xmlrpc requests can in all likelihood also execute arbitrary
+code as the user running rtorrent.  Therefore, this is inadvisable on anything
+but the loopback device (e.g. 127.0.0.1) on single-user systems.
+
+It is almost always easier and better to use a Unix domain socket (file) as
+suggested above.
+
+: ;; Alternative 4: Connect directly to rtorrent over scgi
 : (setq mentor-rtorrent-external-rpc "scgi://127.0.0.1:5000")
 
 *** Configuring rtorrent
