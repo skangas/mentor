@@ -204,3 +204,7 @@ http://www.github.com/skangas/mentor
 
 Bug reports, comments, and suggestions are welcome! Send them to Stefan Kangas
 <stefankangas@gmail.com> or report them on GitHub.
+
+-----
+[[http://melpa.milkbox.net/#/mentor][file:http://melpa.milkbox.net/packages/mentor-badge.svg]]
+[[http://melpa-stable.milkbox.net/#/mentor][file:http://melpa-stable.milkbox.net/packages/mentor-badge.svg]]
