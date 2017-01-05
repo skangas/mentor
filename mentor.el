@@ -1182,7 +1182,7 @@ started after being added."
             (was-started (= (mentor-item-property 'is_active) 1)))
        (when (not no-move)
          (when (null old)
-           (error "Torrent has no base path"))
+           (error "Download has no base path"))
          ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
          ;; to look for the file.
          (when (not (file-exists-p old))
@@ -1292,16 +1292,14 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-dired-jump ()
   "Visit file at point using Dired."
   (interactive)
-  (let* ((tor (mentor-get-item-at-point))
-         (is-multi-file (= 1 (mentor-item-property 'is_multi_file tor)))
-         (path (mentor-item-property 'base_path tor))
-         (path2 (and path (if is-multi-file path (file-name-directory path)))))
-    (if path2
-        (progn
-          (find-file path2)
-          (when (not is-multi-file)
-            (dired-goto-file path)))
-      (message "Torrent does not have a base path"))))
+  (let* ((is-multi-file (= (mentor-item-property 'is_multi_file) 1))
+         (directory (mentor-item-property 'directory))
+         (name (mentor-item-property 'name)))
+    (when (not directory)
+      (error "Download does not have a 'directory' set"))
+    (find-file directory)
+    (if (not is-multi-file)
+        (dired-goto-file (expand-file-name name directory)))))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
