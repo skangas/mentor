@@ -1133,13 +1133,16 @@ started after being added."
                   (remhash (mentor-item-property 'local_id tor) mentor-items)
                   (point)))
               arg))
-      (mentor-delete-item-from-buffer item))))
+      (mentor-delete-item-from-buffer item))
+    (mentor-goto-item-name-column)))
 
 (defun mentor-download-remove (&optional arg)
+  "Remove download at point or marked downloads."
   (interactive "P")
   (mentor--torrent-remove-helper nil arg))
 
 (defun mentor-download-remove-including-files (&optional arg)
+  "Remove download at point or marked downloads, including data."
   (interactive "P")
   (mentor--torrent-remove-helper t arg))
 
