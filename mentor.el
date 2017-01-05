@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9") (seq) (cl-lib "0.5"))
+;; Package-Requires: ((xml-rpc "1.6.9") (seq "1.11") (cl-lib "0.5"))
 
 (defconst mentor-version "0.3"
   "The version of Mentor that you're using.")
