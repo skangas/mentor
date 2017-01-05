@@ -660,8 +660,7 @@ expensive operation."
                   methods)))
     (let ((properties (mentor-rpc-methods-to-properties methods)))
       (mentor-download-update-from properties values))
-    (mentor-redisplay-torrent)
-    (mentor-goto-item-name-column)))
+    (mentor-download-reinsert-this)))
 
 
 ;;; Main torrent view
@@ -698,12 +697,14 @@ expensive operation."
     (dolist (id tor-ids)
       (mentor-insert-torrent id))))
 
-(defun mentor-redisplay-torrent ()
+(defun mentor-download-reinsert-this ()
+  "Reinsert download at point."
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
     (mentor-delete-item-from-buffer (point))
     (mentor-insert-torrent id)
-    (mentor-previous-item)))
+    (mentor-previous-item))
+  (mentor-goto-item-name-column))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
   ;; Remove trailing whitespace
@@ -1167,7 +1168,7 @@ started after being added."
                  (file-exists-p old))
         (mentor-rpc-c-execute2 "cp" "-Rn" old new))
       (message "Copied %s to %s" (mentor-item-property 'name) new)
-      (mentor-redisplay-torrent))
+      (mentor-download-reinsert-this))
     arg)))
 
 (defun mentor-download-move (&optional no-move arg)
@@ -1211,8 +1212,7 @@ started after being added."
                (message "Moved %s to %s" (mentor-item-property 'name) new)))
          (message "Skipping %s since it is already in %s"
                   (mentor-item-property 'name) new))
-       (mentor-redisplay-torrent)
-       (mentor-goto-item-name-column))
+       (mentor-download-reinsert-this))
      arg)))
 
 (defun mentor-download-change-target-directory (&optional arg)
