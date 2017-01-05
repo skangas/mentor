@@ -8,7 +8,7 @@
 ;; Keywords: comm, processes, bittorrent
 ;; Package-Requires: ((xml-rpc "1.6.9") (seq "1.11") (cl-lib "0.5"))
 
-(defconst mentor-version "0.3"
+(defconst mentor-version "0.3.1"
   "The version of Mentor that you're using.")
 
 ;; This file is NOT part of GNU Emacs.
