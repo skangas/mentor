@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.2
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9") (seq) (cl-lib "0.5"))
+;; Package-Requires: ((xml-rpc "1.6.9") (seq "1.11") (cl-lib "0.5"))
 
 (defconst mentor-version "0.3"
   "The version of Mentor that you're using.")
@@ -722,7 +722,7 @@ expensive operation."
    (lambda (col) ;lenfun
      (cadr col))
    (lambda (col) ; strfun
-     (caddr col))))
+     (cl-caddr col))))
 
 (defun mentor-process-view-columns (item cols)
   (concat
@@ -740,7 +740,7 @@ expensive operation."
                     (t
                      (let ((text (mentor-item-property col-name item)))
                        (if text text "")))))
-             (col-face (cadddr col)))
+             (col-face (cl-cadddr col)))
         (if col-face
             (propertize text
                         'face col-face)
@@ -912,7 +912,7 @@ point."
          (i (abs arg))
          (done nil))
     (while (and (> i 0))
-      (decf i)
+      (cl-decf i)
       (setq done nil)
       (mentor-while-same-item (not done) t
        (let ((at-buf-limit (if reverse (bobp) (eobp)))
@@ -1108,7 +1108,7 @@ started after being added."
             (let* ((file (concat base-path "/" (caar file)))
                    (dir (file-name-directory file)))
               (mentor-delete-file file)
-              (setq dirs (adjoin dir dirs :test 'equal))))
+              (setq dirs (cl-adjoin dir dirs :test 'equal))))
           (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
           (dolist (dir dirs)
             (mentor-delete-file dir)))
@@ -1492,7 +1492,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-add-torrent-to-view (view)
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
-                                 (remove-if-not 'mentor-views-is-custom-view
+                                 (cl-remove-if-not 'mentor-views-is-custom-view
                                                 mentor-download-views)
                                  nil mentor-current-view)))
   (let ((tor (mentor-get-item-at-point)))

@@ -60,6 +60,7 @@ the integer index used by rtorrent to identify this file."
 ;; Silence compiler warnings
 (defvar mentor-sub-mode)
 (defvar mentor-set-priority-fun)
+(defvar mentor-item-update-this-fun)
 (defvar mentor--columns-var)
 (declare-function mentor-get-item-at-point "mentor.el")
 (declare-function mentor-mode "mentor.el")
@@ -76,6 +77,7 @@ the integer index used by rtorrent to identify this file."
 (declare-function mentor-mark "mentor.el")
 (declare-function mentor-reload-header-line "mentor.el")
 (declare-function mentor-bytes-to-human "mentor.el")
+(declare-function mentor-rpc-command "mentor-rpc.el")
 
 (define-minor-mode mentor-download-details-mode
   "Minor mode for managing a torrent in mentor."
@@ -144,7 +146,7 @@ the integer index used by rtorrent to identify this file."
   "Returns the file with the specified name in the directory
 `dir'."
   (let* ((pred (lambda (x) (string= name (mentor-file-name x))))
-         (file^ (find-if pred (mentor-file-files dir))))
+         (file^ (cl-find-if pred (mentor-file-files dir))))
     (when file^
       file^)))
 
