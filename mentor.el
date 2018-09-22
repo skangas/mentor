@@ -1200,34 +1200,34 @@ started after being added."
                           "Try `mentor-download-change-target-directory'")
                   old))
          (let ((target (concat new (file-name-nondirectory old))))
-          (when (file-exists-p target)
-            (error "Destination already exists: %s" target)))
+           (when (file-exists-p target)
+             (error "Destination already exists: %s" target)))
          (when (and (not (= (mentor-item-property 'is_multi_file) 1))
                     (file-directory-p old))
            (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
-       (if (not (equal (file-name-directory old) new))
-           (progn
-             (when was-started
-               (mentor-rpc-d-stop))
-             (mentor-rpc-d-close)
-             (if (not no-move)
-                 (mentor-rpc-c-execute2 "mv" "-u" old new))
-             (mentor-rpc-d-directory-set new)
-             (when was-started
-               (mentor-rpc-d-start))
-             (mentor-download-update-and-reinsert-at-point)
-             (if no-move
-                 (message "Changed %s target directory to %s" (mentor-item-property 'name) new)
-               (message "Moved %s to %s" (mentor-item-property 'name) new)))
-         (message "Skipping %s since it is already in %s"
-                  (mentor-item-property 'name) new))
-       (mentor-download-reinsert-at-point))
+       (if (equal (file-name-directory old) new)
+           (message "Skipping %s since it is already in %s"
+                    (mentor-item-property 'name) new)
+         (let ((download (mentor-get-item-at-point)))
+          (progn
+            (when was-started
+              (mentor-rpc-d-stop download))
+            (mentor-rpc-d-close download)
+            (if (not no-move)
+                (mentor-rpc-c-execute2 "mv" "-u" old new))
+            (mentor-rpc-d-directory-set new download)
+            (when was-started
+              (mentor-rpc-d-start download))
+            (mentor-download-update-and-reinsert-at-point)
+            (if no-move
+                (message "Changed %s target directory to %s" (mentor-item-property 'name) new)
+              (message "Moved %s to %s" (mentor-item-property 'name) new))))))
      arg)))
 
 (defun mentor-download-change-target-directory (&optional arg)
   "Change torrents target directory without moving data."
   (interactive "P")
-  (mentor-download-move t arg))
+  (mentor-download-move 'nomove arg))
 
 (defun mentor-download-hash-check (&optional arg)
   (interactive "P")
