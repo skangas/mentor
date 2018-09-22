@@ -43,11 +43,11 @@ using `make-mentor-item'.")
 (defun mentor-get-item (id)
   (gethash id mentor-items))
 
-(defun mentor-get-item-at-point ()
-  (mentor-get-item (mentor-item-id-at-point)))
-
 (defun mentor-item-id-at-point ()
   (get-text-property (point) 'field))
+
+(defun mentor-get-item-at-point ()
+  (mentor-get-item (mentor-item-id-at-point)))
 
 (defun mentor-item-set-property (property value &optional item must-exist)
   "Set data PROPERTY to given VALUE of an item.
@@ -98,6 +98,12 @@ If MUST-EXIST is non-nil, give a warning if the property does not
                (v (cdr row)))
           (mentor-item-set-property p v old 'must-exist))))
     (mentor-view-torrent-list-add new)))
+
+(defun mentor-download-update-from (methods values &optional is-init)
+  (mentor-download-update
+   (mentor-download-create
+    (cl-mapcar (lambda (m v) (cons m v)) methods values))
+   is-init))
 
 (put 'mentor-need-init
      'error-conditions

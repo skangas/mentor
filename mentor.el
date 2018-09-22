@@ -438,7 +438,7 @@ It will use the RPC argument as value for scgi_local."
     (switch-to-buffer (get-buffer-create "*mentor*"))
     (mentor-mode)
     (mentor-setup-rtorrent)
-    (setq mentor-item-update-this-fun 'mentor-download-update-this)
+    (setq mentor-item-update-this-fun 'mentor-download-update-and-reinsert-at-point)
     (setq mentor-set-priority-fun 'mentor-download-set-priority-fun)
     (setq mentor--columns-var  'mentor-view-columns)
     (setq mentor-sort-list '((up.rate . t) name))
@@ -650,17 +650,22 @@ expensive operation."
     (mentor-need-init
      (mentor-download-data-init))))
 
-(defun mentor-download-update-this ()
-  (let* ((tor (mentor-get-item-at-point))
-         (hash (mentor-item-property 'hash tor))
+(defun mentor-download-update-this (download)
+  "Update specified DOWNLOAD."
+  (let* ((hash (mentor-item-property 'hash download))
          (methods mentor-rpc-volatile-d-methods)
          (values (cl-mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
     (let ((properties (mentor-rpc-methods-to-properties methods)))
-      (mentor-download-update-from properties values))
-    (mentor-download-reinsert-this)))
+      (mentor-download-update-from properties values))))
+
+(defun mentor-download-update-and-reinsert-at-point ()
+  "Update download at point and reinsert in buffer."
+  (let* ((download (mentor-get-item-at-point)))
+    (mentor-download-update-this download)
+    (mentor-download-reinsert-at-point)))
 
 
 ;;; Main torrent view
@@ -672,7 +677,7 @@ expensive operation."
      ,@body
      (if kept-torrent-id
          (condition-case _err
-             (mentor-goto-torrent kept-torrent-id)
+             (mentor-goto-download kept-torrent-id)
            (mentor-missing-torrent
             (goto-char kept-point)))
        (goto-char kept-point))))
@@ -697,7 +702,7 @@ expensive operation."
     (dolist (id tor-ids)
       (mentor-insert-torrent id))))
 
-(defun mentor-download-reinsert-this ()
+(defun mentor-download-reinsert-at-point ()
   "Reinsert download at point."
   (let ((inhibit-read-only t)
         (id (mentor-item-id-at-point)))
@@ -943,7 +948,8 @@ point."
     (delete-region (mentor-get-item-beginning)
                    (+ 1 (mentor-get-item-end)))))
 
-(defun mentor-goto-torrent (id)
+(defun mentor-goto-download (id)
+  "Move mark to download with ID."
   (let ((pos (save-excursion
                (goto-char (point-min))
                (while (and (not (equal id (mentor-item-id-at-point)))
@@ -1047,8 +1053,8 @@ this subdir."
       path)))
 
 (defun mentor-get-new-torrent-path (tor)
-  "Helper function for `mentor-copy-torrent-data' and
-`mentor-move-torrent-data'"
+  "Helper function for `mentor-download-copy-data' and
+`mentor-download-move'"
   (let* ((old (mentor-get-old-torrent-path tor))
          (old-prefixed (concat mentor-directory-prefix old))
          (new (read-file-name "New path: " old-prefixed nil t)))
@@ -1171,7 +1177,7 @@ started after being added."
                  (file-exists-p old))
         (mentor-rpc-c-execute2 "cp" "-Rn" old new))
       (message "Copied %s to %s" (mentor-item-property 'name) new)
-      (mentor-download-reinsert-this))
+      (mentor-download-reinsert-at-point))
     arg)))
 
 (defun mentor-download-move (&optional no-move arg)
@@ -1209,13 +1215,13 @@ started after being added."
              (mentor-rpc-d-directory-set new)
              (when was-started
                (mentor-rpc-d-start))
-             (mentor-download-update-this)
+             (mentor-download-update-and-reinsert-at-point)
              (if no-move
                  (message "Changed %s target directory to %s" (mentor-item-property 'name) new)
                (message "Moved %s to %s" (mentor-item-property 'name) new)))
          (message "Skipping %s since it is already in %s"
                   (mentor-item-property 'name) new))
-       (mentor-download-reinsert-this))
+       (mentor-download-reinsert-at-point))
      arg)))
 
 (defun mentor-download-change-target-directory (&optional arg)
@@ -1231,7 +1237,7 @@ started after being added."
        (mentor-rpc-command "d.check_hash" (mentor-item-property 'hash tor))
        (mentor-item-set-property 'hashing 1 tor)
        (mentor-item-set-property 'is_open 1 tor)
-       (mentor-download-update-this)))
+       (mentor-download-update-and-reinsert-at-point)))
    arg))
 
 (defun mentor-download-pause (&optional arg)
@@ -1240,7 +1246,7 @@ started after being added."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-resume (&optional arg)
@@ -1249,28 +1255,28 @@ started after being added."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-start)
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-stop)
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-open (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-close (&optional arg)
@@ -1280,7 +1286,7 @@ Should be equivalent to the ^K command in the ncurses gui."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-close)
-          (mentor-download-update-this))
+          (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-recreate-files ()
@@ -1453,12 +1459,6 @@ Should be equivalent to the ^K command in the ncurses gui."
       (format "%20s" shortened))))
 
 ;;; Get dowload data from rtorrent
-
-(defun mentor-download-update-from (methods values &optional is-init)
-  (mentor-download-update
-   (mentor-download-create
-    (cl-mapcar (lambda (m v) (cons m v)) methods values))
-   is-init))
 
 (defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human

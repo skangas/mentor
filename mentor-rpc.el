@@ -38,7 +38,6 @@
 ;; Silence compiler warnings
 (defvar mentor-current-view)
 (declare-function mentor-view-torrent-list-clear "mentor.el")
-(declare-function mentor-download-update-from "mentor.el")
 
 (defun mentor-rpc-command (&rest args)
   "Run command as an XML-RPC call to rtorrent.
@@ -94,6 +93,7 @@ If REGEXP is specified it only returns the matching functions."
     (mentor-rpc-command cmd "" data)))
 
 (defun mentor-rpc-c-execute2 (&rest args)
+  "Run the execute2 command via RPC.  This is an arbitrary shell command."
   (apply 'mentor-rpc-command "execute2" "" args))
 
 ;; Download RPC commands, prefix d
