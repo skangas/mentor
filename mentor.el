@@ -382,16 +382,17 @@ It will use the RPC argument as value for scgi_local."
   "Start rtorrent in a new buffer."
   (make-directory mentor-home-dir t)
   (when mentor-rtorrent-keep-session
-      (make-directory
-       (setq mentor--rtorrent-session-directory
-             (expand-file-name "session" mentor-home-dir)) t))
+    (make-directory
+     (setq mentor--rtorrent-session-directory
+           (expand-file-name "session" mentor-home-dir)) t))
   (let ((bufname mentor-rtorrent-buffer-name)
         (buf nil)
         (rpc (expand-file-name "rtorrent.rpc" mentor-home-dir))
         (conf (expand-file-name "rtorrent.rc" mentor-home-dir)))
     (setq mentor-rpc--rtorrent-url (concat "scgi://" rpc))
     (when (not (mentor-rtorrent-already-running bufname))
-      (kill-buffer bufname)
+      (when (bufferp bufname)
+        (kill-buffer bufname))
       (mentor-rtorrent-create-conf conf rpc)
       (let ((rtorrent (executable-find "rtorrent")))
         (if (not rtorrent)
