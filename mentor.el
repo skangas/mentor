@@ -1132,14 +1132,14 @@ started after being added."
     (dolist (item
              (mentor-map-over-marks
               (progn
-                (let* ((tor (mentor-get-item-at-point))
+                (let* ((download (mentor-get-item-at-point))
                        (files (and remove-files
-                                   (mentor-download-get-file-list tor))))
-                  (mentor-rpc-d-erase tor)
+                                   (mentor-download-get-file-list download))))
+                  (mentor-rpc-d-erase (mentor-item-property 'hash download))
                   (when remove-files
-                    (mentor--do-remove-torrent-files tor files))
-                  (mentor-view-torrent-list-delete-all tor)
-                  (remhash (mentor-item-property 'local_id tor) mentor-items)
+                    (mentor--do-remove-torrent-files download files))
+                  (mentor-view-torrent-list-delete-all download)
+                  (remhash (mentor-item-property 'local_id download) mentor-items)
                   (point)))
               arg))
       (mentor-delete-item-from-buffer item))
@@ -1195,11 +1195,11 @@ started after being added."
             (new ,(cdr (assoc 'new (car downloads))))
             (no-move ,(cdr (assoc 'no-move (car downloads)))))
         (when was-started
-          (mentor-rpc-d-stop nil hash))
-        (mentor-rpc-d-close nil hash)
+          (mentor-rpc-d-stop hash))
+        (mentor-rpc-d-close hash)
         (if (not no-move)
             (mentor-rpc-c-execute2 "mv" "-u" old new))
-        (mentor-rpc-d-directory-set new nil hash)
+        (mentor-rpc-d-directory-set hash new)
         (quote ,downloads)))
    (lambda (remaining)
      (with-current-buffer "*scratch*"
@@ -1213,7 +1213,7 @@ started after being added."
          (mentor-keep-position
            (mentor-goto-download local_id)
            (when was-started
-             (mentor-rpc-d-start nil hash))
+             (mentor-rpc-d-start hash))
            (mentor-download-update-and-reinsert-at-point)))
        (message "mentor: Moved '%s' to '%s'" name new))
      (when (cdr remaining)
@@ -1295,14 +1295,14 @@ started after being added."
 (defun mentor-download-start (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-d-start)
+   (progn (mentor-rpc-d-start (mentor-item-property 'hash))
           (mentor-download-update-and-reinsert-at-point))
    arg))
 
 (defun mentor-download-stop (&optional arg)
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-d-stop)
+   (progn (mentor-rpc-d-stop (mentor-item-property 'hash))
           (mentor-download-update-and-reinsert-at-point))
    arg))
 
@@ -1319,7 +1319,7 @@ started after being added."
 Should be equivalent to the ^K command in the ncurses gui."
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-d-close)
+   (progn (mentor-rpc-d-close (mentor-item-property 'hash))
           (mentor-download-update-and-reinsert-at-point))
    arg))
 
@@ -1483,7 +1483,7 @@ Should be equivalent to the ^K command in the ncurses gui."
    url))
 
 (defun mentor-download-tracker-name-column (&optional download)
-  (let* ((trackers (mentor-rpc-t-get-tracker-info download))
+  (let* ((trackers (mentor-rpc-t-get-tracker-info (mentor-item-property 'hash download)))
          (active-trackers (seq-filter (lambda (x) (= (cadr x) 1)) trackers))
          (main-tracker (if (length active-trackers) (caar active-trackers) ""))
          (shortened (mentor-remove-subdomains

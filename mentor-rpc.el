@@ -98,20 +98,20 @@ If REGEXP is specified it only returns the matching functions."
 
 ;; Download RPC commands, prefix d
 
-(defun mentor-rpc-d-close (&optional tor hash)
-  (mentor-rpc-command "d.close" (or hash (mentor-item-property 'hash tor))))
+(defun mentor-rpc-d-directory-set
+    (hash new) (mentor-rpc-command "d.directory.set" hash new))
 
-(defun mentor-rpc-d-directory-set (new &optional tor hash)
-  (mentor-rpc-command "d.directory.set" (or hash (mentor-item-property 'hash tor)) new))
+(defun mentor-rpc-d-close (hash)
+  (mentor-rpc-command "d.close" hash))
 
-(defun mentor-rpc-d-erase (tor &optional hash)
-  (mentor-rpc-command "d.erase" (or hash (mentor-item-property 'hash tor))))
+(defun mentor-rpc-d-erase (hash)
+  (mentor-rpc-command "d.erase" hash))
 
-(defun mentor-rpc-d-start (&optional tor hash)
-  (mentor-rpc-command "d.start" (or hash (mentor-item-property 'hash tor))))
+(defun mentor-rpc-d-start (hash)
+  (mentor-rpc-command "d.start" hash))
 
-(defun mentor-rpc-d-stop (&optional tor hash)
-  (mentor-rpc-command "d.stop" (or hash (mentor-item-property 'hash tor))))
+(defun mentor-rpc-d-stop (hash)
+  (mentor-rpc-command "d.stop" hash))
 
 (defun mentor-rpc-d.multicall (methods &optional is-init)
   "Call `d.multicall2' with METHODS.
@@ -227,10 +227,8 @@ Optional argument IS-INIT if this is initializing."
 (defun mentor-rpc-t-multicall (&rest args)
   (apply 'mentor-rpc-command "t.multicall" args))
 
-(defun mentor-rpc-t-get-tracker-info (download)
-  (mentor-rpc-t-multicall
-   (mentor-item-property 'hash download)
-   "" "t.url=" "t.is_enabled="))
+(defun mentor-rpc-t-get-tracker-info (hash)
+  (mentor-rpc-t-multicall hash "" "t.url=" "t.is_enabled="))
 
 ;; sys.multicall -- unused?
 
