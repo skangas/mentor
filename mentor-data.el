@@ -1,6 +1,6 @@
 ;;; mentor-data.el --- Mentor data structures  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016-2017 Stefan Kangas.
+;; Copyright (C) 2016-2018 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 
