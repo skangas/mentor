@@ -6,7 +6,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.3.1
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.9") (seq "1.11") (cl-lib "0.5"))
+;; Package-Requires: ((xml-rpc "1.6.9") (seq "1.11") (cl-lib "0.5") (async))
 
 (defconst mentor-version "0.3.1"
   "The version of Mentor that you're using.")
@@ -48,6 +48,7 @@
 (eval-when-compile
   (require 'sort))
 
+(require 'async)
 (require 'cl-lib)
 (require 'dired)
 (require 'seq)
@@ -673,11 +674,13 @@ expensive operation."
 (defmacro mentor-keep-position (&rest body)
   "Keep the current position."
   `(let ((kept-torrent-id (mentor-item-id-at-point))
+         (kept-torrent-pos-in-line (- (point) (line-beginning-position)))
          (kept-point (point)))
      ,@body
      (if kept-torrent-id
          (condition-case _err
-             (mentor-goto-download kept-torrent-id)
+             (progn (mentor-goto-download kept-torrent-id)
+                    (forward-char kept-torrent-pos-in-line))
            (mentor-missing-torrent
             (goto-char kept-point)))
        (goto-char kept-point))))
@@ -1180,49 +1183,80 @@ started after being added."
       (mentor-download-reinsert-at-point))
     arg)))
 
+(defun mentor-download-move-async (downloads)
+  (async-start
+   `(lambda ()
+      ,(async-inject-variables "\\`\\(mentor\\)-")
+      (setq load-path (quote ,load-path))
+      (require 'mentor)
+      (let ((was-started ,(cdr (assoc 'was-started (car downloads))))
+            (hash ,(cdr (assoc 'hash (car downloads))))
+            (old ,(cdr (assoc 'old (car downloads))))
+            (new ,(cdr (assoc 'new (car downloads))))
+            (no-move ,(cdr (assoc 'no-move (car downloads)))))
+        (when was-started
+          (mentor-rpc-d-stop nil hash))
+        (mentor-rpc-d-close nil hash)
+        (if (not no-move)
+            (mentor-rpc-c-execute2 "mv" "-u" old new))
+        (mentor-rpc-d-directory-set new nil hash)
+        (quote ,downloads)))
+   (lambda (remaining)
+     (with-current-buffer "*scratch*"
+       (insert (format "mentor loop: \n%s" remaining)))
+     (let ((local_id (cdr (assoc 'local_id (car remaining))))
+           (name (cdr (assoc 'name (car remaining))))
+           (new (cdr (assoc 'new (car remaining))))
+           (hash (cdr (assoc 'hash (car remaining))))
+           (was-started (cdr (assoc 'was-started (car remaining)))))
+       (with-current-buffer "*mentor*"
+         (mentor-keep-position
+           (mentor-goto-download local_id)
+           (when was-started
+             (mentor-rpc-d-start nil hash))
+           (mentor-download-update-and-reinsert-at-point)))
+       (message "mentor: Moved '%s' to '%s'" name new))
+     (when (cdr remaining)
+       (mentor-download-move-async (cdr remaining))))))
+
 (defun mentor-download-move (&optional no-move arg)
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (verbstr (or (and no-move "Change directory of ") "Move "))
          (prompt (concat verbstr (mentor-mark-prompt arg items) " to: "))
-         (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
-    (mentor-map-over-marks
-     (let* ((old (or (and no-move (mentor-item-property 'directory))
-                     (mentor-item-property 'base_path)))
-            (was-started (= (mentor-item-property 'is_active) 1)))
-       (when (not no-move)
-         (when (null old)
-           (error "Download has no base path"))
-         ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
-         ;; to look for the file.
-         (when (not (file-exists-p old))
-           (error (concat "Download base path %s does not exist\n"
-                          "Try `mentor-download-change-target-directory'")
-                  old))
-         (let ((target (concat new (file-name-nondirectory old))))
-           (when (file-exists-p target)
-             (error "Destination already exists: %s" target)))
-         (when (and (not (= (mentor-item-property 'is_multi_file) 1))
-                    (file-directory-p old))
-           (error "Moving single torrent, base_path is a directory. This is probably a bug.")))
-       (if (equal (file-name-directory old) new)
-           (message "Skipping %s since it is already in %s"
-                    (mentor-item-property 'name) new)
-         (let ((download (mentor-get-item-at-point)))
-          (progn
-            (when was-started
-              (mentor-rpc-d-stop download))
-            (mentor-rpc-d-close download)
-            (if (not no-move)
-                (mentor-rpc-c-execute2 "mv" "-u" old new))
-            (mentor-rpc-d-directory-set new download)
-            (when was-started
-              (mentor-rpc-d-start download))
-            (mentor-download-update-and-reinsert-at-point)
-            (if no-move
-                (message "Changed %s target directory to %s" (mentor-item-property 'name) new)
-              (message "Moved %s to %s" (mentor-item-property 'name) new))))))
-     arg)))
+         (location-property (if no-move 'directory 'base_path))
+         (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt))
+         (downloads (mentor-map-over-marks
+                     (let* ((old (mentor-item-property location-property)))
+                       (when (not no-move)
+                         (when (null old)
+                           (error "Download has no base path: %s" (mentor-item-property 'name)))
+                         ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
+                         ;; to look for the file.
+                         (when (not (file-exists-p old))
+                           (error (concat "Download base path \"%s\" does not exist: \""
+                                          (mentor-item-property 'name) "\"\n"
+                                          "Try `mentor-download-change-target-directory'")
+                                  old))
+                         (let ((target (concat new (file-name-nondirectory old))))
+                           (when (file-exists-p target)
+                             (error "Destination already exists: %s" target)))
+                         (when (and (not (= (mentor-item-property 'is_multi_file) 1))
+                                    (file-directory-p old))
+                           (error "Moving single torrent, base_path is a directory. This is probably a bug."))
+                         (if (equal (file-name-directory old) new)
+                             (progn (message "Skipping %s since it is already in %s"
+                                             (mentor-item-property 'name) new)
+                                    nil)
+                           `((name . ,(mentor-item-property 'name))
+                             (was-started . ,(= (mentor-item-property 'is_active) 1))
+                             (hash . ,(mentor-item-property 'hash))
+                             (old . ,old)
+                             (new . ,new)
+                             (local_id . ,(mentor-item-property 'local_id))
+                             (no-move . ,no-move)))))
+                     arg)))
+    (mentor-download-move-async downloads)))
 
 (defun mentor-download-change-target-directory (&optional arg)
   "Change torrents target directory without moving data."

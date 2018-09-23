@@ -98,21 +98,20 @@ If REGEXP is specified it only returns the matching functions."
 
 ;; Download RPC commands, prefix d
 
-(defun mentor-rpc-d-close (&optional tor)
-  (mentor-rpc-command "d.close" (mentor-item-property 'hash tor)))
+(defun mentor-rpc-d-close (&optional tor hash)
+  (mentor-rpc-command "d.close" (or hash (mentor-item-property 'hash tor))))
 
-(defun mentor-rpc-d-directory-set (new &optional tor)
-  (mentor-item-set-property 'directory new)
-  (mentor-rpc-command "d.directory.set" (mentor-item-property 'hash tor) new))
+(defun mentor-rpc-d-directory-set (new &optional tor hash)
+  (mentor-rpc-command "d.directory.set" (or hash (mentor-item-property 'hash tor)) new))
 
-(defun mentor-rpc-d-erase (tor)
-  (mentor-rpc-command "d.erase" (mentor-item-property 'hash tor)))
+(defun mentor-rpc-d-erase (tor &optional hash)
+  (mentor-rpc-command "d.erase" (or hash (mentor-item-property 'hash tor))))
 
-(defun mentor-rpc-d-start (&optional tor)
-  (mentor-rpc-command "d.start" (mentor-item-property 'hash tor)))
+(defun mentor-rpc-d-start (&optional tor hash)
+  (mentor-rpc-command "d.start" (or hash (mentor-item-property 'hash tor))))
 
-(defun mentor-rpc-d-stop (&optional tor)
-  (mentor-rpc-command "d.stop" (mentor-item-property 'hash tor)))
+(defun mentor-rpc-d-stop (&optional tor hash)
+  (mentor-rpc-command "d.stop" (or hash (mentor-item-property 'hash tor))))
 
 (defun mentor-rpc-d.multicall (methods &optional is-init)
   "Call `d.multicall2' with METHODS.
