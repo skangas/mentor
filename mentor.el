@@ -1203,8 +1203,6 @@ started after being added."
         (mentor-rpc-d-directory-set hash new)
         (quote ,downloads)))
    (lambda (remaining)
-     (with-current-buffer "*scratch*"
-       (insert (format "mentor loop: \n%s" remaining)))
      (let ((local_id (cdr (assoc 'local_id (car remaining))))
            (name (cdr (assoc 'name (car remaining))))
            (new (cdr (assoc 'new (car remaining))))
