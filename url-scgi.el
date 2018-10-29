@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011-2018 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
-;; Version: 0.4
+;; Version: 0.5
 ;; Keywords: comm, data, processes, scgi
 ;; Package-Requires: ((cl-lib "0.5"))
 
@@ -30,13 +30,15 @@
 
 ;;; Change Log:
 
-;; 0.4 Significant code cleanups
+;; 0.5 - Fix using file socket on Emacs 25
 
-;; 0.3 Support scgi over local socket
+;; 0.4 - Significant code cleanups
 
-;; 0.2 Support Emacs 24
+;; 0.3 - Support scgi over local socket
 
-;; 0.1 First public version
+;; 0.2 - Support Emacs 24
+
+;; 0.1 - First public version
 
 ;;; Code:
 
@@ -135,9 +137,14 @@
            ;; Asynchronous connection failed
            (error "Could not create connection to %s:%d" host port))
           (_
-           (setq url-scgi-connection-opened t)
+           (set-process-sentinel connection 'url-scgi-sync-open-sentinel)
            (process-send-string connection (url-scgi-create-request))))))
     buffer))
+
+(defun url-scgi-sync-open-sentinel (proc why)
+  (when (buffer-name (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (url-scgi-activate-callback))))
 
 (defun url-scgi-async-sentinel (proc why)
   ;; We are performing an asynchronous connection, and a status change
