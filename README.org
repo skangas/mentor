@@ -34,6 +34,49 @@ Here is a summary of some of the features:
 - Support for most standard operations. (Start/stop/rehash/move etc.)
 - Use all Emacs features you are used to: macros, Emacs lisp etc.
 
+** Installing mentor
+
+*** Installing through MELPA (recommended)
+
+If you are using Emacs 24 or later you can install mentor using ELPA.  It is
+available from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these
+lines to your init.el:
+
+: (add-to-list 'package-archives
+:  '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+Evaluate these lines or restart Emacs. Next, find and install mentor using this
+command:
+
+: M-x package-list-packages
+
+*** Installing mentor manually
+
+If you for some reason do not use Emacs 24, or if you do not want to use ELPA,
+you can install mentor manually.
+
+Clone the repository using:
+
+: git clone https://github.com/skangas/mentor.git
+
+Add this to your init.el:
+
+: (add-to-list 'load-path "~/src/mentor/")
+: (require 'mentor)
+
+Change "~/src/mentor" to the path where you keep the mentor source code.
+
+Make sure you have xml-rpc.el installed, at least version 1.6.9.
+
+If you wish to byte-compile mentor, go into the source directory and run:
+
+: make
+
+Here is how you setup autoload.  See the Emacs manual for more information on
+this.
+
+: (autoload 'mentor "mentor" nil t)
+
 ** Quick Start
 
 Make sure that you have rTorrent installed on your system.
@@ -44,6 +87,60 @@ To start mentor, just run:
 
 It should work out of the box, but you may want to do some additional
 configuration.
+
+** Configuration
+
+*** General
+
+You can find additional Mentor options in customize.
+
+ : M-x customize-group
+ : mentor <RET>
+
+Two very useful variables to customize are
+`mentor-rtorrent-download-directory' and `mentor-rtorrent-keep-session'.
+
+*** External rTorrent
+
+If you are already running rTorrent outside of Emacs, it is easy to configure
+Mentor to use it.
+
+Add this to your ~/.rtorrent.rc and restart rTorrent:
+
+: scgi_local = ~/.rtorrent-rpc.socket
+: xmlrpc_dialect = i8
+: encoding_list = UTF-8
+
+Add this to your init.el and restart Emacs, or customize "Mentor Rtorrent
+External Rpc":
+
+: (setq mentor-rtorrent-external-rpc "~/.rtorrent-rpc.socket")
+
+You can also specify an absolute path:
+
+: ;; Alternative 2: Absolute path
+: (setq mentor-rtorrent-external-rpc "/path/to/rtorrent-rpc.socket")
+
+It is also possible to connect to rtorrent over http.  There are instructions on
+configuring this on the [[https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC][rtorrent wiki]].
+
+: ;; Alternative 3: Use a web server
+: (setq mentor-rtorrent-external-rpc "http://127.0.0.1:8080/RPC2")
+
+Finally, you can connect directly to rtorrent over scgi.  However, anyone that
+can send rtorrent xmlrpc requests can in all likelihood also execute arbitrary
+code as the user running rtorrent.  Therefore, this is inadvisable on anything
+but the loopback device (e.g. 127.0.0.1) on single-user systems.
+
+It is almost always easier and better to use a Unix domain socket (file) as
+suggested above.
+
+: ;; Alternative 4: Connect directly to rtorrent over scgi
+: (setq mentor-rtorrent-external-rpc "scgi://127.0.0.1:5000")
+
+*** Configuring rtorrent
+
+For more information on configuring rTorrent, refer to the [[https://github.com/rakshasa/rtorrent/wiki][rTorrent wiki]].
 
 ** Key Bindings
 
@@ -107,103 +204,6 @@ configuration.
 | l          | /n/a/    | View log. Exit by pressing the space-bar.                          |
 | U          | /n/a/    | Delete the file the torrent is tied to, and clear the association. |
 | I          | /n/a/    | Toggle whether torrent ignores ratio settings.                     |
-
-** Configuration
-
-*** General
-
-You can find additional Mentor options in customize.
-
- : M-x customize-group
- : mentor <RET>
-
-Two very useful variables to customize are
-`mentor-rtorrent-download-directory' and `mentor-rtorrent-keep-session'.
-
-*** External rTorrent
-
-If you are already running rTorrent outside of Emacs, it is easy to configure
-Mentor to use it.
-
-Add this to your ~/.rtorrent.rc and restart rTorrent:
-
-: scgi_local = ~/.rtorrent-rpc.socket
-: xmlrpc_dialect = i8
-: encoding_list = UTF-8
-
-Add this to your init.el and restart Emacs, or customize "Mentor Rtorrent
-External Rpc":
-
-: (setq mentor-rtorrent-external-rpc "~/.rtorrent-rpc.socket")
-
-You can also specify an absolute path:
-
-: ;; Alternative 2: Absolute path
-: (setq mentor-rtorrent-external-rpc "/path/to/rtorrent-rpc.socket")
-
-It is also possible to connect to rtorrent over http.  There are instructions on
-configuring this on the [[https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC][rtorrent wiki]].
-
-: ;; Alternative 3: Use a web server
-: (setq mentor-rtorrent-external-rpc "http://127.0.0.1:8080/RPC2")
-
-Finally, you can connect directly to rtorrent over scgi.  However, anyone that
-can send rtorrent xmlrpc requests can in all likelihood also execute arbitrary
-code as the user running rtorrent.  Therefore, this is inadvisable on anything
-but the loopback device (e.g. 127.0.0.1) on single-user systems.
-
-It is almost always easier and better to use a Unix domain socket (file) as
-suggested above.
-
-: ;; Alternative 4: Connect directly to rtorrent over scgi
-: (setq mentor-rtorrent-external-rpc "scgi://127.0.0.1:5000")
-
-*** Configuring rtorrent
-
-For more information on configuring rTorrent, refer to the [[https://github.com/rakshasa/rtorrent/wiki][rTorrent wiki]].
-
-** Installing mentor
-
-*** Installing through MELPA (recommended)
-
-If you are using Emacs 24 or later you can install mentor using ELPA.  It is
-available from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these
-lines to your init.el:
-
-: (add-to-list 'package-archives
-:  '("melpa" . "http://melpa.milkbox.net/packages/") t)
-
-Evaluate these lines or restart Emacs. Next, find and install mentor using this
-command:
-
-: M-x package-list-packages
-
-*** Installing mentor manually
-
-If you for some reason do not use Emacs 24, or if you do not want to use ELPA,
-you can install mentor manually.
-
-Clone the repository using:
-
-: git clone https://github.com/skangas/mentor.git
-
-Add this to your init.el:
-
-: (add-to-list 'load-path "~/src/mentor/")
-: (require 'mentor)
-
-Change "~/src/mentor" to the path where you keep the mentor source code.
-
-Make sure you have xml-rpc.el installed, at least version 1.6.9.
-
-If you wish to byte-compile mentor, go into the source directory and run:
-
-: make
-
-Here is how you setup autoload.  See the Emacs manual for more information on
-this.
-
-: (autoload 'mentor "mentor" nil t)
 
 ** Known issues
 - There is no view for trackers/peers/extra information.
