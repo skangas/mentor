@@ -31,6 +31,7 @@
 ;;; Change Log:
 
 ;; 0.5 - Fix using file socket on Emacs 25
+;;       Fix cl-check-type bug on Emacs 26.1
 
 ;; 0.4 - Significant code cleanups
 
@@ -88,7 +89,9 @@
 ;;;###autoload
 (defun url-scgi (url callback cbargs)
   "Handle SCGI URLs from internal Emacs functions."
-  (cl-check-type url vector "Need a pre-parsed URL.")
+  (if (>= emacs-major-version 26)
+      (cl-check-type url url "Need a pre-parsed URL.")
+    (cl-check-type url vector "Need a pre-parsed URL."))
   (declare (special url-scgi-connection-opened
                     url-callback-function
                     url-callback-arguments
@@ -141,7 +144,7 @@
            (process-send-string connection (url-scgi-create-request))))))
     buffer))
 
-(defun url-scgi-sync-open-sentinel (proc why)
+(defun url-scgi-sync-open-sentinel (proc _)
   (when (buffer-name (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (url-scgi-activate-callback))))
