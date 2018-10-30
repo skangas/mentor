@@ -1,7 +1,6 @@
 ;;; mentor.el --- Frontend for the rTorrent bittorrent client  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2018 Stefan Kangas.
-;; Copyright (C) 2011 David Spångberg.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.3.4
@@ -61,7 +60,7 @@
 (require 'url-scgi)
 
 
-;;; Customizable variables
+;;;; Customizable variables
 
 (defgroup mentor nil
   "Emacs frontend for the rTorrent bittorrent client, using XML-RPC."
@@ -191,7 +190,7 @@ This will only work with rTorrent 0.9.7 or later."
   :type '(repeat (list symbol integer string)))
 
 
-;; Internal variables
+;;;; Internal variables
 
 (defvar mentor-mode-hook)
 (defvar mentor-current-view)
@@ -254,7 +253,7 @@ This will only work with rTorrent 0.9.7 or later."
 (make-variable-buffer-local 'mentor--columns-var)
 
 
-;;; Mentor major-mode
+;;;; Mentor major-mode
 
 (defvar mentor-mode-map
   (let ((map (make-keymap)))
@@ -334,7 +333,7 @@ This will only work with rTorrent 0.9.7 or later."
   '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
 (define-derived-mode mentor-mode special-mode "mentor"
-  "Major mode for controlling rtorrent from emacs
+  "Major mode for controlling rtorrent from GNU Emacs
 
 Type \\[mentor] to start Mentor.
 
@@ -437,12 +436,15 @@ It will use the RPC argument as value for scgi_local."
                              (error-message-string err))
                (if (< (float-time) (+ since 10))
                    (sleep-for 0.1)
-                 (error "xmlrpc not up after 10 seconds: %s" err))
+                 (error "XML-RPC not up after 10 seconds: %s" err))
              (signal (car err) (cdr err)))))))))
 
 ;;;###autoload
 (defun mentor ()
-  "Start mentor or switch to mentor buffer."
+  "Control rtorrent from Emacs using XML-RPC.
+
+If mentor is already running, switch to its buffer.  Otherwise,
+start a new session."
   (interactive)
   (if (get-buffer "*mentor*")
       ;; Assume that it's set up correctly if it exists
@@ -483,7 +485,7 @@ It will use the RPC argument as value for scgi_local."
                                  (window-hscroll)))))))
 
 
-;;; Mentor items
+;;;; Mentor items
 
 (defun mentor-between-items ()
   (not (mentor-item-id-at-point)))
@@ -611,7 +613,7 @@ FUNCTION should not manipulate items, just read input
     (let ((buffer (get-buffer-create (or bufname " *Marked Items*"))))
       (with-current-buffer buffer
         (with-current-buffer-window
-         buffer       
+         buffer
          (cons 'display-buffer-below-selected
                '((window-height . fit-window-to-buffer)))
          #'(lambda (window _value)
@@ -642,7 +644,7 @@ ITEMS should be a list of item names."
                           (mentor-mark-prompt arg items) "? "))))
 
 
-;;; Getting torrent data
+;;;; Getting torrent data
 
 (defun mentor-download-data-init ()
   "Initialize torrent data from rtorrent.
@@ -681,7 +683,7 @@ expensive operation."
     (mentor-download-reinsert-at-point)))
 
 
-;;; Main torrent view
+;;;; Main torrent view
 
 (defmacro mentor-keep-position (&rest body)
   "Keep the current position."
@@ -802,7 +804,7 @@ expensive operation."
       (setq mentor-highlighted-torrent nil))))
 
 
-;;; Sorting
+;;;; Sorting
 
 (defun mentor-do-sort ()
   (mentor-keep-position
@@ -982,7 +984,7 @@ point."
            (mentor-toggle-file (get-text-property (point) 'file))))))
 
 
-;;; Interactive item commands
+;;;; Interactive item commands
 
 (defun mentor-item-update-this ()
   (when mentor-item-update-this-fun
@@ -1046,7 +1048,7 @@ this subdir."
    nil))
 
 
-;;; Interactive torrent commands
+;;;; Interactive commands on downloads
 
 ;; TODO: Report how it went, including failures.
 (defun mentor-delete-file (file)
@@ -1253,7 +1255,7 @@ started after being added."
                              (error "Destination already exists: %s" target)))
                          (when (and (not (= (mentor-item-property 'is_multi_file) 1))
                                     (file-directory-p old))
-                           (error "Moving single torrent, base_path is a directory. This is probably a bug."))
+                           (error "Moving single torrent, base_path is a directory.  This is probably a bug"))
                          (if (equal (file-name-directory old) new)
                              (progn (message "Skipping %s since it is already in %s"
                                              (mentor-item-property 'name) new)
@@ -1396,7 +1398,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-shutdown ()
   "Exit mentor, killing any running rtorrent processes."
   (interactive)
-  (when (y-or-n-p "Really shutdown mentor?")
+  (when (y-or-n-p "Really shutdown mentor? ")
     (kill-buffer (current-buffer))
     ;; system.shutdown currently does nothing.  Oh, well.
     ;; (mentor-rpc-command "system.shutdown")
@@ -1405,7 +1407,7 @@ Should be equivalent to the ^K command in the ncurses gui."
      (kill-buffer mentor-rtorrent-buffer-name))))
 
 
-;;; Torrent views
+;;;; Torrent views
 
 (defun mentor-view-torrent-list-add (tor)
   (let* ((id (mentor-item-property 'local_id tor))
@@ -1430,7 +1432,7 @@ Should be equivalent to the ^K command in the ncurses gui."
     (mentor-view-torrent-list-delete tor (car view))))
 
 
-;;; Download columns
+;;;; Download columns
 
 (defun mentor-download-progress-column (download)
   (let* ((donev (mentor-item-property 'bytes_done download))
@@ -1525,7 +1527,7 @@ Should be equivalent to the ^K command in the ncurses gui."
     (mentor-rpc-command "d.priority.set" hash (mentor-limit-num (+ prio val) 0 3))))
 
 
-;;; View functions
+;;;; View functions
 
 (defvar mentor-download-views)
 (make-variable-buffer-local 'mentor-download-views)
@@ -1635,7 +1637,7 @@ to a view unless the filter is updated."
   (member view mentor-download-default-views))
 
 
-;;; Utility functions
+;;;; Utility functions
 
 (defun mentor-limit-num (num min max)
   (cond ((< num min) min)

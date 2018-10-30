@@ -24,6 +24,8 @@
 
 ;;; Commentary:
 
+;; This is heavily based on the url-http.el library.
+;;
 ;; The SCGI specification document can be found at:
 ;;
 ;; http://python.ca/scgi/protocol.txt
@@ -60,7 +62,7 @@
 (defvar url-request-data)
 
 (defun url-scgi-string-to-netstring (str)
-  "Converts a string into a SCGI protocol netstring."
+  "Convert string STR into a SCGI protocol netstring."
   (format "%d:%s," (length str) str))
 
 (defun url-scgi-add-null-bytes (&rest args)
@@ -88,7 +90,12 @@
 
 ;;;###autoload
 (defun url-scgi (url callback cbargs)
-  "Handle SCGI URLs from internal Emacs functions."
+  "Handle SCGI URLs from internal Emacs functions.
+
+URL must be a parsed URL.  See `url-generic-parse-url' for details.
+
+When retrieval is completed, execute the function CALLBACK, passing it
+an updated value of CBARGS as arguments."
   (if (>= emacs-major-version 26)
       (cl-check-type url url "Need a pre-parsed URL.")
     (cl-check-type url vector "Need a pre-parsed URL."))
