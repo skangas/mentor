@@ -71,7 +71,7 @@
 (defcustom mentor-custom-views
   '((1 . "main") (2 . "main") (3 . "started")
     (4 . "stopped") (5 . "complete") (6 . "incomplete")
-    (7 . "hashing") (8 . "seeding") (9 . "active"))
+    (7 . "hashing") (8 . "seeding") (9 . "leeching") (0 . "active"))
   "A list of mappings to bind keys to views.
 
 This takes the form \"(BINDING . VIEWNAME)\" where BINDING is the
@@ -327,6 +327,7 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "7") (lambda () (interactive) (mentor-switch-to-view 7)))
     (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
     (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
+    (define-key map (kbd "0") (lambda () (interactive) (mentor-switch-to-view 0)))
     map))
 
 (eval-after-load 'dired-x
