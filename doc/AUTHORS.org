@@ -1,0 +1,18 @@
+* Authors
+
+The following people have contributed to Mentor.
+
+The names are in alphabetical order.
+
+** Author
+
+- Stefan Kangas <stefankangas@gmail.com>
+
+** Former developers
+
+- David Spångberg <david@tunna.org>
+
+** Contributors
+
+- Johan Claesson <johanclaesson@bredband.net>
+- Mario Rodas <marsam@users.noreply.github.com>
