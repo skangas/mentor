@@ -19,46 +19,13 @@
 
 ;;; Commentary:
 
-;; This library contains functions to speak with rTorrent over XML-RPC.
+;; This file contains code for the Mentor file view.
 
 ;;; Code:
 
 (require 'cl-lib)
 
-(cl-defstruct mentor-file
-  "The datastructure that contains the information about torrent
-files.  A mentor-file can be either a regular file or a filename
-and if it is the latter it will contain a list of the files it
-contain.  If it is a regular file it will contain an id which is
-the integer index used by rtorrent to identify this file."
-  name show marked size completed_chunks
-  size_chunks priority files type id)
-
-(defvar mentor-files-selected-torrent nil)
-(make-variable-buffer-local 'mentor-files-selected-torrent)
-(put 'mentor-files-selected-torrent 'permanent-local t)
-
-(defvar mentor-selected-torrent-info '())
-
-(defvar mentor-download-details-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "N") 'mentor-details-next-directory)
-    (define-key map (kbd "P") 'mentor-details-previous-directory)
-    map)
-  "Keymap used in `mentor-download-details-mode'.")
-
-(defconst mentor-volatile-rpc-f-methods
-  '("f.priority" "f.completed_chunks" "f.size_chunks"))
-
-(defvar mentor-file-detail-columns
-  '(((mentor-file-progress) -5 "Cmp")
-    ((mentor-file-prio-string) -5 "Pri")
-    ((mentor-file-readable-size) 4 "Size")
-    (nil 6 "File")))
-(defvar mentor-file-detail-width 18)
-
 ;; Silence compiler warnings
-(defvar mentor-sub-mode)
 (defvar mentor-set-priority-fun)
 (defvar mentor-item-update-this-fun)
 (defvar mentor--columns-var)
@@ -79,35 +46,60 @@ the integer index used by rtorrent to identify this file."
 (declare-function mentor-bytes-to-human "mentor.el")
 (declare-function mentor-rpc-command "mentor-rpc.el")
 
-(define-minor-mode mentor-download-details-mode
-  "Minor mode for managing a torrent in mentor."
-  :group mentor
-  :init-value nil
-  :lighter nil
-  :keymap mentor-download-details-mode-map)
+(cl-defstruct mentor-file
+  "The datastructure that contains the information about torrent
+files.  A mentor-file can be either a regular file or a filename
+and if it is the latter it will contain a list of the files it
+contain.  If it is a regular file it will contain an id which is
+the integer index used by rtorrent to identify this file."
+  name show marked size completed_chunks
+  size_chunks priority files type id)
 
-(defun mentor-download-detail-screen ()
-  "Show file details for download at point."
-  (interactive)
-  (let ((tor (mentor-get-item-at-point)))
-    (switch-to-buffer "*mentor: torrent details*")
-    (setq mentor-sub-mode 'file-details)
-    (mentor-mode)
-    (setq mentor-set-priority-fun 'mentor-files-set-priority-fun)
-    ;; FIXME: Add function to update only one item
-    (setq mentor-item-update-this-fun 'mentor-files-update)
-    (setq mentor--columns-var  'mentor-file-detail-columns)
-    (mentor-download-details-mode t)
-    (setq mentor-files-selected-torrent tor)
-    (mentor-files-update t)
-    (mentor-details-redisplay)
-    (setq mode-line-buffer-identification
-          (concat "*mentor* "
-                  (mentor-item-property 'name tor)))
-    (mentor-init-header-line)
-    (if (not (mentor-get-item-type))
-        (mentor-forward-item 1)
-      (mentor-beginning-of-item))))
+(defvar mentor-files-selected-download nil)
+(make-variable-buffer-local 'mentor-files-selected-download)
+(put 'mentor-files-selected-download 'permanent-local t)
+
+(defvar mentor-selected-torrent-info '())
+
+(defconst mentor-volatile-rpc-f-methods
+  '("f.priority" "f.completed_chunks" "f.size_chunks"))
+
+(defvar mentor-file-detail-columns
+  '(((mentor-file-progress) -5 "Cmp")
+    ((mentor-file-prio-string) -5 "Pri")
+    ((mentor-file-readable-size) 4 "Size")
+    (nil 6 "File")))
+(defvar mentor-file-detail-width 18)
+
+(defvar mentor-files-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "N") 'mentor-details-next-directory)
+    (define-key map (kbd "P") 'mentor-details-previous-directory)
+
+    (define-key map (kbd "g") 'mentor-files-update)
+    (define-key map (kbd "G") 'mentor-files-reload)
+
+    map)
+  "Keymap used in `mentor-files-mode'.")
+
+(define-derived-mode mentor-files-mode mentor-mode "mentor files"
+  "Mode for changing status of files in a download.
+
+\\{mentor-files-mode-map}"
+  :group 'mentor
+  (setq mentor-set-priority-fun 'mentor-files-set-priority-fun)
+  ;; FIXME: Add function to update only one item
+  (setq mentor-item-update-this-fun 'mentor-files-update)
+  (setq mentor--columns-var  'mentor-file-detail-columns)
+
+  (mentor-files-update t)
+  (setq mode-line-buffer-identification
+        (concat "*mentor* "
+                (mentor-item-property 'name mentor-files-selected-download)))
+  (mentor-init-header-line)
+  (if (not (mentor-get-item-type))
+      (mentor-forward-item 1)
+    (mentor-beginning-of-item)))
 
 (defun mentor-file-at-point ()
   (get-text-property (point) 'file))
@@ -122,7 +114,7 @@ the integer index used by rtorrent to identify this file."
                                         0 2)))
 
 (defun mentor-files-set-priority-fun (val &optional file)
-  (let* ((hash (mentor-item-property 'hash mentor-files-selected-torrent))
+  (let* ((hash (mentor-item-property 'hash mentor-files-selected-download))
          (file (or file
                   (mentor-file-at-point))))
     (if (mentor-file-is-dir file)
@@ -199,6 +191,8 @@ the integer index used by rtorrent to identify this file."
 (defun mentor--concat-symbols (&rest symbols)
   (intern (apply 'concat (mapcar 'symbol-name symbols))))
 
+;;; Interactive commands
+
 (defun mentor-files-update (&optional add-files)
   (interactive)
   (when add-files
@@ -206,7 +200,7 @@ the integer index used by rtorrent to identify this file."
           (assq-delete-all 'root mentor-selected-torrent-info))
     (setq mentor-selected-torrent-info
           (assq-delete-all 'files mentor-selected-torrent-info)))
-  (let* ((tor mentor-files-selected-torrent)
+  (let* ((tor mentor-files-selected-download)
          (hash (mentor-item-property 'hash tor))
          (methods (if add-files
                       (cons "f.path_components" mentor-volatile-rpc-f-methods)
@@ -229,6 +223,10 @@ the integer index used by rtorrent to identify this file."
                     (eval `(setf (,file-fun ,filex) ,val))))
                 properties)))))
   (mentor-details-redisplay))
+
+(defun mentor-files-reload ()
+  (interactive)
+  (mentor-files-update t))
 
 (defun mentor-insert-file (file infix &optional last)
   (interactive)
@@ -328,7 +326,7 @@ the integer index used by rtorrent to identify this file."
 
 (defun mentor-file-readable-size (file)
   (let* ((chunk-size (mentor-item-property
-                      'chunk_size mentor-files-selected-torrent)))
+                      'chunk_size mentor-files-selected-download)))
     (mentor-bytes-to-human
      (* chunk-size (mentor-file-size_chunks file)))))
 

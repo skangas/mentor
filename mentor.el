@@ -238,11 +238,6 @@ This will only work with rTorrent 0.9.7 or later."
 
 ;; Variables that should be changed by sub-modes
 
-(defvar mentor-sub-mode nil
-  "The submode which is currently active.")
-(make-variable-buffer-local 'mentor-sub-mode)
-(put 'mentor-sub-mode 'permanent-local t)
-
 (defvar mentor-item-update-this-fun)
 (make-variable-buffer-local 'mentor-item-update-this-fun)
 
@@ -290,7 +285,7 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "x") 'mentor-call-command)
 
     ;; misc actions
-    (define-key map (kbd "RET") 'mentor-download-detail-screen)
+    (define-key map (kbd "RET") 'mentor-show-download-files)
     (define-key map (kbd "TAB") 'mentor-toggle-item)
 
     (define-key map (kbd "m") 'mentor-mark)
@@ -338,19 +333,21 @@ This will only work with rTorrent 0.9.7 or later."
 Type \\[mentor] to start Mentor.
 
 \\{mentor-mode-map}"
-  (abbrev-mode 0)
-  (auto-fill-mode 0)
-  (kill-all-local-variables)
-  (setq major-mode 'mentor-mode
-        mode-name "mentor"
-        buffer-read-only t
-        truncate-lines t)
-  (set (make-local-variable 'line-move-visual) t)
+  :group 'mentor
+  (setq truncate-lines t)
+  (setq buffer-read-only t)
+  (setq show-trailing-whitespace nil)
   (setq mentor-current-view mentor-default-view
         mentor-items (make-hash-table :test 'equal))
-  (add-hook 'post-command-hook 'mentor-post-command-hook t t)
-  ;;(set (make-local-variable 'revert-buffer-function) 'mentor-revert)
-  (use-local-map mentor-mode-map)
+  (add-hook 'post-command-hook #'mentor-post-command-hook t t)
+  (when (bound-and-true-p global-linum-mode)
+    (linum-mode -1))
+  (when (and (fboundp 'nlinum-mode)
+             (bound-and-true-p global-nlinum-mode))
+    (nlinum-mode -1))
+  (when (and (fboundp 'display-line-numbers-mode)
+             (bound-and-true-p global-display-line-numbers-mode))
+    (display-line-numbers-mode -1))
   (run-mode-hooks 'mentor-mode-hook))
 
 (defun mentor-rtorrent-create-conf (filename rpc)
@@ -1359,25 +1356,21 @@ Should be equivalent to the ^K command in the ncurses gui."
 (defun mentor-update ()
   "Update all torrents and redisplay."
   (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-files-update))
-        ((not mentor-sub-mode)
-         (mentor-keep-position
-          (when (mentor-views-is-custom-view mentor-current-view)
-            (mentor-views-update-filter mentor-current-view))
-          (mentor-download-data-update-all)
-          (mentor-redisplay)))))
+  (mentor-keep-position
+   (when (mentor-views-is-custom-view mentor-current-view)
+     (mentor-views-update-filter mentor-current-view))
+   (mentor-download-data-update-all)
+   (mentor-redisplay)))
 
 (defun mentor-reload ()
   "Re-initialize all torrents and redisplay."
   (interactive)
-  (cond ((eq mentor-sub-mode 'file-details) (mentor-files-update t))
-        ((not mentor-sub-mode)
-         (mentor-keep-position
-          (when (mentor-views-is-custom-view mentor-current-view)
-            (mentor-views-update-filter mentor-current-view))
-          (setq mentor-items (make-hash-table :test 'equal))
-          (mentor-download-data-init)
-          (mentor-redisplay)))))
+  (mentor-keep-position
+   (when (mentor-views-is-custom-view mentor-current-view)
+     (mentor-views-update-filter mentor-current-view))
+   (setq mentor-items (make-hash-table :test 'equal))
+   (mentor-download-data-init)
+   (mentor-redisplay)))
 
 (defun mentor-redisplay ()
   "Redisplay the mentor torrent view buffer."
@@ -1394,6 +1387,15 @@ Should be equivalent to the ^K command in the ncurses gui."
                 mentor-rtorrent-client-version "/"
                 mentor-rtorrent-library-version
                 " (" mentor-rtorrent-name ")\n")))))
+
+(defun mentor-show-download-files ()
+  "Show file details for download at point."
+  (interactive)
+  (let ((download (mentor-get-item-at-point)))
+    (when download
+      (switch-to-buffer "*mentor: torrent details*")
+      (setq mentor-files-selected-download download)
+      (mentor-files-mode))))
 
 (defun mentor-shutdown ()
   "Exit mentor, killing any running rtorrent processes."
