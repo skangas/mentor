@@ -73,8 +73,8 @@ the integer index used by rtorrent to identify this file."
 
 (defvar mentor-files-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "N") 'mentor-details-next-directory)
-    (define-key map (kbd "P") 'mentor-details-previous-directory)
+    (define-key map (kbd "N") 'mentor-files-details-next-directory)
+    (define-key map (kbd "P") 'mentor-files-details-previous-directory)
 
     (define-key map (kbd "g") 'mentor-files-update)
     (define-key map (kbd "G") 'mentor-files-reload)
@@ -281,7 +281,7 @@ the integer index used by rtorrent to identify this file."
     (mentor-insert-dir-content root)
     (goto-char pos)))
 
-(defun mentor-details-next-directory ()
+(defun mentor-files-details-next-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-forward-item 1))
@@ -289,7 +289,7 @@ the integer index used by rtorrent to identify this file."
     (mentor-forward-item 1))
   (mentor-beginning-of-item))
 
-(defun mentor-details-previous-directory ()
+(defun mentor-files-details-previous-directory ()
   (interactive)
   (when (mentor-file-is-dir (mentor-file-at-point))
     (mentor-previous-item))
