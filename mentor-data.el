@@ -99,11 +99,41 @@ If MUST-EXIST is non-nil, give a warning if the property does not
           (mentor-item-set-property p v old 'must-exist))))
     (mentor-view-torrent-list-add new)))
 
-(defun mentor-download-update-from (methods values &optional is-init)
-  (mentor-download-update
-   (mentor-download-create
-    (cl-mapcar (lambda (m v) (cons m v)) methods values))
-   is-init))
+(defun mentor-download-update-from (d-methods t-methods values &optional is-init)
+  "Parses results from mentor-rpc-d.multicall and updates the mentor view.
+Assumes that VALUES is of the form (dval_0 dval_1 ... tvals), where dval_i
+corresponds to (nth i D-METHODS) and tvals is a string of the form
+\"tval_t0_p0#tval_t0_p1#...#tval_t1_p0#tval_t1p1#...#\", where tval_ti_pj
+corresponds to (nth j T-METHODS) for the ith tracker. The # in this example
+is the value of t-multicall-sep."
+  (let ((result ())
+        (d-values (butlast values))
+        (t-values (butlast (split-string (car (last values)) t-multicall-sep)))
+        (t-methods-len (length t-methods))
+        (t-accum ()))
+    (cl-mapc (lambda (m v) (push (cons m v) result)) d-methods d-values)
+    ;; Group the values by tracker by chopping the list of length
+    ;; num_trackers*num_t_methods into num_trackers lists of length
+    ;; num_t_methods.
+    (while t-values
+      (push (cl-subseq t-values 0 t-methods-len) t-accum)
+      (setq t-values (nthcdr t-methods-len t-values)))
+    (setq t-accum (nreverse t-accum))
+    ;; Group the values by property by transposing the list of values:
+    ;; (tval_t0_p0 tval_t0_p1) (tval_t1_p0 tval_t1_p1) ->
+    ;; (tval_t0_p0 tval_t1_p0) (tval_t0_p1 tval_t0_p1)
+    (setq t-accum (apply #'cl-mapcar #'list t-accum))
+    ;; Zip value-lists with method names:
+    ;; ((tmthd0 . (tval_t0_p0 tval_t1_p0)) (tmthd1 . (tval_t0_p1 tval_t1_p1)))
+    ;; ==
+    ;; ((tmthd0 tval_t0_p0 tval_t1_p0) (tmthd1 tval_t0_p1 tval_t1_p1))
+    ;; When one of these t properties is retrieved, is retrieved, the returned
+    ;; value will be a list.
+    (cl-mapc (lambda (m v) (push (cons m v) result)) t-methods t-accum)
+    (mentor-download-update
+     (mentor-download-create result)
+      is-init)))
+
 
 (put 'mentor-need-init
      'error-conditions
