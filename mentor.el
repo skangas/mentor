@@ -365,8 +365,7 @@ It will use the RPC argument as value for scgi_local."
               (format "directory = %s\n" mentor-rtorrent-download-directory) "")
           (if mentor-rtorrent-keep-session
               (format "session = %s\n" mentor--rtorrent-session-directory) "")
-          "xmlrpc_dialect = i8\n"
-          "encoding_list = UTF-8\n"
+          "encoding.add = utf8\n"
           (if mentor-rtorrent-extra-conf
               (concat "\n## User additions from `mentor-rtorrent-extra-conf':\n"
                       mentor-rtorrent-extra-conf) "") "\n")))

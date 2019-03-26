@@ -108,8 +108,7 @@ Mentor to use it.
 Add this to your ~/.rtorrent.rc and restart rTorrent:
 
 : scgi_local = ~/.rtorrent-rpc.socket
-: xmlrpc_dialect = i8
-: encoding_list = UTF-8
+: encoding.add = utf8
 
 Add this to your init.el and restart Emacs, or customize "Mentor Rtorrent
 External Rpc":
