@@ -32,14 +32,14 @@ Here is a summary of some of the features:
 - Move downloads together with their data in one command.
 - Switch between views, create new etc. (like numbers)
 - Support for most standard operations. (Start/stop/rehash/move etc.)
-- Use all Emacs features you are used to: macros, Emacs lisp etc.
+- Use all Emacs features you are used to: macros, Emacs Lisp etc.
 
 ** Installing mentor
 
 *** Installing through MELPA (recommended)
 
 If you are using Emacs 24 or later you can install mentor using ELPA.  It is
-available from [[http://www.melpa.org/][MELPA]].  If you have not already configured MELPA, you can find
+available from [[http://melpa.org/][MELPA]].  If you have not already configured MELPA, you can find
 information on how to do that [[https://melpa.org/#/getting-started][here]].
 
 Next, find and install mentor using this command:
