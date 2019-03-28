@@ -1,6 +1,6 @@
 ;;; mentor-files.el --- Mentor file screen  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016-2018 Stefan Kangas.
+;; Copyright (C) 2016-2019 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 
