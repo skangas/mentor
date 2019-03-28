@@ -39,14 +39,10 @@ Here is a summary of some of the features:
 *** Installing through MELPA (recommended)
 
 If you are using Emacs 24 or later you can install mentor using ELPA.  It is
-available from [[http://melpa.milkbox.net/][MELPA]].  If you do not already have MELPA configured, add these
-lines to your init.el:
+available from [[http://www..melpa.org/][MELPA]].  If you have not already configured MELPA, you can find
+information on how to do that [[https://melpa.org/#/getting-started][here]].
 
-: (add-to-list 'package-archives
-:  '("melpa" . "http://melpa.milkbox.net/packages/") t)
-
-Evaluate these lines or restart Emacs. Next, find and install mentor using this
-command:
+Next, find and install mentor using this command:
 
 : M-x package-list-packages
 
@@ -214,11 +210,11 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 You can find the latest version of mentor here:
 
-http://www.github.com/skangas/mentor
+https://www.github.com/skangas/mentor
 
 Bug reports, comments, and suggestions are welcome! Send them to Stefan Kangas
 <stefankangas@gmail.com> or report them on GitHub.
 
 -----
-[[http://melpa.milkbox.net/#/mentor][file:http://melpa.milkbox.net/packages/mentor-badge.svg]]
-[[http://melpa-stable.milkbox.net/#/mentor][file:http://melpa-stable.milkbox.net/packages/mentor-badge.svg]]
+[[http://melpa.milkbox.net/#/mentor][file:https://melpa.milkbox.net/packages/mentor-badge.svg]]
+[[http://melpa-stable.milkbox.net/#/mentor][file:https://melpa-stable.milkbox.net/packages/mentor-badge.svg]]
