@@ -1259,7 +1259,7 @@ started after being added."
                            (old . ,old)
                            (new . ,new)
                            (local_id . ,(mentor-item-property 'local_id))
-                           (no-move . ,(no-move)))))
+                           (no-move . ,no-move))))
                      arg)))
     (mentor-download-move-async downloads)))
 
