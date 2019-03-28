@@ -79,7 +79,7 @@ this.
 
 ** Quick Start
 
-Make sure that you have rTorrent installed on your system.
+Make sure that you have rTorrent (0.9.0 or later) installed on your system.
 
 To start mentor, just run:
 
