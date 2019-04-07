@@ -663,14 +663,13 @@ expensive operation."
 (defun mentor-download-update-this (download)
   "Update specified DOWNLOAD."
   (let* ((hash (mentor-item-property 'hash download))
-         (methods (append mentor-rpc-volatile-d-methods mentor-rpc-t-methods))
+         (methods (append mentor-rpc-volatile-d-methods))
          (values (cl-mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
-    (let ((d-properties (mentor-rpc-methods-to-properties methods))
-          (t-properties (mentor-rpc-methods-to-properties t-methods)))
-      (mentor-download-update-from d-properties t-properties values))))
+    (let ((d-properties (mentor-rpc-methods-to-properties methods)))
+      (mentor-data-download-update-from d-properties nil values))))
 
 (defun mentor-download-update-and-reinsert-at-point ()
   "Update download at point and reinsert in buffer."

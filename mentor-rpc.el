@@ -126,7 +126,7 @@ Optional argument IS-INIT if this is initializing."
     (let ((d-properties (mentor-rpc-methods-to-properties d-methods))
           (t-properties (mentor-rpc-methods-to-properties t-methods)))
       (dolist (values list-of-values)
-        (mentor-download-update-from d-properties t-properties values is-init)))))
+        (mentor-data-download-update-from d-properties t-properties values is-init)))))
 
 ;; Download data
 
@@ -235,7 +235,7 @@ Optional argument IS-INIT if this is initializing."
   '("t.url"
     "t.is_enabled"))
 
-(defconst t-multicall-sep "#"
+(defconst mentor-rpc-t-multicall-sep "#"
   "Seperator used to join calls (and their results) in t.multicall. This is
    also used to split the result string, so it should be something that is
    unlikely to appears in any of the t.* fields.")
@@ -253,7 +253,7 @@ on it."
     ;; t.multicall command will be executed for each of them and the result
     ;; will be concatened with no additional seperator.
     (concat "cat=\"$t.multicall=d.hash=,"
-            (mapconcat (lambda (m) (concat m "=,cat=" t-multicall-sep))
+            (mapconcat (lambda (m) (concat m "=,cat=" mentor-rpc-t-multicall-sep))
                        methods ",")
             "\"")))
 
