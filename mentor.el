@@ -1247,8 +1247,9 @@ started after being added."
                                   old))
                          (when (and (not (= (mentor-item-property 'is_multi_file) 1)) (file-directory-p old))
                            (error "Moving single torrent, base_path is a directory.  This is probably a bug")))
-                       (when (file-exists-p (concat new (file-name-nondirectory old)))
-                         (error "Destination already exists: %s" target))
+                       (let ((target (concat new (file-name-nondirectory old))))
+                         (when (file-exists-p target)
+                           (error "Destination already exists: %s" target)))
                        (if (equal (file-name-directory old) new)
                            (progn (message "Skipping %s since it is already in %s"
                                            (mentor-item-property 'name) new)
