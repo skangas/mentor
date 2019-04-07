@@ -113,27 +113,33 @@ If REGEXP is specified it only returns the matching functions."
 (defun mentor-rpc-d-stop (hash)
   (mentor-rpc-command "d.stop" hash))
 
-(defun mentor-rpc-d.multicall (methods &optional is-init)
+(defun mentor-rpc-d.multicall (d-methods t-methods &optional is-init)
   "Call `d.multicall2' with METHODS.
 
 Optional argument IS-INIT if this is initializing."
-  (let* ((methods= (mapcar (lambda (m) (concat m "=")) methods))
+  (let* ((d-methods= (mapcar (lambda (m) (concat m "=")) d-methods))
+         (t-methods= (list (mentor-join-t-methods t-methods)))
+         (all-methods (append d-methods= t-methods=))
          (list-of-values (apply 'mentor-rpc-command "d.multicall2"
-                                "" mentor-current-view methods=)))
+                                "" mentor-current-view all-methods)))
     (mentor-view-torrent-list-clear)
-    (let ((properties (mentor-rpc-methods-to-properties methods)))
+    (let ((d-properties (mentor-rpc-methods-to-properties d-methods))
+          (t-properties (mentor-rpc-methods-to-properties t-methods)))
       (dolist (values list-of-values)
-        (mentor-download-update-from properties values is-init)))))
+        (mentor-download-update-from d-properties t-properties values is-init)))))
 
 ;; Download data
 
 (defun mentor-rpc-methods-to-properties (methods)
   (mapcar
    (lambda (method)
-    (intern
-     (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method)))
+     (intern
+      (replace-regexp-in-string
+       "^\\([tp]\\)\\." "\\1_"
+       (replace-regexp-in-string "^[df]\\.\\(get_\\)?\\|=$" "" method))))
    methods))
 
+;; https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#d-commands
 (defconst mentor-rpc-d-methods
   '("d.hash"
     "d.local_id"
@@ -224,11 +230,32 @@ Optional argument IS-INIT if this is initializing."
     "d.is_hash_checking" "d.is_open"
     "d.is_pex_active"))
 
-(defun mentor-rpc-t-multicall (&rest args)
-  (apply 'mentor-rpc-command "t.multicall" args))
+;; http://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#t-commands
+(defconst mentor-rpc-t-methods
+  '("t.url"
+    "t.is_enabled"))
 
-(defun mentor-rpc-t-get-tracker-info (hash)
-  (mentor-rpc-t-multicall hash "" "t.url=" "t.is_enabled="))
+(defconst t-multicall-sep "#"
+  "Seperator used to join calls (and their results) in t.multicall. This is
+   also used to split the result string, so it should be something that is
+   unlikely to appears in any of the t.* fields.")
+
+(defun mentor-join-t-methods (methods)
+  "Construct a quoted t.multicall call string for a d.multicall call.
+Each call in a d.multicall returns a string, so the entire
+result of the t.mutlicall will be returned as a single string that we need to
+split. Thus, insert a seperator between every t.* call so we can can split
+on it."
+  (when methods
+    ;; d.hash must be included: it is the primary key rtorrent uses to identify
+    ;; which torrent the other properties should be looked up for. The trailing
+    ;; seperator is necessary because if a torrent has multiple trackers, the
+    ;; t.multicall command will be executed for each of them and the result
+    ;; will be concatened with no additional seperator.
+    (concat "cat=\"$t.multicall=d.hash=,"
+            (mapconcat (lambda (m) (concat m "=,cat=" t-multicall-sep))
+                       methods ",")
+            "\"")))
 
 ;; sys.multicall -- unused?
 

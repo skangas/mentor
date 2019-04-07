@@ -627,11 +627,11 @@ ARG is normally the prefix argument for the calling command.
 ITEMS should be a list of item names."
   (let ((count (length items)))
     (if (= count 1)
-	(car items)
+        (car items)
       ;; more than 1 item:
       (if (integerp arg)
-	  (format "[%s %d items]" (if (> arg 0) "next" "previous") count)
-	(format "[%d items]" count)))))
+          (format "[%s %d items]" (if (> arg 0) "next" "previous") count)
+        (format "[%d items]" count)))))
 
 (defun mentor-mark-confirm (desc arg)
   (let ((items (mentor-get-marked-items arg)))
@@ -648,7 +648,7 @@ ITEMS should be a list of item names."
 All torrent information will be re-fetched, making this an
 expensive operation."
   (message "Initializing torrent data...")
-  (mentor-rpc-d.multicall mentor-rpc-d-methods t)
+  (mentor-rpc-d.multicall mentor-rpc-d-methods mentor-rpc-t-methods t)
   (mentor-views-update-views)
   (message "Initializing torrent data... DONE"))
 
@@ -656,7 +656,7 @@ expensive operation."
   (message "Updating torrent data...")
   (condition-case _err
       (progn
-        (mentor-rpc-d.multicall mentor-rpc-volatile-d-methods)
+        (mentor-rpc-d.multicall mentor-rpc-volatile-d-methods mentor-rpc-t-methods)
         (message "Updating torrent data...DONE"))
     (mentor-need-init
      (mentor-download-data-init))))
@@ -664,13 +664,14 @@ expensive operation."
 (defun mentor-download-update-this (download)
   "Update specified DOWNLOAD."
   (let* ((hash (mentor-item-property 'hash download))
-         (methods mentor-rpc-volatile-d-methods)
+         (methods (append mentor-rpc-volatile-d-methods mentor-rpc-t-methods))
          (values (cl-mapcar
                   (lambda (method)
                     (mentor-rpc-command method hash))
                   methods)))
-    (let ((properties (mentor-rpc-methods-to-properties methods)))
-      (mentor-download-update-from properties values))))
+    (let ((d-properties (mentor-rpc-methods-to-properties methods))
+          (t-properties (mentor-rpc-methods-to-properties t-methods)))
+      (mentor-download-update-from d-properties t-properties values))))
 
 (defun mentor-download-update-and-reinsert-at-point ()
   "Update download at point and reinsert in buffer."
@@ -1494,9 +1495,12 @@ Should be equivalent to the ^K command in the ncurses gui."
    url))
 
 (defun mentor-download-tracker-name-column (&optional download)
-  (let* ((trackers (mentor-rpc-t-get-tracker-info (mentor-item-property 'hash download)))
-         (active-trackers (seq-filter (lambda (x) (= (cadr x) 1)) trackers))
-         (main-tracker (if (length active-trackers) (caar active-trackers) ""))
+  (let* ((t_urls (mentor-item-property 't_url download))
+         (t_is_enableds (mentor-item-property 't_url download))
+         (active-trackers
+          (cl-mapcar (lambda (url is_enabled) (when is_enabled url))
+                     t_urls t_is_enableds))
+         (main-tracker (if active-trackers (car active-trackers) ""))
          (shortened (mentor-remove-subdomains
                      (mentor-keep-domain-name main-tracker))))
     (if (>= (length shortened) 20)
