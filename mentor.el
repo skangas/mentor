@@ -254,8 +254,9 @@ This will only work with rTorrent 0.9.7 or later."
   (let ((map (make-keymap)))
     (suppress-keymap map t)
 
-    ;; torrent list actions
-    (define-key map (kbd "DEL") 'mentor-download-add)
+    ;; download list actions
+    (define-key map (kbd "DEL") 'mentor-download-load-torrent)
+    (define-key map (kbd "l") 'mentor-download-load-magnet-link-or-url)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
     (define-key map (kbd "M-g") 'mentor-update-item)
@@ -294,8 +295,6 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "U") 'mentor-unmark-all)
 
     (define-key map (kbd "v") 'mentor-dired-jump)
-
-    (define-key map (kbd "l") 'mentor-load)
 
     ;; sort functions
     (define-key map (kbd "t c") 'mentor-sort-by-state)
@@ -1080,11 +1079,13 @@ this subdir."
       (error "No such file or directory: %s" new))
     new))
 
-(defun mentor-download-add (prefix)
-  "Start downloading given torrent file or magnet URL.
+(defun mentor-download-load-torrent (prefix)
+  "Add a torrent file to rTorrent and start download.
 
-If PREFIX is set, the added torrent will only be added, but not
-started."
+If PREFIX is set, the download will not be started.
+
+This does not support Magnet links.  Use
+`mentor-download-load-magnet-link-or-url' instead."
   (interactive "P")
   (let* ((is-torrent-p (lambda (x)
                          (or (and (not (string-match "^\\." x))
@@ -1092,17 +1093,19 @@ started."
                              (string-match "\.torrent$" x))))
          (file (read-file-name "Add torrent: " nil nil
                                nil nil is-torrent-p)))
-    (if (string-match "^magnet:" file)
-        (mentor-rpc-c-load file prefix)
-      (mentor-rpc-c-load-raw file prefix)))
+    (mentor-file-sanity-check file)
+    (mentor-rpc-c-load-raw file prefix))
   (mentor-update))
 
-(defun mentor-load (prefix file)
-  "Load a file or url adding it to the current torrents if
-successful.  Unlike ``mentor-download-add'' this would work with
-files on a remote host.  If prefix is set the added torrent is
-started after being added."
-  (interactive "P\nMMentor load: ")
+(defun mentor-download-load-magnet-link-or-url (prefix file)
+  "Add Magnet link or URL to rTorrent and start download.
+
+If PREFIX is set, the download will not be started.
+
+This can also take a file path, but it has no completion.  Unlike
+``mentor-download-load-torrent'' this would work with a file path
+when rTorrent is running on a remote host."
+  (interactive "P\nMLoad Magnet link or URL: ")
   (mentor-rpc-c-load file prefix))
 
 (defun mentor-call-command (&optional cmd)
@@ -1694,6 +1697,12 @@ to a view unless the filter is updated."
       (make-string (abs maxlen) ? )
     (format (concat "%" (number-to-string maxlen) "s")
             (substring str 0 (min (length str) (abs maxlen))))))
+
+(defun mentor-file-sanity-check (file)
+  (when (not (file-exists-p file))
+    (error "No such file: %s" file))
+  (when (= (nth 7 (file-attributes file 'string)) 0)
+    (error "File is empty: %s" file)))
 
 (provide 'mentor)
 

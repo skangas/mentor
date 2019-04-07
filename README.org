@@ -181,24 +181,25 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 *** Main view keys
 
-| *rTorrent* | *Mentor* | *Description*                                                      |
-| ->         | <RET>    | View download.                                                     |
-| 1 - 7      | 1 - 7    | Change view.                                                       |
-| ^S         | s        | Start download.                                                    |
-| ^D (1)     | d        | Stop an active download.                                           |
-| ^D (2)     | D        | Remove download.                                                   |
-| ^K         | k        | Close a torrent and its files.                                     |
-| /n/a/      | K        | Remove download including data.                                    |
-| ^E         | /n/a/    | Set 'create/resize queued' flags.                                  |
-| ^R         | r        | Initiate hash check of torrent.                                    |
-| ^O         | o        | Change the destination directory of the download.                  |
-| ^X         | x        | Call commands or change settings.                                  |
-| ^B         | /n/a/    | Set download to perform initial seeding.                           |
-| + / -      | + / -    | Change the priority of the download.                               |
-| <DEL>      | <DEL>    | Add torrent using an URL or file path.                             |
-| l          | /n/a/    | View log. Exit by pressing the space-bar.                          |
-| U          | /n/a/    | Delete the file the torrent is tied to, and clear the association. |
-| I          | /n/a/    | Toggle whether torrent ignores ratio settings.                     |
+| *rTorrent* | *Mentor* | *Description*                                                        |
+| ->       | <RET>  | View download.                                                     |
+| 1 - 7    | 1 - 7  | Change view.                                                       |
+| ^S       | s      | Start download.                                                    |
+| ^D (1)   | d      | Stop an active download.                                           |
+| ^D (2)   | D      | Remove download.                                                   |
+| ^K       | k      | Close a torrent and its files.                                     |
+| /n/a/      | K      | Remove download including data.                                    |
+| ^E       | /n/a/    | Set 'create/resize queued' flags.                                  |
+| ^R       | r      | Initiate hash check of torrent.                                    |
+| ^O       | o      | Change the destination directory of the download.                  |
+| ^X       | x      | Call commands or change settings.                                  |
+| ^B       | /n/a/    | Set download to perform initial seeding.                           |
+| + / -    | + / -  | Change the priority of the download.                               |
+| <DEL>    | <DEL>  | Add torrent file                                                   |
+|          | l      | Add Magnet link, URL or torrent file path                          |
+| l        | /n/a/    | View log. Exit by pressing the space-bar.                          |
+| U        | /n/a/    | Delete the file the torrent is tied to, and clear the association. |
+| I        | /n/a/    | Toggle whether torrent ignores ratio settings.                     |
 
 ** Known issues
 - There is no view for trackers/peers/extra information.
