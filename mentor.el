@@ -1219,14 +1219,15 @@ when rTorrent is running on a remote host."
            (name (cdr (assoc 'name (car remaining))))
            (new (cdr (assoc 'new (car remaining))))
            (hash (cdr (assoc 'hash (car remaining))))
-           (was-started (cdr (assoc 'was-started (car remaining)))))
+           (was-started (cdr (assoc 'was-started (car remaining))))
+           (verbstr (if (cdr (assoc 'no-move (car remaining))) "Changed directory of" "Moved")))
        (with-current-buffer "*mentor*"
          (mentor-keep-position
            (mentor-goto-download local_id)
            (when was-started
              (mentor-rpc-d-start hash))
            (mentor-download-update-and-reinsert-at-point)))
-       (message "mentor: Moved '%s' to '%s'" name new))
+       (message "mentor: %s '%s' to '%s'" verbstr name new))
      (when (cdr remaining)
        (mentor-download-move-async (cdr remaining))))))
 
@@ -1249,10 +1250,10 @@ when rTorrent is running on a remote host."
                                           "Try `mentor-download-change-target-directory'")
                                   old))
                          (when (and (not (= (mentor-item-property 'is_multi_file) 1)) (file-directory-p old))
-                           (error "Moving single torrent, base_path is a directory.  This is probably a bug")))
-                       (let ((target (concat new (file-name-nondirectory old))))
-                         (when (file-exists-p target)
-                           (error "Destination already exists: %s" target)))
+                           (error "Moving single torrent, base_path is a directory.  This is probably a bug"))
+                         (let ((target (concat new (file-name-nondirectory old))))
+                           (when (file-exists-p target)
+                             (error "Destination already exists: %s" target))))
                        (if (equal (file-name-directory old) new)
                            (progn (message "Skipping %s since it is already in %s"
                                            (mentor-item-property 'name) new)
