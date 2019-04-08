@@ -141,15 +141,19 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 *** Downloads
 
-| <DEL> | Add torrent file or magnet URL |
-| s     | Start download                 |
-| d     | Stop download                  |
-| D     | Remove download                |
-| k     | Close download                 |
-| K     | Remove download incl. data     |
-| r     | Initiate hash check            |
-| g     | Update screen                  |
-| G     | Re-initialize information      |
+| <DEL> | Add torrent file                          |
+| l     | Add Magnet link, URL or torrent file path |
+|-------+-------------------------------------------|
+| s     | Start download                            |
+| d     | Stop download                             |
+| D     | Remove download                           |
+| k     | Close download                            |
+| K     | Remove download including data            |
+| r     | Initiate hash check for download          |
+|-------+-------------------------------------------|
+| g     | Update screen                             |
+| G     | Re-initialize all download data           |
+| v     | Show download in dired                    |
 
 *** Marking
 
@@ -162,20 +166,20 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 | t c     | Sort downloads by state          |
 | t D     | Sort downloads by directory      |
-| t d     | Sort downloads by dl speed       |
+| t d     | Sort downloads by download speed |
 | t n     | Sort downloads by name           |
 | t p     | Sort downloads by size           |
 | t t     | Sort downloads by tied file name |
-| t u     | Sort downloads by ul speed       |
+| t u     | Sort downloads by upload speed   |
 
 *** Misc
 
-| <RET> | Enter file detail screen |
-| R     | Move download data       |
-| C     | Copy download data       |
-| x     | Call XML-RPC command     |
-| q     | Bury mentor              |
-| Q     | Shutdown mentor          |
+| <RET> | Enter file details screen |
+| R     | Move download data        |
+| C     | Copy download data        |
+| x     | Call XML-RPC command      |
+| q     | Bury mentor               |
+| Q     | Shutdown mentor           |
 
 ** Mapping from rTorrent commands to Mentor
 
@@ -183,7 +187,7 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 | *rTorrent* | *Mentor* | *Description*                                                        |
 | ->       | <RET>  | View download.                                                     |
-| 1 - 7    | 1 - 7  | Change view.                                                       |
+| 0 - 9    | 0 - 9  | Change view.                                                       |
 | ^S       | s      | Start download.                                                    |
 | ^D (1)   | d      | Stop an active download.                                           |
 | ^D (2)   | D      | Remove download.                                                   |
