@@ -78,6 +78,16 @@
     (should (equal (mentor-bytes-to-human (* gb 15.4))  "15G"))
     (should (equal (mentor-bytes-to-human (* tb 1))     "1TB+"))))
 
+(ert-deftest mentor-rtorrent-enforce-length ()
+  (should (equal (mentor-enforce-length nil 2)    "  "))
+  (should (equal (mentor-enforce-length "foo" 0)  ""))
+  (should (equal (mentor-enforce-length "foo" 2)  "fo"))
+  (should (equal (mentor-enforce-length "foo" -2) "fo"))
+  (should (equal (mentor-enforce-length "foo" 3)  "foo"))
+  (should (equal (mentor-enforce-length "foo" -4) "foo "))
+  (should (equal (mentor-enforce-length "foo" 4)  " foo")))
+
+
 (provide 'mentor-tests)
 
 ;;; mentor-tests.el ends here

@@ -1693,6 +1693,7 @@ to a view unless the filter is updated."
     ""))
 
 (defun mentor-enforce-length (str maxlen)
+  "Return string of length MAXLEN with STR prefixed by spaces."
   (if (not str)
       (make-string (abs maxlen) ? )
     (format (concat "%" (number-to-string maxlen) "s")
