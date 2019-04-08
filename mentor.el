@@ -1343,16 +1343,19 @@ Should be equivalent to the ^K command in the ncurses gui."
   (message "TODO: mentor-download-set-inital-seeding"))
 
 (defun mentor-dired-jump ()
-  "Visit file at point using Dired."
+  "Visit files for download at point using Dired."
   (interactive)
   (let* ((is-multi-file (= (mentor-item-property 'is_multi_file) 1))
          (directory (mentor-item-property 'directory))
-         (name (mentor-item-property 'name)))
+         (name (mentor-item-property 'name))
+         (target (if is-multi-file directory (expand-file-name name directory))))
     (when (not directory)
       (error "Download does not have a 'directory' set"))
-    (find-file directory)
-    (if (not is-multi-file)
-        (dired-goto-file (expand-file-name name directory)))))
+    (if (file-exists-p target)
+        (progn (find-file directory)
+               (when (not is-multi-file)
+                 (dired-goto-file (expand-file-name name directory))))
+      (error "No such file or directory: %s" target))))
 
 (defun mentor-update ()
   "Update all torrents and redisplay."
