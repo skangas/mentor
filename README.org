@@ -143,14 +143,12 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 
 | <DEL> | Add torrent file                          |
 | l     | Add Magnet link, URL or torrent file path |
-|-------+-------------------------------------------|
 | s     | Start download                            |
 | d     | Stop download                             |
 | D     | Remove download                           |
 | k     | Close download                            |
 | K     | Remove download including data            |
 | r     | Initiate hash check for download          |
-|-------+-------------------------------------------|
 | g     | Update screen                             |
 | G     | Re-initialize all download data           |
 | v     | Show download in dired                    |
