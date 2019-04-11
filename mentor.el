@@ -1502,7 +1502,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 
 (defun mentor-download-tracker-name-column (&optional download)
   (let* ((t_urls (mentor-item-property 't_url download))
-         (t_is_enableds (mentor-item-property 't_url download))
+         (t_is_enableds (mentor-item-property 't_is_enabled download))
          (active-trackers
           (cl-mapcar (lambda (url is_enabled) (when is_enabled url))
                      t_urls t_is_enableds))
