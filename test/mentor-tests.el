@@ -28,6 +28,16 @@
 
 (require 'mentor)
 
+(ert-deftest mentor-normalize-rpc-url ()
+  ;; No difference
+  (should (equal (mentor-normalize-rpc-url "scgi://localhost:123")         "scgi://localhost:123"))
+  (should (equal (mentor-normalize-rpc-url "scgi://~/.rtorrent.rpc")       "scgi://~/.rtorrent.rpc"))
+  (should (equal (mentor-normalize-rpc-url "scgi:///path/to/rtorrent.rpc") "scgi:///path/to/rtorrent.rpc"))
+  (should (equal (mentor-normalize-rpc-url "http://localhost:8080/RPC")    "http://localhost:8080/RPC"))
+  ;; Add scgi
+  (should (equal (mentor-normalize-rpc-url "~/.rtorrent.rpc")       "scgi://~/.rtorrent.rpc"))
+  (should (equal (mentor-normalize-rpc-url "/path/to/rtorrent.rpc") "scgi:///path/to/rtorrent.rpc")))
+
 (ert-deftest mentor-rtorrent-already-running ()
   (let ((existent (generate-new-buffer "fooa")) ; incl. buffer
         (non-existent (generate-new-buffer-name "foob"))) ; only name
