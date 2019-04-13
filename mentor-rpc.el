@@ -118,7 +118,7 @@ If REGEXP is specified it only returns the matching functions."
 
 Optional argument IS-INIT if this is initializing."
   (let* ((d-methods= (mapcar (lambda (m) (concat m "=")) d-methods))
-         (t-methods= (list (mentor-join-t-methods t-methods)))
+         (t-methods= (list (mentor-rpc-join-t-methods t-methods)))
          (all-methods (append d-methods= t-methods=))
          (list-of-values (apply 'mentor-rpc-command "d.multicall2"
                                 "" mentor-current-view all-methods)))
@@ -240,7 +240,7 @@ Optional argument IS-INIT if this is initializing."
    also used to split the result string, so it should be something that is
    unlikely to appears in any of the t.* fields.")
 
-(defun mentor-join-t-methods (methods)
+(defun mentor-rpc-join-t-methods (methods)
   "Construct a quoted t.multicall call string for a d.multicall call.
 Each call in a d.multicall returns a string, so the entire
 result of the t.mutlicall will be returned as a single string that we need to

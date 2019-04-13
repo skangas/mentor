@@ -24,11 +24,12 @@
 ;;; Code:
 
 (require 'ert)
+(require 'mentor-rpc)
 
-(ert-deftest mentor-join-t-methods ()
+(ert-deftest mentor-rpc-join-t-methods ()
   (should
    (equal
-    (mentor-join-t-methods
+    (mentor-rpc-join-t-methods
      '("t.url" "t.type" "t.is_enabled" "t.group" "t.scrape_complete"
        "t.scrape_incomplete" "t.scrape_downloaded"))
     "cat=\"$t.multicall=d.hash=,t.url=,cat=#,t.type=,cat=#,t.is_enabled=,cat=#,t.group=,cat=#,t.scrape_complete=,cat=#,t.scrape_incomplete=,cat=#,t.scrape_downloaded=,cat=#\"")))

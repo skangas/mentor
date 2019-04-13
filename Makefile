@@ -6,7 +6,7 @@ EMACS_LOADPATH = -L . $(patsubst %,-L %, $(SUBDIRS))
 EMACS_LOAD = $(EMACS_BATCH) $(EMACS_LOADPATH)
 TARGET=$(patsubst %.el,%.elc,$(wildcard *.el))
 
-.PHONY: all clean tags
+.PHONY: all clean tags test
 .PRECIOUS: %.elc
 
 all: $(TARGET)
@@ -19,3 +19,8 @@ clean:
 
 tags:
 	etags mentor*.el url-scgi.el
+
+test:
+	@$(EMACS_LOAD) -l test/mentor-rpc-tests.el -f ert-run-tests-batch-and-exit
+	@$(EMACS_LOAD) -l test/mentor-tests.el -f ert-run-tests-batch-and-exit
+	@$(EMACS_LOAD) -l test/url-scgi-tests.el -f ert-run-tests-batch-and-exit
