@@ -1,8 +1,10 @@
-;;; mentor-files.el --- Mentor file screen  -*- lexical-binding: t -*-
+;;; mentor-files.el --- Mentor file view  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2016-2019 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
+
+;; This file is NOT part of GNU Emacs.
 
 ;; Mentor is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
@@ -15,7 +17,7 @@
 ;; License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with Mentor.  If not, see http://www.gnu.org/licenses.
+;; along with Mentor.  If not, see <https://www.gnu.org/licenses>.
 
 ;;; Commentary:
 

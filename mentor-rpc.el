@@ -4,6 +4,8 @@
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 
+;; This file is NOT part of GNU Emacs.
+
 ;; Mentor is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
@@ -15,7 +17,7 @@
 ;; License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with Mentor.  If not, see http://www.gnu.org/licenses.
+;; along with Mentor.  If not, see <https://www.gnu.org/licenses>.
 
 ;;; Commentary:
 
@@ -230,7 +232,7 @@ Optional argument IS-INIT if this is initializing."
     "d.is_hash_checking" "d.is_open"
     "d.is_pex_active"))
 
-;; http://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#t-commands
+;; https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#t-commands
 (defconst mentor-rpc-t-methods
   '("t.url"
     "t.is_enabled"))
