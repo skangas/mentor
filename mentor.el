@@ -254,18 +254,18 @@ This will only work with rTorrent 0.9.7 or later."
   (let ((map (make-keymap)))
     (suppress-keymap map t)
 
+    ;; navigation
+    (define-key map (kbd "<up>") 'mentor-previous-item)
+    (define-key map (kbd "<down>") 'mentor-next-item)
+    (define-key map (kbd "p") 'mentor-previous-item)
+    (define-key map (kbd "n") 'mentor-next-item)
+
     ;; download list actions
     (define-key map (kbd "DEL") 'mentor-download-load-torrent)
     (define-key map (kbd "l") 'mentor-download-load-magnet-link-or-url)
     (define-key map (kbd "g") 'mentor-update)
     (define-key map (kbd "G") 'mentor-reload)
     (define-key map (kbd "M-g") 'mentor-update-item)
-
-    ;; navigation
-    (define-key map (kbd "<up>") 'mentor-previous-item)
-    (define-key map (kbd "<down>") 'mentor-next-item)
-    (define-key map (kbd "p") 'mentor-previous-item)
-    (define-key map (kbd "n") 'mentor-next-item)
 
     ;; item actions
     (define-key map (kbd "+") 'mentor-increase-priority)
@@ -330,6 +330,60 @@ This will only work with rTorrent 0.9.7 or later."
   "Major mode for controlling rtorrent from GNU Emacs
 
 Type \\[mentor] to start Mentor.
+
+rTorrent operations:
+
+  `\\[mentor-download-load-torrent]' - Add torrent
+  `\\[mentor-download-load-magnet-link-or-url]' - Add Magnet link, URL or torrent file path
+  `\\[mentor-update]' - Reload data from rTorrent
+  `\\[mentor-reload]' - Re-initialize all data from rTorrent
+
+Operations on download at point (or marked downloads):
+
+  `\\[mentor-download-start]' - Start download
+  `\\[mentor-download-stop]' - Stop download
+  `\\[mentor-download-close]' - Close download
+  `\\[mentor-download-hash-check]' - Initiate hash check
+  `\\[mentor-download-move]' - Move download
+  `\\[mentor-download-change-target-directory]' - Change target directory
+  `\\[mentor-download-remove]' - Remove download
+  `\\[mentor-download-remove-including-files]' - Remove download including data
+  `\\[mentor-download-copy-data]' - Copy downloaded data to location
+  `\\[mentor-increase-priority]' - Increase priority of download
+  `\\[mentor-decrease-priority]' - Decrease priority of download
+
+Operations on download at point:
+
+  `\\[mentor-show-download-files]' - Enter files view
+  `\\[mentor-update-item]' - Reload data from rTorrent
+  `\\[mentor-dired-jump]' - Show download in Dired
+
+Marking commands:
+
+  `\\[mentor-mark]' - Mark download
+  `\\[mentor-unmark]' - Unmark download
+  `\\[mentor-mark-all]' - Mark all downloads
+  `\\[mentor-unmark-all]' - Unmark all downloads
+
+Sorting downloads:
+
+  `\\[mentor-sort-by-directory]' - Sort downloads by directory
+  `\\[mentor-sort-by-name]' - Sort by name
+  `\\[mentor-sort-by-tied-file-name]' - Sort by tied file name
+  `\\[mentor-sort-by-size]' - Sort by size
+  `\\[mentor-sort-by-state]' - Sort by state
+  `\\[mentor-sort-by-download-speed]' - Sort by download speed
+  `\\[mentor-sort-by-upload-speed]' - Sort by upload speed
+  `\\[mentor-sort-by-property-prompt]' - Sort by any property (shows prompt)
+
+Misc commands:
+
+  `0' to `9' - Change currently active view
+  `\\[mentor-switch-to-view]' - Switch to view (prompt)
+  `\\[mentor-add-torrent-to-view]' - Add download to view
+  `\\[mentor-call-command]' - Send XML-RPC command to rTorrent
+  `\\[mentor-shutdown] - Shutdown Mentor
+  `\\[bury-buffer] - Bury Mentor buffer
 
 \\{mentor-mode-map}"
   :group 'mentor
@@ -438,7 +492,7 @@ It will use the RPC argument as value for scgi_local."
 
 ;;;###autoload
 (defun mentor ()
-  "Control rtorrent from Emacs using XML-RPC.
+  "Control rTorrent from Emacs using XML-RPC.
 
 If mentor is already running, switch to its buffer.  Otherwise,
 start a new session."
