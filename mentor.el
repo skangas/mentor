@@ -86,8 +86,8 @@ key to which the specified VIEWNAME will be bound to."
 (defcustom mentor-directory-prefix ""
   "Prefix to use before all directories.
 
-If your rtorrent process is running on a remote host, you could
-set this to something like `/ssh:user@example.com:'."
+If rTorrent is running on a remote host, you could set this to
+something like `/ssh:user@example.com:'."
   :group 'mentor
   :type 'string)
 
@@ -97,40 +97,46 @@ set this to something like `/ssh:user@example.com:'."
   :type 'boolean)
 
 (defcustom mentor-rtorrent-download-directory nil
-  "Directory for downloads for background rtorrent."
+  "Download directory for background rTorrent."
   :package-version '(mentor . "0.2")
   :group 'mentor
   :type 'string)
 
 (defcustom mentor-rtorrent-keep-session nil
-  "If non-nil, save session in background rtorrent."
+  "If non-nil, save session in background rTorrent."
   :package-version '(mentor . "0.2")
   :group 'mentor
   :type 'boolean)
 
 (defcustom mentor-rtorrent-extra-conf nil
-  "Extra configuration to add to background rtorrent."
+  "Extra configuration to add to background rTorrent."
   :package-version '(mentor . "0.2")
   :group 'mentor
   :type 'string)
 
 (defcustom mentor-rtorrent-external-rpc nil
-  "URL to an external rtorrent XML-RPC socket.
+  "URL to an external rTorrent XML-RPC socket.
 
-The default value nil means that we will create our own rtorrent
-to run in the background.
+The default nil value indicates that Mentor should spawn a new
+rTorrent instance in the background.
 
-For connection using a local socket bound to a file, use
-`scgi:///~/.rtorrent-rpc.socket'.  Note that there are triple
-slashes in the beginning, as compared to a network connection.
+To connect using a local socket file, use
+`~/.rtorrent-rpc.socket' or `/any/full/path'.  Note that you must
+start the path with `/' or '~' for it to be recognized as a file
+socket.
 
-If the connection is over http, which would be the case when
-using a web server in front of rtorrent, you would put
-`http://HOST[:PORT]/PATH'.
+To connect using http, use `http://HOST[:PORT]/PATH'.  This would
+be the case when using a web server in front of rTorrent.
 
-When connecting directly to a scgi_port, use `scgi://HOST:PORT'.
-For security reasons, we strongly suggest to use one of the above
-methods instead."
+For security reasons, we strongly suggest to use one of the
+methods above.  However, it is also possibly to connect using a
+scgi_port by specifying `scgi://HOST:PORT'.
+
+Example values:
+
+ (1) ~/.rtorrent-rpc.socket
+ (2) http://localhost:8080/RPC2
+ (3) scgi://localhost:5000 [not recommended]"
   :package-version '(mentor . "0.2")
   :group 'mentor
   :type 'string)
@@ -204,7 +210,7 @@ This will only work with rTorrent 0.9.7 or later."
 (defvar mentor-rtorrent-client-version)
 (defvar mentor-rtorrent-library-version)
 (defvar mentor-rtorrent-buffer-name "*mentor-term*"
-  "Name of the buffer that will run rtorrent process.")
+  "Name of the buffer that will run rTorrent process.")
 
 (defvar mentor--rtorrent-session-directory nil)
 
@@ -327,7 +333,7 @@ This will only work with rTorrent 0.9.7 or later."
   '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
 (define-derived-mode mentor-mode special-mode "mentor"
-  "Major mode for controlling rtorrent from GNU Emacs
+  "Major mode for controlling rTorrent from GNU Emacs
 
 Type \\[mentor] to start Mentor.
 
@@ -404,7 +410,7 @@ Misc commands:
   (run-mode-hooks 'mentor-mode-hook))
 
 (defun mentor-rtorrent-create-conf (filename rpc)
-  "Generate rtorrent configuration and write to FILENAME.
+  "Generate rTorrent configuration and write to FILENAME.
 
 It will use the RPC argument as value for scgi_local."
   (let ((output
@@ -438,7 +444,7 @@ It will use the RPC argument as value for scgi_local."
     nil))
 
 (defun mentor-rtorrent-run-in-background ()
-  "Start rtorrent in a new buffer."
+  "Start rTorrent in a new buffer."
   (make-directory mentor-home-dir t)
   (when mentor-rtorrent-keep-session
     (make-directory
@@ -545,7 +551,7 @@ start a new session."
   (concat "^" (regexp-quote (char-to-string mentor-marker-char))))
 
 (defun mentor-repeat-over-lines (arg function)
-  "Repeat over lines.
+  "Repeat FUNCTION over ARG lines.
 
 This version skips non-file lines."
   (let ((pos (make-marker)))
@@ -658,7 +664,7 @@ is not shown if there is just one item.
 ITEMS is the list of marked items.
 
 FUNCTION should not manipulate items, just read input
-(an argument or confirmation)."
+\(an argument or confirmation)."
   (if (= (length items) 1)
       (apply function args)
     (let ((buffer (get-buffer-create (or bufname " *Marked Items*"))))
@@ -698,7 +704,7 @@ ITEMS should be a list of item names."
 ;;;; Getting torrent data
 
 (defun mentor-download-data-init ()
-  "Initialize torrent data from rtorrent.
+  "Initialize torrent data from rTorrent.
 
 All torrent information will be re-fetched, making this an
 expensive operation."
@@ -737,7 +743,7 @@ expensive operation."
 ;;;; Main torrent view
 
 (defmacro mentor-keep-position (&rest body)
-  "Keep the current position."
+  "Run BODY form but keep the current position."
   `(let ((kept-torrent-id (mentor-item-id-at-point))
          (kept-torrent-pos-in-line (- (point) (line-beginning-position)))
          (kept-point (point)))
@@ -751,6 +757,7 @@ expensive operation."
        (goto-char kept-point))))
 
 (defun mentor-insert-torrent (id)
+  "Insert download ID at point."
   (let* ((item (mentor-get-item id))
          (text (mentor-process-view-columns item mentor-view-columns))
          (marked (mentor-item-marked item)))
@@ -765,6 +772,7 @@ expensive operation."
         (mentor-mark)))))
 
 (defun mentor-insert-torrents ()
+  "Insert downloads in current view at point."
   (let ((tor-ids (cdr (assoc (intern mentor-current-view)
                              mentor-view-torrent-list))))
     (dolist (id tor-ids)
@@ -780,9 +788,8 @@ expensive operation."
   (mentor-goto-item-name-column))
 
 (defun mentor-process-columns-helper (cols lenfun strfun)
-  ;; Remove trailing whitespace
   (replace-regexp-in-string
-   " *$" ""
+   " *$" "" ; Remove trailing whitespace
    (apply 'concat
     (cl-mapcar (lambda (column)
               (let* ((len (funcall lenfun column))
@@ -1157,6 +1164,7 @@ when rTorrent is running on a remote host."
   (mentor-rpc-c-load file prefix))
 
 (defun mentor-call-command (&optional cmd)
+  "Send XML-RPC command CMD to rTorrent."
   (interactive "MEnter command: ")
   (apply 'mentor-rpc-command (split-string cmd)))
 
@@ -1236,6 +1244,7 @@ when rTorrent is running on a remote host."
 ;; instead of just the last file.
 
 (defun mentor-download-copy-data (&optional arg)
+  "Copy download data to another location."
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
@@ -1322,11 +1331,12 @@ when rTorrent is running on a remote host."
     (mentor-download-move-async downloads)))
 
 (defun mentor-download-change-target-directory (&optional arg)
-  "Change torrents target directory without moving data."
+  "Change target directory of download without moving data."
   (interactive "P")
   (mentor-download-move 'nomove arg))
 
 (defun mentor-download-hash-check (&optional arg)
+  "Initiate hash check on download."
   (interactive "P")
   (mentor-map-over-marks
    (progn
@@ -1338,8 +1348,12 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-pause (&optional arg)
-  "Pause torrent. This is probably not what you want, use
-`mentor-download-stop' instead."
+  "Pause download.
+
+This runs the `d.pause' XML-RPC command.
+
+This is probably not what you want, use `mentor-download-stop'
+instead."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
@@ -1347,8 +1361,12 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-resume (&optional arg)
-  "Resume torrent. This is probably not what you want, use
-`mentor-download-start' instead."
+  "Resume download.
+
+This runs the `d.resume' XML-RPC command.
+
+This is probably not what you want, use `mentor-download-start'
+instead."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
@@ -1356,6 +1374,9 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-start (&optional arg)
+  "Start download.
+
+This runs the `d.start' XML-RPC command."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-start (mentor-item-property 'hash))
@@ -1363,6 +1384,9 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-stop (&optional arg)
+  "Stop download.
+
+This runs the `d.stop' XML-RPC command."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-stop (mentor-item-property 'hash))
@@ -1370,6 +1394,9 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-open (&optional arg)
+  "Set download status to `open'.
+
+This runs the `d.open' XML-RPC command."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
@@ -1377,9 +1404,10 @@ when rTorrent is running on a remote host."
    arg))
 
 (defun mentor-download-close (&optional arg)
-  "Close a torrent and its files.
+  "Set download status to `closed'.
 
-Should be equivalent to the ^K command in the ncurses gui."
+This runs the `d.close' XML-RPC command, which corresponds to the
+^K command in the ncurses gui."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-close (mentor-item-property 'hash))
@@ -1392,6 +1420,8 @@ Should be equivalent to the ^K command in the ncurses gui."
   (message "TODO: mentor-download-recreate-files"))
 
 (defun mentor-download-set-inital-seeding ()
+  "Set download to perform initial seeding.
+Only use when you are the first and only seeder so far for the download."
   (interactive)
   (message "TODO: mentor-download-set-inital-seeding"))
 
@@ -1455,7 +1485,7 @@ Should be equivalent to the ^K command in the ncurses gui."
       (mentor-files-mode))))
 
 (defun mentor-shutdown ()
-  "Exit mentor, killing any running rtorrent processes."
+  "Exit Mentor, killing any running rTorrent processes."
   (interactive)
   (when (y-or-n-p "Really shutdown mentor? ")
     (kill-buffer (current-buffer))
@@ -1566,7 +1596,7 @@ Should be equivalent to the ^K command in the ncurses gui."
         (seq-subseq shortened -20)
       (format "%20s" shortened))))
 
-;;; Get dowload data from rtorrent
+;;; Get dowload data from rTorrent
 
 (defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human
@@ -1576,12 +1606,12 @@ Should be equivalent to the ^K command in the ncurses gui."
   (mentor-bytes-to-human
    (mentor-item-property 'size_bytes torrent)))
 
-(defun mentor-download-has-view (tor view)
-  "Returns t if the torrent has the specified view."
-  (member view (mentor-download-get-views tor)))
+(defun mentor-download-has-view (download view)
+  "Return t if DOWNLOAD has given VIEW."
+  (member view (mentor-download-get-views download)))
 
-(defun mentor-download-get-views (tor)
-  (mentor-item-property 'views tor))
+(defun mentor-download-get-views (download)
+  (mentor-item-property 'views download))
 
 (defun mentor-download-set-priority-fun (val)
   (let ((hash (mentor-item-property 'hash))
@@ -1595,8 +1625,7 @@ Should be equivalent to the ^K command in the ncurses gui."
 (make-variable-buffer-local 'mentor-download-views)
 
 (defconst mentor-custom-view-prefix "mentor-"
-  "The string to add to the view name before adding it to
-  rtorrent.")
+  "String to add to view name before adding it to rTorrent.")
 
 (defun mentor-add-torrent-to-view (view)
   (interactive
@@ -1620,7 +1649,7 @@ Should be equivalent to the ^K command in the ncurses gui."
   '("main" "name" "started" "stopped" "complete"
     "incomplete" "hashing" "seeding" "active"))
 
-;; TODO find out what a valid name is in rtorrent
+;; TODO find out what a valid name is in rTorrent
 (defun mentor-views-valid-view-name (_name)
   t)
 
@@ -1644,10 +1673,10 @@ Should be equivalent to the ^K command in the ncurses gui."
     (message "Showing view: %s" mentor-current-view)))
 
 (defun mentor-views-add (view)
-  "Adds the specified view to rtorrents \"view_list\" and sets
-the new views view_filter. SHOULD BE USED WITH CARE! Atleast in
-rtorrent 0.8.6, rtorrent crashes if you try to add the same view
-twice!"
+  "Add VIEW to rTorrent's \"view_list\" and set the new view_filter.
+
+SHOULD BE USED WITH CARE! Atleast in rTorrent 0.8.6, rTorrent
+crashes if you try to add the same view twice!"
   (mentor-rpc-command "view.add" view)
   (setq mentor-download-views (cons view mentor-download-views))
   (mentor-views-update-filter view))
@@ -1670,19 +1699,19 @@ already in view_list and sets all new view_filters."
   ;;  mentor-items))
 
 (defun mentor-views-update-views ()
-  "Updates the view list with all views defined by rtorrent."
+  "Update view list with all views defined in rTorrent."
   (setq mentor-download-views (mentor-rpc-command "view.list")))
 
 (defun mentor-views-update-filter (view)
-  "Updates the view_filter for the specified view. You need to do
-this everytime you add/remove a torrent to a view since
-rtorrent (atleast as of 0.8.6) does not add/remove new torrents
-to a view unless the filter is updated."
+  "Update view_filter for given VIEW.
+You need to do this everytime you add/remove a torrent to a view
+since rTorrent (at least as of 0.8.6) does not add/remove new
+torrents to a view unless the filter is updated."
   (mentor-rpc-command "view.filter" view
                       (concat "d.views.has=" view)))
 
 (defun mentor-views-update-filters ()
-  "Updates all view_filters for custom views in rtorrent."
+  "Update all view_filters for custom views in rTorrent."
   (mapc (lambda (view)
           (when (mentor-views-is-custom-view  view)
             (mentor-views-update-filter view)))
@@ -1718,7 +1747,7 @@ to a view unless the filter is updated."
   (cdr (assoc view-id mentor-custom-views)))
 
 (defun mentor-bytes-to-human (bytes)
-  "Convert bytes to human readable and try to keep it short."
+  "Convert BYTES to human readable and try to keep it short."
   (if bytes
       (let* ((bytes (if (stringp bytes) (string-to-number bytes) bytes))
              (kb 1024.0)
