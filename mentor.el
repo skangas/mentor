@@ -1120,20 +1120,6 @@ this subdir."
                    0 (- (length (file-name-nondirectory path))))
       path)))
 
-(defun mentor-get-new-torrent-path (tor)
-  "Helper function for `mentor-download-copy-data' and
-`mentor-download-move'"
-  (let* ((old (mentor-get-old-torrent-path tor))
-         (old-prefixed (concat mentor-directory-prefix old))
-         (new (read-file-name "New path: " old-prefixed nil t)))
-    (when (string-equal old new)
-      (error "Source and destination are the same"))
-    (when (not (condition-case _err
-                   (mentor-rpc-command "execute2" "" "ls" "-d" new)
-                 (error nil)))
-      (error "No such file or directory: %s" new))
-    new))
-
 (defun mentor-download-load-torrent (prefix)
   "Add a torrent file to rTorrent and start download.
 

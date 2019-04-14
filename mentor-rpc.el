@@ -221,15 +221,23 @@ Optional argument IS-INIT if this is initializing."
 
 (defconst mentor-rpc-volatile-d-methods
   '("d.local_id" ;; must not be removed
-    "d.base_path"        "d.bytes_done"
-    "d.directory"        "d.down.rate"
-    "d.hashing"          "d.hashing_failed"
+    "d.base_path"
+    "d.bytes_done"
+    "d.directory"
+    "d.down.rate"
+    "d.hashing"
+    "d.hashing_failed"
     "d.message"
-    "d.priority"         "d.chunk_size"
-    "d.up.rate"          "d.up.total"
-    "d.state"            "d.views"
-    "d.is_active"        "d.is_hash_checked"
-    "d.is_hash_checking" "d.is_open"
+    "d.priority"
+    "d.chunk_size"
+    "d.up.rate"
+    "d.up.total"
+    "d.state"
+    "d.views"
+    "d.is_active"
+    "d.is_hash_checked"
+    "d.is_hash_checking"
+    "d.is_open"
     "d.is_pex_active"))
 
 ;; https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#t-commands

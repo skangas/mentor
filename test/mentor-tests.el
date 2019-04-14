@@ -100,4 +100,7 @@
 
 (provide 'mentor-tests)
 
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
 ;;; mentor-tests.el ends here
