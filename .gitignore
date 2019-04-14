@@ -1,4 +1,6 @@
 \.\#*
 \#*
 *.elc
+*.org_archive
 TAGS
+TODO.org
