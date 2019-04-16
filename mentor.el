@@ -68,13 +68,21 @@
   :group 'external)
 
 (defcustom mentor-custom-views
-  '((1 . "main") (2 . "main") (3 . "started")
-    (4 . "stopped") (5 . "complete") (6 . "incomplete")
-    (7 . "hashing") (8 . "seeding") (9 . "leeching") (0 . "active"))
+  '((1 . "main")
+    (2 . "main") ; by default "name" is the same as main except for sorting
+    (3 . "started")
+    (4 . "stopped")
+    (5 . "complete")
+    (6 . "incomplete")
+    (7 . "hashing")
+    (8 . "seeding")
+    (9 . "leeching")
+    (0 . "active"))
   "A list of mappings to bind keys to views.
 
-This takes the form \"(BINDING . VIEWNAME)\" where BINDING is the
-key to which the specified VIEWNAME will be bound to."
+This takes the form of a list of \"(BINDING . NAME)\" where
+BINDING is the key to which the specified view NAME will be bound
+to."
   :group 'mentor
   :type '(alist :key-type integer :value-type string))
 
@@ -317,16 +325,16 @@ This will only work with rTorrent 0.9.7 or later."
     ;; view bindings
     (define-key map (kbd "a") 'mentor-add-torrent-to-view)
     (define-key map (kbd "w") 'mentor-switch-to-view)
-    (define-key map (kbd "1") (lambda () (interactive) (mentor-switch-to-view 1)))
-    (define-key map (kbd "2") (lambda () (interactive) (mentor-switch-to-view 2)))
-    (define-key map (kbd "3") (lambda () (interactive) (mentor-switch-to-view 3)))
-    (define-key map (kbd "4") (lambda () (interactive) (mentor-switch-to-view 4)))
-    (define-key map (kbd "5") (lambda () (interactive) (mentor-switch-to-view 5)))
-    (define-key map (kbd "6") (lambda () (interactive) (mentor-switch-to-view 6)))
-    (define-key map (kbd "7") (lambda () (interactive) (mentor-switch-to-view 7)))
-    (define-key map (kbd "8") (lambda () (interactive) (mentor-switch-to-view 8)))
-    (define-key map (kbd "9") (lambda () (interactive) (mentor-switch-to-view 9)))
-    (define-key map (kbd "0") (lambda () (interactive) (mentor-switch-to-view 0)))
+    (define-key map (kbd "1") 'mentor-switch-to-view-1)
+    (define-key map (kbd "2") 'mentor-switch-to-view-2)
+    (define-key map (kbd "3") 'mentor-switch-to-view-3)
+    (define-key map (kbd "4") 'mentor-switch-to-view-4)
+    (define-key map (kbd "5") 'mentor-switch-to-view-5)
+    (define-key map (kbd "6") 'mentor-switch-to-view-6)
+    (define-key map (kbd "7") 'mentor-switch-to-view-7)
+    (define-key map (kbd "8") 'mentor-switch-to-view-8)
+    (define-key map (kbd "9") 'mentor-switch-to-view-9)
+    (define-key map (kbd "0") 'mentor-switch-to-view-0)
     map))
 
 (eval-after-load 'dired-x
@@ -1663,6 +1671,17 @@ Only use when you are the first and only seeder so far for the download."
     (mentor-set-view new)
     (mentor-update)
     (message "Showing view: %s" mentor-current-view)))
+
+(defun mentor-switch-to-view-1 () (interactive) (mentor-switch-to-view 1))
+(defun mentor-switch-to-view-2 () (interactive) (mentor-switch-to-view 2))
+(defun mentor-switch-to-view-3 () (interactive) (mentor-switch-to-view 3))
+(defun mentor-switch-to-view-4 () (interactive) (mentor-switch-to-view 4))
+(defun mentor-switch-to-view-5 () (interactive) (mentor-switch-to-view 5))
+(defun mentor-switch-to-view-6 () (interactive) (mentor-switch-to-view 6))
+(defun mentor-switch-to-view-7 () (interactive) (mentor-switch-to-view 7))
+(defun mentor-switch-to-view-8 () (interactive) (mentor-switch-to-view 8))
+(defun mentor-switch-to-view-9 () (interactive) (mentor-switch-to-view 9))
+(defun mentor-switch-to-view-0 () (interactive) (mentor-switch-to-view 0))
 
 (defun mentor-views-add (view)
   "Add VIEW to rTorrent's \"view_list\" and set the new view_filter.
