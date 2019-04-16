@@ -529,6 +529,12 @@ start a new session."
     (mentor-redisplay)
     (goto-char (point-min))))
 
+;;;###autoload
+(defun mentor-customize ()
+  "Call the customize function with mentor as argument."
+  (interactive)
+  (customize-browse 'mentor))
+
 (defun mentor-post-command-hook ()
   (when mentor-highlight-enable
     (mentor-highlight-torrent)))
