@@ -340,6 +340,7 @@ This will only work with rTorrent 0.9.7 or later."
 (eval-after-load 'dired-x
   '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
+;;;###autoload
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rTorrent from GNU Emacs
 
@@ -512,7 +513,9 @@ It will use the RPC argument as value for scgi_local."
   "Control rTorrent from Emacs using XML-RPC.
 
 If mentor is already running, switch to its buffer.  Otherwise,
-start a new session."
+start a new session.
+
+Full documentation is available under `mentor-mode'."
   (interactive)
   (if (get-buffer "*mentor*")
       ;; Assume that it's set up correctly if it exists
