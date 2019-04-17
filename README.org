@@ -191,7 +191,7 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 | ^D (2)   | D      | Remove download.                                                   |
 | ^K       | k      | Close a torrent and its files.                                     |
 | /n/a/      | K      | Remove download including data.                                    |
-| ^E       | /n/a/    | Set 'create/resize queued' flags.                                  |
+| ^E       | e      | Set 'create/resize queued' flags.                                  |
 | ^R       | r      | Initiate hash check of torrent.                                    |
 | ^O       | o      | Change the destination directory of the download.                  |
 | ^X       | x      | Call commands or change settings.                                  |

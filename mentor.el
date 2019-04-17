@@ -289,7 +289,7 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "C") 'mentor-download-copy-data)
     (define-key map (kbd "R") 'mentor-download-move)
     (define-key map (kbd "b") 'mentor-download-set-inital-seeding)
-    (define-key map (kbd "e") 'mentor-download-recreate-files)
+    (define-key map (kbd "e") 'mentor-download-set-create-resized-queued-flags)
     (define-key map (kbd "o") 'mentor-download-change-target-directory)
     (define-key map (kbd "d") 'mentor-download-stop)
     (define-key map (kbd "D") 'mentor-download-remove)
@@ -365,6 +365,9 @@ Operations on download at point (or marked downloads):
   `\\[mentor-download-copy-data]' - Copy downloaded data to location
   `\\[mentor-increase-priority]' - Increase priority of download
   `\\[mentor-decrease-priority]' - Decrease priority of download
+  `\\[mentor-download-set-create-resized-queued-flags]' - Set the 'create/resize queued' flags on all files in a torrent.
+      This is necessary if the underlying files in a torrent have been deleted
+      or truncated, and thus rtorrent must recreate them.
 
 Operations on download at point:
 
@@ -1172,9 +1175,7 @@ when rTorrent is running on a remote host."
   (let ((files (mentor-item-property 'files tor)))
     (when (not (cdr-safe files))
       (progn
-        (setq files (mentor-rpc-command
-                     "f.multicall" (mentor-item-property 'hash tor)
-                     "" "f.path_components="))
+        (setq files (mentor-rpc-f.multicall (mentor-item-property 'hash tor) "f.path_components="))
         (mentor-item-set-property 'files files tor)))
     files))
 
@@ -1407,17 +1408,21 @@ This runs the `d.open' XML-RPC command."
   "Set download status to `closed'.
 
 This runs the `d.close' XML-RPC command, which corresponds to the
-^K command in the ncurses gui."
+^K command in the ncurses ui."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-close (mentor-item-property 'hash))
           (mentor-download-update-and-reinsert-at-point))
    arg))
 
-(defun mentor-download-recreate-files ()
-  "Set the 'create/resize queued' flags on all files in a torrent."
+(defun mentor-download-set-create-resized-queued-flags ()
+  "Set the 'create/resize queued' flags on all files in a torrent.
+
+Corresponds to ^E in the ncurses ui."
   (interactive)
-  (message "TODO: mentor-download-recreate-files"))
+  (mentor-map-over-marks
+   (mentor-rpc-f.multicall (mentor-item-property 'hash) "f.set_create_queued=0" "f.set_resize_queued=0")
+   (message "mentor: Queued create/resize of files in torrent: %s" (mentor-item-property 'name))))
 
 (defun mentor-download-set-inital-seeding ()
   "Set download to perform initial seeding.

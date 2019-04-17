@@ -130,7 +130,7 @@ Optional argument IS-INIT if this is initializing."
       (dolist (values list-of-values)
         (mentor-data-download-update-from d-properties t-properties values is-init)))))
 
-;; Download data
+;;;; Download data
 
 (defun mentor-rpc-methods-to-properties (methods)
   (mapcar
@@ -239,6 +239,13 @@ Optional argument IS-INIT if this is initializing."
     "d.is_hash_checking"
     "d.is_open"
     "d.is_pex_active"))
+
+;;;; File data
+
+(defun mentor-rpc-f.multicall (hash &rest methods)
+  (apply 'mentor-rpc-command "f.multicall" hash "" methods))
+
+;;;; Tracker data
 
 ;; https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#t-commands
 (defconst mentor-rpc-t-methods
