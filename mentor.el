@@ -337,6 +337,67 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "0") 'mentor-switch-to-view-0)
     map))
 
+(easy-menu-define mentor-mode-menu mentor-mode-map
+  "Mentor menu"
+  '("Mentor"
+    ["Load torrent" mentor-download-load-torrent t]
+    ["Load Magnet Link or URL" mentor-download-load-magnet-link-or-url t]
+    "---"
+    ["Update data" mentor-update t]
+    ["Re-initialize data" mentor-reload t]
+    ["Update item at point" mentor-update-item t]
+    ("Sort"
+     ["Sort by name" mentor-sort-by-name t]
+     ["Sort by directory" mentor-sort-by-directory t]
+     ["Sort by state" mentor-sort-by-state t]
+     ["Sort by size" mentor-sort-by-size t]
+     ["Sort by tied file name" mentor-sort-by-tied-file-name t]
+     ["Sort by download speed" mentor-sort-by-download-speed t]
+     ["Sort by upload speed" mentor-sort-by-upload-speed t]
+     ["Sort by any property..." mentor-sort-by-property-prompt t])
+    "---"
+    ["Mark" mentor-mark t]
+    ["Unmark" mentor-unmark t]
+    ["Mark all" mentor-mark-all t]
+    ["Unmark all" mentor-unmark-all t]
+    "---"
+    ["Start download" mentor-download-start t]
+    ["Stop download" mentor-download-stop t]
+    ["Close download" mentor-download-close t]
+    ["Change directory" mentor-download-change-target-directory t]
+    ["Move download" mentor-download-move t]
+    ["Copy download data" mentor-download-copy-data t]
+    ["Remove download" mentor-download-remove t]
+    ["Remove including data " mentor-download-remove-including-files t]
+    "---"
+    ["Open file view" mentor-show-download-files t]
+    ["Open in dired" mentor-dired-jump t]
+    ["Hash check" mentor-download-hash-check t]
+    ["Set resized/queued" mentor-download-set-create-resized-queued-flags t]
+    ["Set initial seeding" mentor-download-set-inital-seeding t]
+    ["Increase priority" mentor-increase-priority t]
+    ["Decrease priority" mentor-decrease-priority t]
+    "---"
+    ("Switch view"
+     ["View 1" mentor-switch-to-view-1 t]
+     ["View 2" mentor-switch-to-view-2 t]
+     ["View 3" mentor-switch-to-view-3 t]
+     ["View 4" mentor-switch-to-view-4 t]
+     ["View 5" mentor-switch-to-view-5 t]
+     ["View 6" mentor-switch-to-view-6 t]
+     ["View 7" mentor-switch-to-view-7 t]
+     ["View 8" mentor-switch-to-view-8 t]
+     ["View 9" mentor-switch-to-view-9 t]
+     ["View 0" mentor-switch-to-view-0 t]
+     ["Named view..." mentor-switch-to-view t])
+    ["Add torrent to view" mentor-add-torrent-to-view t]
+    "---"
+    ["Run XML-RPC Command" mentor-call-command t]
+    ["Customize Mentor" mentor-customize t]
+    "---"
+    ["Bury Mentor Buffer" bury-buffer t]
+    ["Quit Mentor" mentor-shutdown]))
+
 (eval-after-load 'dired-x
   '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
