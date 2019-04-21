@@ -816,7 +816,7 @@ expensive operation."
 
 (defun mentor-download-update-and-reinsert-at-point ()
   "Update download at point and reinsert in buffer."
-  (let* ((download (mentor-get-item-at-point)))
+  (let ((download (mentor-get-item-at-point)))
     (mentor-download-update-this download)
     (mentor-download-reinsert-at-point)))
 
