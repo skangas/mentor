@@ -1415,14 +1415,16 @@ This runs the `d.close' XML-RPC command, which corresponds to the
           (mentor-download-update-and-reinsert-at-point))
    arg))
 
-(defun mentor-download-set-create-resized-queued-flags ()
+(defun mentor-download-set-create-resized-queued-flags (arg)
   "Set the 'create/resize queued' flags on all files in a torrent.
 
 Corresponds to ^E in the ncurses ui."
-  (interactive)
+  (interactive "P")
   (mentor-map-over-marks
-   (mentor-rpc-f.multicall (mentor-item-property 'hash) "f.set_create_queued=0" "f.set_resize_queued=0")
-   (message "mentor: Queued create/resize of files in torrent: %s" (mentor-item-property 'name))))
+   (progn
+     (mentor-rpc-f.multicall (mentor-item-property 'hash) "f.set_create_queued=0" "f.set_resize_queued=0")
+     (message "mentor: Queued create/resize of files in torrent: %s" (mentor-item-property 'name)))
+   arg))
 
 (defun mentor-download-set-inital-seeding ()
   "Set download to perform initial seeding.
