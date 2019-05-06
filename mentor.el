@@ -208,10 +208,8 @@ This will only work with rTorrent 0.9.7 or later."
 
 (defvar mentor-mode-hook)
 (defvar mentor-current-view)
-(defvar mentor-home-dir (expand-file-name
-                         (convert-standard-filename "mentor/")
-                         user-emacs-directory)
-  "Where mentor should put any of its temporary files.")
+(defvar mentor-home-dir (expand-file-name (locate-user-emacs-file "mentor/"))
+  "Where Mentor should put its files.")
 (defvar mentor--header-line)
 (make-variable-buffer-local 'mentor--header-line)
 
