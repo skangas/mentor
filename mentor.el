@@ -1254,33 +1254,37 @@ when rTorrent is running on a remote host."
   (when (mentor-mark-confirm
          (or (and remove-files "Remove including data") "Remove")
          arg)
-    (mentor-map-over-marks
-     (progn
-       (let* ((download (mentor-get-item-at-point))
-              (files (and remove-files (mentor-download-get-file-list download)))
-              (base-path (mentor-item-property 'base_path))
-              (is-multi-file (mentor-item-property 'is_multi_file download))
-              dirs)
-         (mentor-rpc-d-erase (mentor-item-property 'hash download))
-         (mentor-view-torrent-list-delete-all download)
-         (remhash (mentor-item-property 'local_id download) mentor-items)
-         (when remove-files
-           (if (= is-multi-file 0)
-               (mentor-delete-file base-path)
-             (progn
-               (dolist (file files)
-                 (let* ((file (concat base-path "/" (caar file)))
-                        (dir (file-name-directory file)))
-                   (mentor-delete-file file)
-                   (setq dirs (cl-adjoin dir dirs :test 'equal))))
-               (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
-               (dolist (dir dirs)
-                 (mentor-delete-file dir))))
-           (when (file-exists-p base-path)
-             (error "Mentor: Still exists after delete: %s" base-path)))
-         (mentor-delete-item-from-buffer (point))
-         (mentor-goto-item-name-column)))
-     arg)))
+    (dolist (item
+             (mentor-map-over-marks
+              (progn
+                (let* ((download (mentor-get-item-at-point))
+                       (files (and remove-files (mentor-download-get-file-list download)))
+                       (base-path (mentor-item-property 'base_path))
+                       (is-multi-file (mentor-item-property 'is_multi_file download))
+                       dirs)
+                  (message "Deleting %s at %s" base-path (line-number-at-pos))
+                  (mentor-rpc-d-erase (mentor-item-property 'hash download))
+                  (mentor-view-torrent-list-delete-all download)
+                  (remhash (mentor-item-property 'local_id download) mentor-items)
+                  (when remove-files
+                    (if (= is-multi-file 0)
+                        (mentor-delete-file base-path)
+                      (progn
+                        (dolist (file files)
+                          (let* ((file (concat base-path "/" (caar file)))
+                                 (dir (file-name-directory file)))
+                            (mentor-delete-file file)
+                            (setq dirs (cl-adjoin dir dirs :test 'equal))))
+                        (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
+                        (dolist (dir dirs)
+                          (mentor-delete-file dir))))
+                    (when (file-exists-p base-path)
+                      (lwarn '(mentor 'delete-failed) :error
+                             (format "Mentor: Still exists after delete: %s" base-path)))))
+                (point))
+              arg))
+      (mentor-delete-item-from-buffer item))
+    (mentor-goto-item-name-column)))
 
 (defun mentor-download-remove (&optional arg)
   "Remove download at point or marked downloads."
