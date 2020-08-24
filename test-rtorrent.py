@@ -7,7 +7,7 @@
 # python rtorrent-test.py
 
 
-# Copyright (C) 2016-2019 Stefan Kangas.
+# Copyright (C) 2016-2020 Stefan Kangas.
 #
 # This file is NOT part of GNU Emacs.
 #
