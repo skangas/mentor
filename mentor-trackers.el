@@ -1,4 +1,4 @@
-;;; mentor-files.el --- Mentor file view  -*- lexical-binding: t -*-
+;;; mentor-trackers.el --- Mentor trackers view  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020 Jesse Gildersleve.
 
