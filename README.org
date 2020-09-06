@@ -207,11 +207,11 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 - There is no view for trackers/peers/extra information.
 
 - Mentor used to have performance issues when there were several hundreds or
-  thousands of torrents.  So in I wrote a patch for xml-rpc.el to add support
-  for Emacs built-in libxml support, which was helpfully merged by its
-  maintainer Mark A. Hershberger.  This improved performance by a factor of 100.
-  Make sure you upgrade to Emacs 27.1, build it with libxml support, and use the
-  latest xml-rpc.el version to benefit from this speed increase.
+  thousands of torrents.  So I wrote a patch for xml-rpc.el to add support for
+  Emacs built-in libxml support, which was helpfully merged by the xml-rpc.el
+  maintainer Mark A. Hershberger.  This improved performance by a factor
+  of 100. Make sure you upgrade to Emacs 27.1, build it with libxml support, and
+  use the latest xml-rpc.el version to benefit from this speed increase.
 
 ** Contact
 
