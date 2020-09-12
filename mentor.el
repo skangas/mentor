@@ -1542,8 +1542,10 @@ Only use when you are the first and only seeder so far for the download."
         (goto-char (point-max))
         (insert "\n mentor " mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
-                mentor-rtorrent-library-version
-                " (" mentor-rtorrent-name ")\n")))))
+                mentor-rtorrent-library-version)
+        (when rtorrent-name
+          (insert " (" mentor-rtorrent-name ")"))
+        (insert "\n")))))
 
 (defun mentor-show-download-files ()
   "Show file details for download at point."
