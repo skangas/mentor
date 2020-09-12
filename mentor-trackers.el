@@ -35,7 +35,7 @@
 (declare-function mentor-item-property "mentor.el")
 (declare-function mentor-get-item-at-point "mentor-data.el")
 (declare-function mentor-rpc-command "mentor-rpc.el")
-(define-key mentor-mode-map (kbd "T") 'mentor-open-tracker-view-at-point)
+(define-key mentor-mode-map (kbd "T") 'mentor-tracker-open-view-at-point)
 
 (setq mentor-tracker-rpc-t-methods
       '("t.url="
@@ -76,7 +76,7 @@
                 (mentor-item-property 'name mentor-tracker-selected-download)))
   (mentor-tracker-refresh))
 
-(defun princ-to-string (x)
+(defun mentor-princ-to-string (x)
   "Convert to X string."
   (with-output-to-string (princ x)))
 
@@ -124,7 +124,7 @@
   (tabulated-list-init-header)
   (tabulated-list-print t))
 
-(defun mentor-open-tracker-view-at-point ()
+(defun mentor-tracker-open-view-at-point ()
   "Opens the tracker view for the torrent at point."
   (interactive)
   (setq mentor-tracker--hash (mentor-item-property 'hash))
@@ -141,9 +141,9 @@
     (dolist (tracker-info tracker-list)
       (if tabulated-list-entries
           (setq tabulated-list-entries
-                (append tabulated-list-entries `((,id ,(cl-map 'vector 'princ-to-string  tracker-info)))))
+                (append tabulated-list-entries `((,id ,(cl-map 'vector 'mentor-princ-to-string  tracker-info)))))
         (setq tabulated-list-entries
-              `((,id ,(cl-map 'vector 'princ-to-string  tracker-info)))))
+              `((,id ,(cl-map 'vector 'mentor-princ-to-string  tracker-info)))))
       (setq id (1+ id)))))
 
 ;; Local Variables:
