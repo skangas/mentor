@@ -210,7 +210,7 @@ This will only work with rTorrent 0.9.7 or later."
 (defvar mentor-current-view)
 (defvar mentor-home-dir (expand-file-name (locate-user-emacs-file "mentor/"))
   "Where Mentor should put its files.")
-(defvar mentor--header-line)
+(defvar mentor--header-line "")
 (make-variable-buffer-local 'mentor--header-line)
 
 (defvar mentor-rtorrent-client-version)
