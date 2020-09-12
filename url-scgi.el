@@ -48,7 +48,7 @@
 (require 'cl-lib)
 (require 'url-parse)
 
-(defvar url-scgi-version "0.4"
+(defvar url-scgi-version "0.5"
   "The version of scgi that you're using.")
 
 (defvar url-scgi-connection-opened)

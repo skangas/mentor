@@ -5,7 +5,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.3.4
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((xml-rpc "1.6.13") (seq "1.11") (cl-lib "0.5") (async "1.9.3"))
+;; Package-Requires: ((xml-rpc "1.6.12") (seq "1.11") (cl-lib "0.5") (async "1.9.3"))
 
 (defconst mentor-version "0.3.4"
   "The version of Mentor that you're using.")
@@ -952,12 +952,7 @@ expensive operation."
        (sort-subr nil
                   (lambda () (ignore-errors (mentor-forward-item 1)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
-                  (lambda ()
-                    (let ((item (mentor-get-item-at-point)))
-                      (cl-mapcar (lambda (p)
-                                 (let ((prop (or (and (listp p) (car p)) p)))
-                                  (mentor-item-property prop item)))
-                               mentor-sort-list)))
+                  nil
                   nil
                   (lambda (a b)
                     (mentor-cmp-properties a b mentor-sort-list)))))))
@@ -965,15 +960,15 @@ expensive operation."
 (defun mentor-cmp-properties (x y &optional props)
   (let* ((a (car x))
          (b (car y))
-         (reverse (cdr-safe (car props)))
-         (cmp (if (stringp a)
-                  (if reverse (not (string< a b)) (string< a b))
+         (reverse (cadr (car props)))
+         (cmp (if (cadddr (car props))
+                  (if reverse (string> a b) (string< a b))
                 (if reverse (> a b) (< a b)))))
     (when (and (not cmp) (equal a b) (> (length props) 1))
       (setq cmp (mentor-cmp-properties (cdr x) (cdr y) (cdr props))))
     cmp))
 
-(defun mentor-sort (&optional property reverse append)
+(defun mentor-sort (property &optional reverse append string)
   "Sort the mentor torrent buffer.
 Defaults to sorting according to `mentor-sort-list'.
 
@@ -986,7 +981,7 @@ When APPEND is non-nil, instead of sorting directly, add the
 result to the end of `mentor-sort-list'.  This makes it possible
 to sort according to several properties."
   (when property
-    (let ((elem (cons property reverse)))
+    (let ((elem (list property reverse string)))
       (if append
           (add-to-list 'mentor-sort-list elem t)
         (setq mentor-sort-list (list elem)))))
@@ -994,7 +989,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-directory (append)
   (interactive "P")
-  (mentor-sort 'directory nil append))
+  (mentor-sort 'directory nil append 'string))
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
@@ -1002,7 +997,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-name (append)
   (interactive "P")
-  (mentor-sort 'name nil append))
+  (mentor-sort 'name nil append 'string))
 
 (defun mentor-sort-by-state (append)
   (interactive "P")
@@ -1010,7 +1005,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-tied-file-name (append)
   (interactive "P")
-  (mentor-sort 'tied_to_file nil append))
+  (mentor-sort 'tied_to_file nil append 'string))
 
 (defun mentor-sort-by-size (append)
   (interactive "P")
@@ -1233,23 +1228,37 @@ when rTorrent is running on a remote host."
   (interactive "MEnter command: ")
   (apply 'mentor-rpc-command (split-string cmd)))
 
-(defun mentor-download-get-file-list (tor)
-  (let ((files (mentor-item-property 'files tor)))
-    (when (not (cdr-safe files))
-      (progn
-        (setq files (mentor-rpc-f.multicall (mentor-item-property 'hash tor) "f.path_components="))
-        (mentor-item-set-property 'files files tor)))
+(defun mentor-download-get-file-list (download)
+  (let ((files (mentor-item-property 'files download)))
+    (unless nil
+      (setq files
+            ;;(("foo" "bar" "baz")) -> "foo/bar/baz"
+            (mapcar
+             (lambda (f) (string-join (car f) "/"))
+             (mentor-rpc-f.multicall (mentor-item-property 'hash download)
+                               "f.path_components=")))
+      (mentor-item-set-property 'files files download))
     files))
 
-(defun mentor-delete-file (file)
-  (if (file-exists-p file)
-      (let ((dired-recursive-deletes nil))
-        (condition-case _err
-            (dired-delete-file file)
-          (file-error (message "Unable to delete: %s" file))))
-    (message "Mentor: Downloaded file missing on delete: %s" file)))
+(defun mentor-delete-files (directory files)
+  "Delete files FILES in directory DIRECTORY.
+Also remove any empty directories under DIRECTORY.
+Do not delete any files that are not in the list FILES."
+  (let ((dirs (list directory)))
+    (dolist (file (mapcar (lambda (f)
+                            (concat directory "/" f))
+                          files))
+      (if (file-directory-p file)
+          (message "file-directory-p true: %s")
+        (delete-file file t))
+      (setq dirs (cl-adjoin (file-name-directory file) dirs :test 'equal)))
+    ;; Sort dirs to get the deepest directories first.
+    (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
+    (dolist (dir dirs)
+      (condition-case _err
+          (delete-directory dir nil t)
+        (file-error nil)))))
 
-;; TODO: Check directory of multi file download for lingering files
 (defun mentor--download-remove-helper (remove-files &optional arg)
   (when (mentor-mark-confirm
          (or (and remove-files "Remove including data") "Remove")
@@ -1258,29 +1267,17 @@ when rTorrent is running on a remote host."
              (mentor-map-over-marks
               (progn
                 (let* ((download (mentor-get-item-at-point))
-                       (files (and remove-files (mentor-download-get-file-list download)))
-                       (base-path (mentor-item-property 'base_path))
-                       (is-multi-file (mentor-item-property 'is_multi_file download))
-                       dirs)
-                  (message "Deleting %s at %s" base-path (line-number-at-pos))
-                  (mentor-rpc-d-erase (mentor-item-property 'hash download))
-                  (mentor-view-torrent-list-delete-all download)
-                  (remhash (mentor-item-property 'local_id download) mentor-items)
+                       (files (mentor-download-get-file-list download))
+                       (directory (mentor-item-property 'directory download))
+                       (hash (mentor-item-property 'hash download))
+                       (local-id (mentor-item-property 'local_id download)))
                   (when remove-files
-                    (if (= is-multi-file 0)
-                        (mentor-delete-file base-path)
-                      (progn
-                        (dolist (file files)
-                          (let* ((file (concat base-path "/" (caar file)))
-                                 (dir (file-name-directory file)))
-                            (mentor-delete-file file)
-                            (setq dirs (cl-adjoin dir dirs :test 'equal))))
-                        (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
-                        (dolist (dir dirs)
-                          (mentor-delete-file dir))))
-                    (when (file-exists-p base-path)
-                      (lwarn '(mentor 'delete-failed) :error
-                             (format "Mentor: Still exists after delete: %s" base-path)))))
+                    (if (= (mentor-item-property 'is_multi_file download) 1)
+                        (mentor-delete-files directory files)
+                      (delete-file base-path t)))
+                  (mentor-rpc-d-erase hash)
+                  (mentor-view-torrent-list-delete-all download)
+                  (remhash local-id mentor-items))
                 (point))
               arg))
       (mentor-delete-item-from-buffer item))
@@ -1832,6 +1829,8 @@ torrents to a view unless the filter is updated."
 
 (defun mentor-bytes-to-human (bytes)
   "Convert BYTES to human readable and try to keep it short."
+  ;; We do not use `file-size-human-readable', because it is not optimized to
+  ;; return 4 characters.
   (if bytes
       (let* ((bytes (if (stringp bytes) (string-to-number bytes) bytes))
              (kb 1024.0)

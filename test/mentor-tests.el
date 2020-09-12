@@ -97,7 +97,6 @@
   (should (equal (mentor-enforce-length "foo" -4) "foo "))
   (should (equal (mentor-enforce-length "foo" 4)  " foo")))
 
-
 (provide 'mentor-tests)
 
 ;; Local Variables:
