@@ -961,7 +961,7 @@ expensive operation."
   (let* ((a (car x))
          (b (car y))
          (reverse (cadr (car props)))
-         (cmp (if (cadddr (car props))
+         (cmp (if (caddr (car props))
                   (if reverse (string> a b) (string< a b))
                 (if reverse (> a b) (< a b)))))
     (when (and (not cmp) (equal a b) (> (length props) 1))
