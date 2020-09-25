@@ -952,7 +952,12 @@ expensive operation."
        (sort-subr nil
                   (lambda () (ignore-errors (mentor-forward-item 1)))
                   (lambda () (ignore-errors (mentor-end-of-item)))
-                  nil
+                  (lambda ()
+                    (let ((item (mentor-get-item-at-point)))
+                      (cl-mapcar (lambda (p)
+                                 (let ((prop (or (and (listp p) (car p)) p)))
+                                  (mentor-item-property prop item)))
+                               mentor-sort-list)))
                   nil
                   (lambda (a b)
                     (mentor-cmp-properties a b mentor-sort-list)))))))
@@ -960,15 +965,15 @@ expensive operation."
 (defun mentor-cmp-properties (x y &optional props)
   (let* ((a (car x))
          (b (car y))
-         (reverse (cadr (car props)))
-         (cmp (if (caddr (car props))
-                  (if reverse (string> a b) (string< a b))
+         (reverse (cdr-safe (car props)))
+         (cmp (if (stringp a)
+                  (if reverse (not (string< a b)) (string< a b))
                 (if reverse (> a b) (< a b)))))
     (when (and (not cmp) (equal a b) (> (length props) 1))
       (setq cmp (mentor-cmp-properties (cdr x) (cdr y) (cdr props))))
     cmp))
 
-(defun mentor-sort (property &optional reverse append string)
+(defun mentor-sort (&optional property reverse append)
   "Sort the mentor torrent buffer.
 Defaults to sorting according to `mentor-sort-list'.
 
@@ -981,7 +986,7 @@ When APPEND is non-nil, instead of sorting directly, add the
 result to the end of `mentor-sort-list'.  This makes it possible
 to sort according to several properties."
   (when property
-    (let ((elem (list property reverse string)))
+    (let ((elem (cons property reverse)))
       (if append
           (add-to-list 'mentor-sort-list elem t)
         (setq mentor-sort-list (list elem)))))
@@ -989,7 +994,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-directory (append)
   (interactive "P")
-  (mentor-sort 'directory nil append 'string))
+  (mentor-sort 'directory nil append))
 
 (defun mentor-sort-by-download-speed (append)
   (interactive "P")
@@ -997,7 +1002,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-name (append)
   (interactive "P")
-  (mentor-sort 'name nil append 'string))
+  (mentor-sort 'name nil append))
 
 (defun mentor-sort-by-state (append)
   (interactive "P")
@@ -1005,7 +1010,7 @@ to sort according to several properties."
 
 (defun mentor-sort-by-tied-file-name (append)
   (interactive "P")
-  (mentor-sort 'tied_to_file nil append 'string))
+  (mentor-sort 'tied_to_file nil append))
 
 (defun mentor-sort-by-size (append)
   (interactive "P")
