@@ -1548,7 +1548,7 @@ Only use when you are the first and only seeder so far for the download."
         (insert "\n mentor " mentor-version " - rTorrent "
                 mentor-rtorrent-client-version "/"
                 mentor-rtorrent-library-version)
-        (when rtorrent-name
+        (when mentor-rtorrent-name
           (insert " (" mentor-rtorrent-name ")"))
         (insert "\n")))))
 
