@@ -1275,6 +1275,7 @@ Do not delete any files that are not in the list FILES."
                        (files (mentor-download-get-file-list download))
                        (directory (mentor-item-property 'directory download))
                        (hash (mentor-item-property 'hash download))
+                       (base-path (mentor-item-property 'base_path))
                        (local-id (mentor-item-property 'local_id download)))
                   (when remove-files
                     (if (= (mentor-item-property 'is_multi_file download) 1)
