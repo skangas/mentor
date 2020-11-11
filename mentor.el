@@ -401,7 +401,7 @@ This will only work with rTorrent 0.9.7 or later."
 
 ;;;###autoload
 (define-derived-mode mentor-mode special-mode "mentor"
-  "Major mode for controlling rTorrent from GNU Emacs
+  "Major mode for controlling rTorrent from GNU Emacs.
 
 Type \\[mentor] to start Mentor.
 
