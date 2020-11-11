@@ -1210,7 +1210,7 @@ This does not support Magnet links.  Use
   (let* ((is-torrent-p (lambda (x)
                          (or (and (not (string-match "^\\." x))
                                   (file-directory-p x))
-                             (string-match "\.torrent$" x))))
+                             (string-match "\\.torrent$" x))))
          (file (read-file-name "Add torrent: " nil nil
                                nil nil is-torrent-p)))
     (mentor-file-sanity-check file)
