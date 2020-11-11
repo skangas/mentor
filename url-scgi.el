@@ -24,11 +24,13 @@
 
 ;;; Commentary:
 
-;; This is heavily based on the url-http.el library.
+;; Support for SCGI URLs.
 ;;
 ;; The SCGI specification document can be found at:
 ;;
 ;; https://python.ca/scgi/protocol.txt
+;;
+;; This is heavily based on the url-http.el library.
 
 ;;; Change Log:
 
