@@ -1254,7 +1254,7 @@ Do not delete any files that are not in the list FILES."
                             (concat directory "/" f))
                           files))
       (if (file-directory-p file)
-          (message "file-directory-p true: %s")
+          (message "file-directory-p true: %s" directory)
         (delete-file file t))
       (setq dirs (cl-adjoin (file-name-directory file) dirs :test 'equal)))
     ;; Sort dirs to get the deepest directories first.
