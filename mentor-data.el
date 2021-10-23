@@ -33,8 +33,8 @@
 (defconst mentor-rpc-t-multicall-sep "#")
 
 (cl-defstruct mentor-item
-  "A structure containing an item that can be displayed
-in a buffer, like a torrent, file, directory, peer etc."
+  "Struct containing an item that can be displayed in a buffer.
+This could be a torrent, file, directory, peer, etc."
   id data marked type)
 
 (defvar mentor-items nil
@@ -103,7 +103,7 @@ If MUST-EXIST is non-nil, give a warning if the property does not
     (mentor-view-torrent-list-add new)))
 
 (defun mentor-data-download-update-from (d-methods t-methods values &optional is-init)
-  "Parses results from mentor-rpc-d.multicall and updates download data.
+  "Parse results from `mentor-rpc-d.multicall' and update download data.
 
 If T-METHODS is nil, do not handle tracker data.
 

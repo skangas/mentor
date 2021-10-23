@@ -95,7 +95,8 @@ If REGEXP is specified it only returns the matching functions."
     (mentor-rpc-command cmd "" data)))
 
 (defun mentor-rpc-c-execute2 (&rest args)
-  "Run the execute2 command via RPC.  This is an arbitrary shell command."
+  "Run the \"execute2\" command via RPC.
+This is an arbitrary shell command."
   (apply 'mentor-rpc-command "execute2" "" args))
 
 ;; Download RPC commands, prefix d
@@ -116,9 +117,9 @@ If REGEXP is specified it only returns the matching functions."
   (mentor-rpc-command "d.stop" hash))
 
 (defun mentor-rpc-d.multicall (d-methods t-methods &optional is-init)
-  "Call `d.multicall2' with METHODS.
+  "Call \"d.multicall2\" with METHODS.
 
-Optional argument IS-INIT if this is initializing."
+If optional argument IS-INIT is non-nil, this is initializing."
   (let* ((d-methods= (mapcar (lambda (m) (concat m "=")) d-methods))
          (t-methods= (list (mentor-rpc-join-t-methods t-methods)))
          (all-methods (append d-methods= t-methods=))
@@ -253,16 +254,17 @@ Optional argument IS-INIT if this is initializing."
     "t.is_enabled"))
 
 (defconst mentor-rpc-t-multicall-sep "#"
-  "Separator used to join calls (and their results) in t.multicall. This is
-   also used to split the result string, so it should be something that is
-   unlikely to appears in any of the t.* fields.")
+  "Separator used to join calls (and their results) in \"t.multicall\".
+This is also used to split the result string, so it should be
+something that is unlikely to appear in any of the \"t.*\"
+fields.")
 
 (defun mentor-rpc-join-t-methods (methods)
-  "Construct a quoted t.multicall call string for a d.multicall call.
-Each call in a d.multicall returns a string, so the entire
-result of the t.mutlicall will be returned as a single string that we need to
-split. Thus, insert a separator between every t.* call so we can can split
-on it."
+  "Construct a quoted \"t.multicall\" call string for a \"d.multicall call\".
+Each call in a \"d.multicall\" returns a string, so the entire
+result of the \"t.mutlicall\" will be returned as a single string
+that we need to split.  Thus, insert a separator between every
+\"t.*\" call so we can can split on it."
   (when methods
     ;; d.hash must be included: it is the primary key rtorrent uses to identify
     ;; which torrent the other properties should be looked up for. The trailing

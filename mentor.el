@@ -336,7 +336,7 @@ This will only work with rTorrent 0.9.7 or later."
     map))
 
 (easy-menu-define mentor-mode-menu mentor-mode-map
-  "Mentor menu"
+  "Mentor menu."
   '("Mentor"
     ["Load torrent" mentor-download-load-torrent t]
     ["Load Magnet Link or URL" mentor-download-load-magnet-link-or-url t]
@@ -1219,7 +1219,7 @@ This does not support Magnet links.  Use
     (mentor-rpc-c-load-raw file prefix))
   (mentor-update))
 
-(defun mentor-download-load-magnet-link-or-url (prefix file)
+(defun mentor-download-load-magnet-link-or-url (prefix url)
   "Add Magnet link or URL to rTorrent and start download.
 
 If PREFIX is set, the download will not be started.
@@ -1228,7 +1228,7 @@ This can also take a file path, but it has no completion.  Unlike
 ``mentor-download-load-torrent'' this would work with a file path
 when rTorrent is running on a remote host."
   (interactive "P\nMLoad Magnet link or URL: ")
-  (mentor-rpc-c-load file prefix))
+  (mentor-rpc-c-load url prefix))
 
 (defun mentor-call-command (&optional cmd)
   "Send XML-RPC command CMD to rTorrent."

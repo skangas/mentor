@@ -49,11 +49,11 @@
 (declare-function mentor-rpc-command "mentor-rpc.el")
 
 (cl-defstruct mentor-file
-  "The datastructure that contains the information about torrent
-files.  A mentor-file can be either a regular file or a filename
-and if it is the latter it will contain a list of the files it
-contain.  If it is a regular file it will contain an id which is
-the integer index used by rtorrent to identify this file."
+  "Datastructure containing information about torrent files.
+A `mentor-file' can be either a regular file or a filename and if
+it is the latter it will contain a list of the files it contain.
+If it is a regular file it will contain an id which is the
+integer index used by rtorrent to identify this file."
   name show marked size completed_chunks
   size_chunks priority files type id)
 
@@ -137,15 +137,14 @@ the integer index used by rtorrent to identify this file."
     (goto-char start-point)))
 
 (defun mentor-file-get-file (dir name)
-  "Returns the file with the specified name in the directory
-`dir'."
+  "Return file with NAME in directory DIR."
   (let* ((pred (lambda (x) (string= name (mentor-file-name x))))
          (file^ (cl-find-if pred (mentor-file-files dir))))
     (when file^
       file^)))
 
 (defun mentor-file-add-file (dir file)
-  "Adds a file to the back of the specified directory."
+  "Add FILE to the back of directory DIR."
   (setf (mentor-file-files dir)
         (nconc (mentor-file-files dir) (list file))))
 
