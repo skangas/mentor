@@ -675,6 +675,7 @@ Search starts at the beginning of the buffer, thus the car of the list
   corresponds to the line nearest to the buffer's bottom.  This
   is also true for (positive and negative) integer values of ARG.
 BODY should not be too long as it is expanded four times."
+  (declare (indent defun))
   ;;
   ;;Warning: BODY must not add new lines before point - this may cause an
   ;;endless loop.
@@ -1026,6 +1027,7 @@ to sort according to several properties."
 ;;; Navigation
 
 (defmacro mentor-while-same-item (condition skip-blanks &rest body)
+  (declare (indent defun))
   `(let* ((item (mentor-item-id-at-point)))
      (while (and ,condition
                  (or (and ,skip-blanks
