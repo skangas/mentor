@@ -47,7 +47,4 @@
                  (expand-file-name "~/foo")))
   (should (equal (url-scgi-handle-home-dir "/foo") "/foo")))
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; url-scgi-tests.el ends here

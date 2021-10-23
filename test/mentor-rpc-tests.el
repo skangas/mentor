@@ -34,7 +34,4 @@
        "t.scrape_incomplete" "t.scrape_downloaded"))
     "cat=\"$t.multicall=d.hash=,t.url=,cat=#,t.type=,cat=#,t.is_enabled=,cat=#,t.group=,cat=#,t.scrape_complete=,cat=#,t.scrape_incomplete=,cat=#,t.scrape_downloaded=,cat=#\"")))
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; mentor-rpc-tests.el ends here

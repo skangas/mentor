@@ -147,7 +147,4 @@ is the value of mentor-rpc-t-multicall-sep."
 
 (provide 'mentor-data)
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; mentor-data.el ends here

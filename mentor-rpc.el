@@ -303,7 +303,4 @@ name and all consecutive elements is its arguments."
 
 (provide 'mentor-rpc)
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; mentor-rpc.el ends here

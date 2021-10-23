@@ -1885,8 +1885,4 @@ torrents to a view unless the filter is updated."
 
 (provide 'mentor)
 
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; indent-tabs-mode: nil
-;; End:
 ;;; mentor.el ends here

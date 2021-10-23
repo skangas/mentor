@@ -333,7 +333,4 @@ integer index used by rtorrent to identify this file."
 
 (provide 'mentor-files)
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; mentor-files.el ends here
