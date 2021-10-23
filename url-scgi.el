@@ -119,9 +119,9 @@ an updated value of CBARGS as arguments."
          (connection (cond
                       (is-local-socket
                        (let ((filename (url-scgi-handle-home-dir filename)))
-                        (make-network-process :name "scgi"
-                                              :buffer buffer
-                                              :remote filename)))
+                         (make-network-process :name "scgi"
+                                               :buffer buffer
+                                               :remote filename)))
                       (t ; scgi over tcp
                        (url-open-stream host buffer host port)))))
     (if (not connection)

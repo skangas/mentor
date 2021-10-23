@@ -118,7 +118,7 @@ integer index used by rtorrent to identify this file."
 (defun mentor-files-set-priority-fun (val &optional file)
   (let* ((hash (mentor-item-property 'hash mentor-files-selected-download))
          (file (or file
-                  (mentor-file-at-point))))
+                   (mentor-file-at-point))))
     (if (mentor-file-is-dir file)
         (dolist (file (mentor-file-files file))
           (mentor-files-set-priority-fun val file))
@@ -257,9 +257,9 @@ integer index used by rtorrent to identify this file."
                                  symb))
                  (text (concat margin (mentor-file-name file)))
                  (infix-next (concat infix
-                                      (if (= count total)
-                                          "    "
-                                        "│   "))))
+                                     (if (= count total)
+                                         "    "
+                                       "│   "))))
             (insert (apply 'propertize text
                            'item-start (+ (point) (length margin))
                            (mentor-file-properties file)) "\n")

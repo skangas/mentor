@@ -717,8 +717,8 @@ BODY should not be too long as it is expanded four times."
              (if found
                  results
                (list ,body)))))))
-     ;; ;; save-excursion loses, again
-     ;; (dired-move-to-filename)))
+;; ;; save-excursion loses, again
+;; (dired-move-to-filename)))
 
 (defun mentor-get-marked-items (&optional arg)
   "Return the marked items' names as list of strings.
@@ -732,8 +732,8 @@ Optional argument ARG, if non-nil, specifies items near
   (save-excursion
     (nreverse
      (mentor-map-over-marks
-      (mentor-item-property 'name (mentor-get-item-at-point))
-      arg))))
+       (mentor-item-property 'name (mentor-get-item-at-point))
+       arg))))
 
 ;; Based on `dired-mark-pop-up'
 (defun mentor-mark-pop-up (bufname items function &rest args)
@@ -751,17 +751,17 @@ FUNCTION should not manipulate items, just read input
     (let ((buffer (get-buffer-create (or bufname " *Marked Items*"))))
       (with-current-buffer buffer
         (with-current-buffer-window
-         buffer
-         (cons 'display-buffer-below-selected
-               '((window-height . fit-window-to-buffer)))
-         #'(lambda (window _value)
-             (with-selected-window window
-               (unwind-protect
-                   (apply function args)
-                 (when (window-live-p window)
-                   (quit-restore-window window 'kill)))))
-         (erase-buffer)
-         (completion--insert-strings items))))))
+            buffer
+            (cons 'display-buffer-below-selected
+                  '((window-height . fit-window-to-buffer)))
+            #'(lambda (window _value)
+                (with-selected-window window
+                  (unwind-protect
+                      (apply function args)
+                    (when (window-live-p window)
+                      (quit-restore-window window 'kill)))))
+          (erase-buffer)
+          (completion--insert-strings items))))))
 
 (defun mentor-mark-prompt (arg items)
   "Return a string suitable for use in a mentor prompt.
@@ -778,8 +778,8 @@ ITEMS should be a list of item names."
 (defun mentor-mark-confirm (desc arg)
   (let ((items (mentor-get-marked-items arg)))
     (mentor-mark-pop-up nil items (function y-or-n-p)
-                  (concat desc " "
-                          (mentor-mark-prompt arg items) "? "))))
+                        (concat desc " "
+                                (mentor-mark-prompt arg items) "? "))))
 
 
 ;;;; Getting torrent data
@@ -871,12 +871,12 @@ expensive operation."
 (defun mentor-process-columns-helper (cols lenfun strfun)
   (replace-regexp-in-string
    " *$" "" ; Remove trailing whitespace
-   (apply 'concat
-    (cl-mapcar (lambda (column)
-              (let* ((len (funcall lenfun column))
-                     (str (funcall strfun column)))
-                (concat (mentor-enforce-length str len) " ")))
-            cols))))
+   (apply #'concat
+          (cl-mapcar (lambda (column)
+                       (let* ((len (funcall lenfun column))
+                              (str (funcall strfun column)))
+                         (concat (mentor-enforce-length str len) " ")))
+                     cols))))
 
 (defun mentor-process-view-header-columns (cols)
   (mentor-process-columns-helper
@@ -957,9 +957,9 @@ expensive operation."
                   (lambda ()
                     (let ((item (mentor-get-item-at-point)))
                       (cl-mapcar (lambda (p)
-                                 (let ((prop (or (and (listp p) (car p)) p)))
-                                  (mentor-item-property prop item)))
-                               mentor-sort-list)))
+                                   (let ((prop (or (and (listp p) (car p)) p)))
+                                     (mentor-item-property prop item)))
+                                 mentor-sort-list)))
                   nil
                   (lambda (a b)
                     (mentor-cmp-properties a b mentor-sort-list)))))))
@@ -1077,11 +1077,11 @@ point."
       (cl-decf i)
       (setq done nil)
       (mentor-while-same-item (not done) t
-       (let ((at-buf-limit (if reverse (bobp) (eobp)))
-             (step (if reverse -1 1)))
-         (if (not at-buf-limit)
-             (forward-line step)
-           (setq done t)))))))
+        (let ((at-buf-limit (if reverse (bobp) (eobp)))
+              (step (if reverse -1 1)))
+          (if (not at-buf-limit)
+              (forward-line step)
+            (setq done t)))))))
 
 (defun mentor-next-item (&optional arg)
   "Move cursor down ARG items."
@@ -1146,7 +1146,7 @@ point."
 (defun mentor-update-item (&optional arg)
   (interactive "P")
   (mentor-map-over-marks (mentor-item-update-this)
-   arg))
+    arg))
 
 (defun mentor-mark (&optional arg)
   "Mark the current (or next ARG) items.
@@ -1243,7 +1243,7 @@ when rTorrent is running on a remote host."
             (mapcar
              (lambda (f) (string-join (car f) "/"))
              (mentor-rpc-f.multicall (mentor-item-property 'hash download)
-                               "f.path_components=")))
+                                     "f.path_components=")))
       (mentor-item-set-property 'files files download))
     files))
 
@@ -1321,14 +1321,14 @@ Do not delete any files that are not in the list FILES."
   (let* ((items (mentor-get-marked-items))
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt)))
-   (mentor-map-over-marks
-    (let* ((old (mentor-item-property 'base_path)))
-      (when (and (not (null old))
-                 (file-exists-p old))
-        (mentor-rpc-c-execute2 "cp" "-Rn" old new))
-      (message "Copied %s to %s" (mentor-item-property 'name) new)
-      (mentor-download-reinsert-at-point))
-    arg)))
+    (mentor-map-over-marks
+      (let* ((old (mentor-item-property 'base_path)))
+        (when (and (not (null old))
+                   (file-exists-p old))
+          (mentor-rpc-c-execute2 "cp" "-Rn" old new))
+        (message "Copied %s to %s" (mentor-item-property 'name) new)
+        (mentor-download-reinsert-at-point))
+      arg)))
 
 (defun mentor-download-move-async (downloads)
   (async-start
@@ -1357,10 +1357,10 @@ Do not delete any files that are not in the list FILES."
            (verbstr (if (cdr (assoc 'no-move (car remaining))) "Changed directory of" "Moved")))
        (with-current-buffer "*mentor*"
          (mentor-keep-position
-           (mentor-goto-download local_id)
-           (when was-started
-             (mentor-rpc-d-start hash))
-           (mentor-download-update-and-reinsert-at-point)))
+          (mentor-goto-download local_id)
+          (when was-started
+            (mentor-rpc-d-start hash))
+          (mentor-download-update-and-reinsert-at-point)))
        (message "mentor: %s '%s' to '%s'" verbstr name new))
      (when (cdr remaining)
        (mentor-download-move-async (cdr remaining))))))
@@ -1573,7 +1573,7 @@ Only use when you are the first and only seeder so far for the download."
     ;; (mentor-rpc-command "system.shutdown")
     ;; TODO: Clean shutdown...
     (ignore-errors
-     (kill-buffer mentor-rtorrent-buffer-name))))
+      (kill-buffer mentor-rtorrent-buffer-name))))
 
 
 ;;;; Torrent views
@@ -1711,19 +1711,19 @@ Only use when you are the first and only seeder so far for the download."
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
                                  (cl-remove-if-not 'mentor-views-is-custom-view
-                                                mentor-download-views)
+                                                   mentor-download-views)
                                  nil mentor-current-view)))
   (let ((tor (mentor-get-item-at-point)))
-   (when (not (mentor-views-is-custom-view view))
-     (setq view (concat mentor-custom-view-prefix view)))
-   (if (not (mentor-views-valid-view-name view))
-       (message "Not a valid name for a view!")
-     (if (or (mentor-views-is-view-defined view)
-             (when (y-or-n-p (concat "View " view " was not found. Create it? "))
-               (mentor-views-add view) t))
-         (mentor-rpc-command "d.views.push_back_unique"
-                             (mentor-item-property 'hash tor) view)
-       (message "Nothing done")))))
+    (when (not (mentor-views-is-custom-view view))
+      (setq view (concat mentor-custom-view-prefix view)))
+    (if (not (mentor-views-valid-view-name view))
+        (message "Not a valid name for a view!")
+      (if (or (mentor-views-is-view-defined view)
+              (when (y-or-n-p (concat "View " view " was not found. Create it? "))
+                (mentor-views-add view) t))
+          (mentor-rpc-command "d.views.push_back_unique"
+                              (mentor-item-property 'hash tor) view)
+        (message "Nothing done")))))
 
 (defconst mentor-download-default-views
   '("main" "name" "started" "stopped" "complete"
@@ -1780,14 +1780,14 @@ already in view_list and sets all new view_filters."
   (mentor-views-update-views))
 
 ;; FIXME: this was part of mentor-views-init, but why?
-  ;; (maphash
-  ;;  (lambda (id torrent)
-  ;;    (cl-mapcar (lambda (view)
-  ;;              (when (and (mentor-views-is-custom-view view)
-  ;;                         (not (mentor-views-is-view-defined view)))
-  ;;                (mentor-views-add view)))
-  ;;            (cdr (assoc 'views torrent))))
-  ;;  mentor-items))
+;; (maphash
+;;  (lambda (id torrent)
+;;    (cl-mapcar (lambda (view)
+;;              (when (and (mentor-views-is-custom-view view)
+;;                         (not (mentor-views-is-view-defined view)))
+;;                (mentor-views-add view)))
+;;            (cdr (assoc 'views torrent))))
+;;  mentor-items))
 
 (defun mentor-views-update-views ()
   "Update view list with all views defined in rTorrent."
