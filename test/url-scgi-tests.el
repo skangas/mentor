@@ -1,6 +1,6 @@
 ;;; url-scgi-tests.el --- Test suite for url-scgi.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016-2020 Stefan Kangas.
+;; Copyright (C) 2016-2021 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 
