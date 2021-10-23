@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011-2021 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
-;; Version: 0.5
+;; Version: 0.6
 ;; Keywords: comm, data, processes, scgi
 ;; Package-Requires: ((cl-lib "0.5"))
 
@@ -34,6 +34,8 @@
 
 ;;; Change Log:
 
+;; 0.6 - Documentation fixes
+
 ;; 0.5 - Fix using file socket on Emacs 25
 ;;       Fix cl-check-type bug on Emacs 26.1
 
@@ -50,7 +52,7 @@
 (require 'cl-lib)
 (require 'url-parse)
 
-(defvar url-scgi-version "0.5"
+(defvar url-scgi-version "0.6"
   "The version of scgi that you're using.")
 
 (defvar url-scgi-connection-opened)
