@@ -253,7 +253,7 @@ Optional argument IS-INIT if this is initializing."
     "t.is_enabled"))
 
 (defconst mentor-rpc-t-multicall-sep "#"
-  "Seperator used to join calls (and their results) in t.multicall. This is
+  "Separator used to join calls (and their results) in t.multicall. This is
    also used to split the result string, so it should be something that is
    unlikely to appears in any of the t.* fields.")
 
@@ -261,14 +261,14 @@ Optional argument IS-INIT if this is initializing."
   "Construct a quoted t.multicall call string for a d.multicall call.
 Each call in a d.multicall returns a string, so the entire
 result of the t.mutlicall will be returned as a single string that we need to
-split. Thus, insert a seperator between every t.* call so we can can split
+split. Thus, insert a separator between every t.* call so we can can split
 on it."
   (when methods
     ;; d.hash must be included: it is the primary key rtorrent uses to identify
     ;; which torrent the other properties should be looked up for. The trailing
-    ;; seperator is necessary because if a torrent has multiple trackers, the
+    ;; separator is necessary because if a torrent has multiple trackers, the
     ;; t.multicall command will be executed for each of them and the result
-    ;; will be concatened with no additional seperator.
+    ;; will be concatenated with no additional separator.
     (concat "cat=\"$t.multicall=d.hash=,"
             (mapconcat (lambda (m) (concat m "=,cat=" mentor-rpc-t-multicall-sep))
                        methods ",")
@@ -280,7 +280,7 @@ on it."
 ;;     Process an array of calls, and return an array of
 ;;     results. Calls should be structs of the form {'methodName':
 ;;     string, 'params': array}. Each result will either be a
-;;     single-item array containg the result value, or a struct of the
+;;     single-item array containing the result value, or a struct of the
 ;;     form {'faultCode': int, 'faultString': string}. This is useful
 ;;     when you need to make lots of small calls without lots of round
 ;;     trips. See rTorrent-system_multicall for syntax.

@@ -1676,7 +1676,7 @@ Only use when you are the first and only seeder so far for the download."
         (seq-subseq shortened -20)
       (format "%20s" shortened))))
 
-;;; Get dowload data from rTorrent
+;;; Get download data from rTorrent
 
 (defun mentor-download-get-size-done (torrent)
   (mentor-bytes-to-human
@@ -1766,7 +1766,7 @@ Only use when you are the first and only seeder so far for the download."
 (defun mentor-views-add (view)
   "Add VIEW to rTorrent's \"view_list\" and set the new view_filter.
 
-SHOULD BE USED WITH CARE! Atleast in rTorrent 0.8.6, rTorrent
+SHOULD BE USED WITH CARE! At least in rTorrent 0.8.6, rTorrent
 crashes if you try to add the same view twice!"
   (mentor-rpc-command "view.add" view)
   (setq mentor-download-views (cons view mentor-download-views))
@@ -1795,7 +1795,7 @@ already in view_list and sets all new view_filters."
 
 (defun mentor-views-update-filter (view)
   "Update view_filter for given VIEW.
-You need to do this everytime you add/remove a torrent to a view
+You need to do this every time you add/remove a torrent to a view
 since rTorrent (at least as of 0.8.6) does not add/remove new
 torrents to a view unless the filter is updated."
   (mentor-rpc-command "view.filter" view
