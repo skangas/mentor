@@ -593,7 +593,9 @@ Full documentation is available under `mentor-mode'."
           mentor-rtorrent-name (mentor-rpc-command "session.name"))
     (let* ((pwd-with-trailing-newline (mentor-rpc-command "execute.capture" "" "pwd"))
            (pwd (substring pwd-with-trailing-newline 0 -1)))
-      (cd (file-name-as-directory pwd)))
+      ;; The directory doesn't exist when running on a remote host.
+      (ignore-errors
+        (cd (file-name-as-directory pwd))))
     (mentor-set-view mentor-default-view)
     (when (equal mentor-current-view mentor-last-used-view)
       (setq mentor-last-used-view (mentor-get-custom-view-name 2)))
