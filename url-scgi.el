@@ -1,6 +1,6 @@
 ;;; url-scgi.el --- SCGI Uniform Resource Locator retrieval code  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2011-2021 Stefan Kangas.
+;; Copyright (C) 2011-2022 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.6
