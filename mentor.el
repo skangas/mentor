@@ -5,7 +5,8 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Version: 0.3.5
 ;; Keywords: comm, processes, bittorrent
-;; Package-Requires: ((emacs "25.1") (xml-rpc "1.6.15") (seq "1.11") (cl-lib "0.5") (async "1.9.3"))
+;; Package-Requires: ((emacs "25.1") (xml-rpc "1.6.15") (seq "1.11") (async "1.9.3"))
+;; URL: https://github.com/skangas/mentor
 
 (defconst mentor-version "0.3.5"
   "The version of Mentor that you're using.")
@@ -333,6 +334,8 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "8")   #'mentor-switch-to-view-8)
     (define-key map (kbd "9")   #'mentor-switch-to-view-9)
     (define-key map (kbd "0")   #'mentor-switch-to-view-0)
+
+    (define-key map [remap dired-jump] #'mentor-dired-jump)
     map))
 
 (easy-menu-define mentor-mode-menu mentor-mode-map
@@ -395,9 +398,6 @@ This will only work with rTorrent 0.9.7 or later."
     "---"
     ["Bury Mentor Buffer" bury-buffer t]
     ["Quit Mentor" mentor-shutdown]))
-
-(eval-after-load 'dired-x
-  '(define-key mentor-mode-map [remap dired-jump] 'mentor-dired-jump))
 
 ;;;###autoload
 (define-derived-mode mentor-mode special-mode "mentor"
