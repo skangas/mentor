@@ -264,7 +264,7 @@ This will only work with rTorrent 0.9.7 or later."
 ;;;; Mentor major-mode
 
 (defvar mentor-mode-map
-  (let ((map (make-keymap)))
+  (let ((map (make-sparse-keymap)))
     (suppress-keymap map t)
 
     ;; navigation
