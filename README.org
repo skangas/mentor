@@ -36,22 +36,24 @@ Here is a summary of some of the features:
 
 ** Installing mentor
 
-*** Installing through MELPA (recommended)
+*** Installing through NonGNU ELPA (recommended)
 
-If you are using Emacs 24 or later you can install mentor using ELPA.  It is
-available from [[http://melpa.org/][MELPA]].  If you have not already configured MELPA, you can find
-information on how to do that [[https://melpa.org/#/getting-started][here]].
+You can install mentor from [[https://elpa.nongnu.org/][NonGNU ELPA]] or [[http://melpa.org/][MELPA]].
 
-Next, find and install mentor using this command:
+NonGNU ELPA is configured by default in Emacs 28.1 or later.  Find and install
+Mentor using this command:
 
 : M-x package-list-packages
 
+For earlier versions, please see the specific instructions for how to configure
+[[https://elpa.nongnu.org/][NonGNU ELPA]] and [[https://melpa.org/#/getting-started][MELPA]].
+
 *** Installing mentor manually
 
-If you for some reason do not use Emacs 24, or if you do not want to use ELPA,
-you can install mentor manually.
+You can also install mentor manually.  First, make sure you have the minimum
+version of [[https://github.com/xml-rpc-el/xml-rpc-el][xml-rpc.el]] installed.
 
-Clone the repository using:
+Clone this repository using:
 
 : git clone https://github.com/skangas/mentor.git
 
@@ -62,14 +64,11 @@ Add this to your init.el:
 
 Change "~/src/mentor" to the path where you keep the mentor source code.
 
-Make sure you have xml-rpc.el installed, at least version 1.6.9.
-
 If you wish to byte-compile mentor, go into the source directory and run:
 
 : make
 
-Here is how you setup autoload.  See the Emacs manual for more information on
-this.
+Here is how you setup autoload.  See the Emacs manual for more information.
 
 : (autoload 'mentor "mentor" nil t)
 
@@ -223,4 +222,5 @@ Bug reports, comments, and suggestions are welcome! Send them to Stefan Kangas
 <stefankangas@gmail.com> or report them on GitHub.
 
 -----
-[[https://melpa.org/#/mentor][file:https://melpa.org/packages/mentor-badge.svg]]
+[[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
+[[https://melpa.org/#/mentor][https://melpa.org/packages/mentor-badge.svg]]
