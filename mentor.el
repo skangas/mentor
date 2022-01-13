@@ -3,10 +3,13 @@
 ;; Copyright (C) 2010-2022 Stefan Kangas.
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
+;; Maintainer: Stefan Kangas <stefankangas@gmail.com>
+
 ;; Version: 0.3.5
 ;; Keywords: comm, processes, bittorrent
 ;; Package-Requires: ((emacs "25.1") (xml-rpc "1.6.15") (seq "1.11") (async "1.9.3"))
 ;; URL: https://github.com/skangas/mentor
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 (defconst mentor-version "0.3.5"
   "The version of Mentor that you're using.")
