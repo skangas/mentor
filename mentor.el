@@ -1512,7 +1512,7 @@ Only use when you are the first and only seeder so far for the download."
   "Visit files for download at point using Dired."
   (interactive)
   (let* ((is-multi-file (= (mentor-item-property 'is_multi_file) 1))
-         (directory (mentor-item-property 'directory))
+         (directory (concat mentor-directory-prefix (mentor-item-property 'directory)))
          (name (mentor-item-property 'name))
          (target (if is-multi-file directory (expand-file-name name directory))))
     (when (not directory)
