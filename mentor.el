@@ -317,7 +317,7 @@ This will only work with rTorrent 0.9.7 or later."
     (define-key map (kbd "t D") #'mentor-sort-by-directory)
     (define-key map (kbd "t d") #'mentor-sort-by-download-speed)
     (define-key map (kbd "t n") #'mentor-sort-by-name)
-    (define-key map (kbd "t p") #'mentor-sort-by-property-prompt)
+    ;; (define-key map (kbd "t p") #'mentor-sort-by-property-prompt)
     (define-key map (kbd "t s") #'mentor-sort-by-size)
     (define-key map (kbd "t t") #'mentor-sort-by-tied-file-name)
     (define-key map (kbd "t u") #'mentor-sort-by-upload-speed)
@@ -358,7 +358,8 @@ This will only work with rTorrent 0.9.7 or later."
      ["Sort by tied file name" mentor-sort-by-tied-file-name t]
      ["Sort by download speed" mentor-sort-by-download-speed t]
      ["Sort by upload speed" mentor-sort-by-upload-speed t]
-     ["Sort by any property..." mentor-sort-by-property-prompt t])
+     ;; ["Sort by any property..." mentor-sort-by-property-prompt t]
+     )
     "---"
     ["Mark" mentor-mark t]
     ["Unmark" mentor-unmark t]
