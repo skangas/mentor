@@ -1049,7 +1049,7 @@ REAL-START is nil goto that point.  Otherwise goto the real start
 point."
   (interactive)
   (let ((start (or (get-text-property (point) 'item-start)
-                   (field-beginning nil nil (point-at-bol)))))
+                   (field-beginning nil nil (line-beginning-position)))))
     (when start
       (goto-char start))))
 
@@ -1167,10 +1167,11 @@ this subdir."
     (mentor-repeat-over-lines
      (prefix-numeric-value arg)
      (function (lambda ()
-                 ;; insert at point-at-bol + 1 to inherit all properties
-                 (goto-char (1+ (point-at-bol)))
+                 ;; insert at line-beginning-position + 1 to inherit all properties
+                 (goto-char (1+ (line-beginning-position)))
                  (insert-and-inherit mentor-marker-char)
-                 (delete-region (point-at-bol) (+ 1 (point-at-bol)))))))
+                 (delete-region (line-beginning-position)
+                                (+ 1 (line-beginning-position)))))))
   (mentor-goto-item-name-column))
 
 (defun mentor-unmark (&optional arg)
@@ -1495,7 +1496,7 @@ This runs the `d.close' XML-RPC command, which corresponds to the
    arg))
 
 (defun mentor-download-set-create-resized-queued-flags (arg)
-  "Set the 'create/resize queued' flags on all files in a torrent.
+  "Set the \"create/resize queued\" flags on all files in a torrent.
 
 Corresponds to ^E in the ncurses ui."
   (interactive "P")
