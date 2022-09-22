@@ -28,7 +28,7 @@
 
 ;;; Commentary:
 
-;; mentor is a GNU Emacs frontend for the `rTorrent' bittorrent client.
+;; mentor is an Emacs frontend for the `rTorrent' bittorrent client.
 
 ;; By default, it will start and run rTorrent from within Emacs but can also be
 ;; configured to use an external rTorrent instance over XML-RPC.
@@ -398,7 +398,7 @@ This will only work with rTorrent 0.9.7 or later."
     ["Quit Mentor" mentor-shutdown]))
 
 (define-derived-mode mentor-mode special-mode "mentor"
-  "Major mode for controlling rTorrent from GNU Emacs.
+  "Major mode for controlling rTorrent.
 
 Type \\[mentor] to start Mentor.
 \\<mentor-mode-map>

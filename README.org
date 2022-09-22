@@ -3,7 +3,7 @@
 [[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
 [[https://melpa.org/#/mentor][https://melpa.org/packages/mentor-badge.svg]]
 
-mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
+mentor is a [[https://www.gnu.org/software/emacs][GNU Emacs]] frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
 
 By default, it will start and run rTorrent from within Emacs but can also be
 configured to use an external rTorrent instance over XML-RPC.
