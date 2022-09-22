@@ -779,8 +779,8 @@ ITEMS should be a list of item names."
 (defun mentor-mark-confirm (desc arg)
   (let ((items (mentor-get-marked-items arg)))
     (mentor-mark-pop-up nil items (function y-or-n-p)
-                        (concat desc " "
-                                (mentor-mark-prompt arg items) "? "))))
+                  (concat desc " "
+                          (mentor-mark-prompt arg items) "? "))))
 
 
 ;;;; Getting torrent data
@@ -1403,34 +1403,34 @@ With prefix argument ARG, do this for the next ARG downloads."
          (prompt (concat verbstr (mentor-mark-prompt arg items) " to: "))
          (new (mentor-mark-pop-up nil items 'mentor-get-new-path prompt))
          (downloads (mentor-map-over-marks
-                     (let* ((old (mentor-item-property (if no-move 'directory 'base_path))))
-                       (when (not no-move)
-                         (when (null old)
-                           (error "Download has no base path: %s" (mentor-item-property 'name)))
-                         ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
-                         ;; to look for the file.
-                         (when (not (file-exists-p old))
-                           (error (concat "Download base path \"%s\" does not exist: \""
-                                          (mentor-item-property 'name) "\"\n"
-                                          "Try `mentor-download-change-target-directory'")
-                                  old))
-                         (when (and (not (= (mentor-item-property 'is_multi_file) 1)) (file-directory-p old))
-                           (error "Moving single torrent, base_path is a directory.  This is probably a bug"))
-                         (let ((target (concat new (file-name-nondirectory old))))
-                           (when (file-exists-p target)
-                             (error "Destination already exists: %s" target))))
-                       (if (equal (file-name-directory old) new)
-                           (progn (message "Skipping %s since it is already in %s"
-                                           (mentor-item-property 'name) new)
-                                  nil)
-                         `((name . ,(mentor-item-property 'name))
-                           (was-started . ,(= (mentor-item-property 'is_active) 1))
-                           (hash . ,(mentor-item-property 'hash))
-                           (old . ,old)
-                           (new . ,new)
-                           (local_id . ,(mentor-item-property 'local_id))
-                           (no-move . ,no-move))))
-                     arg)))
+                      (let* ((old (mentor-item-property (if no-move 'directory 'base_path))))
+                        (when (not no-move)
+                          (when (null old)
+                            (error "Download has no base path: %s" (mentor-item-property 'name)))
+                          ;; FIXME: Should work also on remote host, i.e. use rpc "execute2"
+                          ;; to look for the file.
+                          (when (not (file-exists-p old))
+                            (error (concat "Download base path \"%s\" does not exist: \""
+                                           (mentor-item-property 'name) "\"\n"
+                                           "Try `mentor-download-change-target-directory'")
+                                   old))
+                          (when (and (not (= (mentor-item-property 'is_multi_file) 1)) (file-directory-p old))
+                            (error "Moving single torrent, base_path is a directory.  This is probably a bug"))
+                          (let ((target (concat new (file-name-nondirectory old))))
+                            (when (file-exists-p target)
+                              (error "Destination already exists: %s" target))))
+                        (if (equal (file-name-directory old) new)
+                            (progn (message "Skipping %s since it is already in %s"
+                                            (mentor-item-property 'name) new)
+                                   nil)
+                          `((name . ,(mentor-item-property 'name))
+                            (was-started . ,(= (mentor-item-property 'is_active) 1))
+                            (hash . ,(mentor-item-property 'hash))
+                            (old . ,old)
+                            (new . ,new)
+                            (local_id . ,(mentor-item-property 'local_id))
+                            (no-move . ,no-move))))
+                      arg)))
     (mentor-download-move-async downloads)))
 
 (defun mentor-download-change-target-directory (&optional arg)
@@ -1461,9 +1461,9 @@ instead.
 With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
-          (mentor-download-update-and-reinsert-at-point))
-   arg))
+    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
+           (mentor-download-update-and-reinsert-at-point))
+    arg))
 
 (defun mentor-download-resume (&optional arg)
   "Resume download (XML-RPC command \"d.resume\").
@@ -1474,9 +1474,9 @@ instead.
 With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
-          (mentor-download-update-and-reinsert-at-point))
-   arg))
+    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
+           (mentor-download-update-and-reinsert-at-point))
+    arg))
 
 (defun mentor-download-start (&optional arg)
   "Start download (XML-RPC command \"d.start\".
@@ -1504,9 +1504,9 @@ With prefix argument ARG, do this for the next ARG downloads."
 With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
-   (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
-          (mentor-download-update-and-reinsert-at-point))
-   arg))
+    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
+           (mentor-download-update-and-reinsert-at-point))
+    arg))
 
 (defun mentor-download-close (&optional arg)
   "Set download status to \"closed\" (XML-RPC command \"d.close\").
@@ -1528,10 +1528,10 @@ This corresponds to ^E in the rTorrent ncurses UI.
 With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
-   (progn
-     (mentor-rpc-f.multicall (mentor-item-property 'hash) "f.set_create_queued=0" "f.set_resize_queued=0")
-     (message "mentor: Queued create/resize of files in torrent: %s" (mentor-item-property 'name)))
-   arg))
+    (progn
+      (mentor-rpc-f.multicall (mentor-item-property 'hash) "f.set_create_queued=0" "f.set_resize_queued=0")
+      (message "mentor: Queued create/resize of files in torrent: %s" (mentor-item-property 'name)))
+    arg))
 
 (defun mentor-download-set-inital-seeding ()
   "Set download to perform initial seeding.
@@ -1746,9 +1746,9 @@ Only use when you are the first and only seeder so far for the download."
   "Add torrent to VIEW."
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
-                                 (cl-remove-if-not 'mentor-views-is-custom-view
-                                                   mentor-download-views)
-                                 nil mentor-current-view)))
+                           (cl-remove-if-not 'mentor-views-is-custom-view
+                                             mentor-download-views)
+                           nil mentor-current-view)))
   (let ((tor (mentor-get-item-at-point)))
     (when (not (mentor-views-is-custom-view view))
       (setq view (concat mentor-custom-view-prefix view)))
@@ -1758,7 +1758,7 @@ Only use when you are the first and only seeder so far for the download."
               (when (y-or-n-p (concat "View " view " was not found. Create it? "))
                 (mentor-views-add view) t))
           (mentor-rpc-command "d.views.push_back_unique"
-                              (mentor-item-property 'hash tor) view)
+                        (mentor-item-property 'hash tor) view)
         (message "Nothing done")))))
 
 (defconst mentor-download-default-views
