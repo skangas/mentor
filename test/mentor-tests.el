@@ -62,6 +62,12 @@
   (should (equal (mentor-remove-subdomains "baz1.com") "baz1.com"))
   (should (equal (mentor-remove-subdomains "localhost") "localhost")))
 
+(ert-deftest mentor-limit-num ()
+  (should (= (mentor-limit-num 1 3 5) 3))
+  (should (= (mentor-limit-num 3 3 5) 3))
+  (should (= (mentor-limit-num 5 3 5) 5))
+  (should (= (mentor-limit-num 9 3 5) 5)))
+
 (ert-deftest mentor-rtorrent-bytes-to-human ()
   (let* ((kb 1024.0)
          (mb (* 1024.0 kb))
