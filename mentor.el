@@ -41,7 +41,7 @@
 ;;
 ;; https://www.github.com/skangas/mentor
 
-;; Bug reports, comments, and suggestions are welcome! Send them to
+;; Bug reports, comments, and suggestions are welcome!  Send them to
 ;; Stefan Kangas <stefankangas@gmail.com> or report them on GitHub.
 
 ;;; Code:
@@ -994,30 +994,51 @@ to sort according to several properties."
   (mentor-do-sort))
 
 (defun mentor-sort-by-directory (append)
+  "Sort downloads by directory.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'directory nil append))
 
 (defun mentor-sort-by-download-speed (append)
+  "Sort downloads by download speed.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'down.rate t append))
 
 (defun mentor-sort-by-name (append)
+  "Sort downloads by name.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'name nil append))
 
 (defun mentor-sort-by-state (append)
+  "Sort downloads by state.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'state nil append))
 
 (defun mentor-sort-by-tied-file-name (append)
+  "Sort downloads by the tied file name.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'tied_to_file nil append))
 
 (defun mentor-sort-by-size (append)
+  "Sort downloads by size.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'size_bytes t append))
 
 (defun mentor-sort-by-upload-speed (append)
+  "Sort downloads by upload speed.
+With prefix argument APPEND, append this to the list of existing
+sort criteria."
   (interactive "P")
   (mentor-sort 'up.rate t append))
 
@@ -1117,6 +1138,7 @@ point."
       (signal 'mentor-missing-torrent `("No such torrent" ,id)))))
 
 (defun mentor-toggle-item ()
+  "Toggle the current item."
   (interactive)
   (let ((type (mentor-get-item-type)))
     (cond ((eq type 'dir)
@@ -1134,16 +1156,20 @@ point."
   (funcall mentor-set-priority-fun val))
 
 (defun mentor-decrease-priority ()
+  "Decrease the priority of the item at point."
   (interactive)
   (mentor-set-priority -1)
   (mentor-item-update-this))
 
 (defun mentor-increase-priority ()
+  "Increase the priority of the item at point."
   (interactive)
   (mentor-set-priority 1)
   (mentor-item-update-this))
 
 (defun mentor-update-item (&optional arg)
+  "Refresh data for item at point from rTorrent.
+With prefix argument ARG, do this that many times."
   (interactive "P")
   (mentor-map-over-marks (mentor-item-update-this)
     arg))
@@ -1293,12 +1319,14 @@ Do not delete any files that are not in the list FILES."
     (mentor-goto-item-name-column)))
 
 (defun mentor-download-remove (&optional arg)
-  "Remove download at point or marked downloads."
+  "Remove download at point or marked downloads.
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor--download-remove-helper nil arg))
 
 (defun mentor-download-remove-including-files (&optional arg)
-  "Remove download at point or marked downloads, including data."
+  "Remove download at point or marked downloads, including data.
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor--download-remove-helper t arg))
 
@@ -1317,7 +1345,8 @@ Do not delete any files that are not in the list FILES."
 ;; instead of just the last file.
 
 (defun mentor-download-copy-data (&optional arg)
-  "Copy download data to another location."
+  "Copy download data to another location.
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (prompt (concat "Copy " (mentor-mark-prompt arg items) " to: "))
@@ -1367,6 +1396,7 @@ Do not delete any files that are not in the list FILES."
        (mentor-download-move-async (cdr remaining))))))
 
 (defun mentor-download-move (&optional no-move arg)
+  "Move download to another directory."
   (interactive "P")
   (let* ((items (mentor-get-marked-items))
          (verbstr (or (and no-move "Change directory of ") "Move "))
@@ -1404,12 +1434,14 @@ Do not delete any files that are not in the list FILES."
     (mentor-download-move-async downloads)))
 
 (defun mentor-download-change-target-directory (&optional arg)
-  "Change target directory of download without moving data."
+  "Change target directory of download without moving data.
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-download-move 'nomove arg))
 
 (defun mentor-download-hash-check (&optional arg)
-  "Initiate hash check on download."
+  "Initiate hash check on download.
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn
@@ -1421,12 +1453,12 @@ Do not delete any files that are not in the list FILES."
    arg))
 
 (defun mentor-download-pause (&optional arg)
-  "Pause download.
+  "Pause download (XML-RPC command \"d.pause\").
 
-This runs the `d.pause' XML-RPC command.
+This is probably not what you want; use `mentor-download-stop'
+instead.
 
-This is probably not what you want, use `mentor-download-stop'
-instead."
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.pause" (mentor-item-property 'hash))
@@ -1434,12 +1466,12 @@ instead."
    arg))
 
 (defun mentor-download-resume (&optional arg)
-  "Resume download.
+  "Resume download (XML-RPC command \"d.resume\").
 
-This runs the `d.resume' XML-RPC command.
+This is probably not what you want; use `mentor-download-start'
+instead.
 
-This is probably not what you want, use `mentor-download-start'
-instead."
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.resume" (mentor-item-property 'hash))
@@ -1447,9 +1479,9 @@ instead."
    arg))
 
 (defun mentor-download-start (&optional arg)
-  "Start download.
+  "Start download (XML-RPC command \"d.start\".
 
-This runs the `d.start' XML-RPC command."
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-start (mentor-item-property 'hash))
@@ -1457,9 +1489,9 @@ This runs the `d.start' XML-RPC command."
    arg))
 
 (defun mentor-download-stop (&optional arg)
-  "Stop download.
+  "Stop download (XML-RPC command \"d.stop\").
 
-This runs the `d.stop' XML-RPC command."
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-stop (mentor-item-property 'hash))
@@ -1467,9 +1499,9 @@ This runs the `d.stop' XML-RPC command."
    arg))
 
 (defun mentor-download-open (&optional arg)
-  "Set download status to `open'.
+  "Set download status to \"open\" (XML-RPC command \"d.open\".
 
-This runs the `d.open' XML-RPC command."
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-command "d.open" (mentor-item-property 'hash))
@@ -1477,10 +1509,11 @@ This runs the `d.open' XML-RPC command."
    arg))
 
 (defun mentor-download-close (&optional arg)
-  "Set download status to `closed'.
+  "Set download status to \"closed\" (XML-RPC command \"d.close\").
 
-This runs the `d.close' XML-RPC command, which corresponds to the
-^K command in the ncurses ui."
+This corresponds to the \"^K\" command in the rTorrent ncurses UI.
+
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn (mentor-rpc-d-close (mentor-item-property 'hash))
@@ -1488,9 +1521,11 @@ This runs the `d.close' XML-RPC command, which corresponds to the
    arg))
 
 (defun mentor-download-set-create-resized-queued-flags (arg)
-  "Set the \"create/resize queued\" flags on all files in a torrent.
+  "Set the \"create/resize queued\" flags on all files in a download.
 
-Corresponds to ^E in the ncurses ui."
+This corresponds to ^E in the rTorrent ncurses UI.
+
+With prefix argument ARG, do this for the next ARG downloads."
   (interactive "P")
   (mentor-map-over-marks
    (progn
@@ -1708,6 +1743,7 @@ Only use when you are the first and only seeder so far for the download."
   "String to add to view name before adding it to rTorrent.")
 
 (defun mentor-add-torrent-to-view (view)
+  "Add torrent to VIEW."
   (interactive
    (list (mentor-prompt-complete "Add torrent to view: "
                                  (cl-remove-if-not 'mentor-views-is-custom-view
@@ -1740,6 +1776,7 @@ Only use when you are the first and only seeder so far for the download."
   (setq mode-line-buffer-identification (concat "*mentor* " mentor-current-view)))
 
 (defun mentor-switch-to-view (&optional new)
+  "Switch to view number NEW."
   (interactive)
   (when (null new)
     (setq new (mentor-prompt-complete
@@ -1766,7 +1803,7 @@ Only use when you are the first and only seeder so far for the download."
 (defun mentor-views-add (view)
   "Add VIEW to rTorrent's \"view_list\" and set the new view_filter.
 
-SHOULD BE USED WITH CARE! At least in rTorrent 0.8.6, rTorrent
+SHOULD BE USED WITH CARE!  At least in rTorrent 0.8.6, rTorrent
 crashes if you try to add the same view twice!"
   (mentor-rpc-command "view.add" view)
   (setq mentor-download-views (cons view mentor-download-views))
@@ -1828,6 +1865,7 @@ torrents to a view unless the filter is updated."
 
 (defun mentor-get-item-type ()
   (interactive)
+  "Get type of the item at point."
   (get-text-property (point) 'type))
 
 (defun mentor-prompt-complete (prompt list require-match default)
