@@ -407,65 +407,62 @@ This will only work with rTorrent 0.9.7 or later."
   "Major mode for controlling rTorrent from GNU Emacs.
 
 Type \\[mentor] to start Mentor.
-
+\\<mentor-mode-map>
 rTorrent operations:
 
-  `\\[mentor-download-load-torrent]' - Add torrent
-  `\\[mentor-download-load-magnet-link-or-url]' - Add Magnet link, URL or torrent file path
-  `\\[mentor-update]' - Reload data from rTorrent
-  `\\[mentor-reload]' - Re-initialize all data from rTorrent
+  \\[mentor-download-load-torrent]	Add torrent
+  \\[mentor-download-load-magnet-link-or-url]	Add Magnet link, URL or torrent file path
+  \\[mentor-update]	Reload data from rTorrent
+  \\[mentor-reload]	Re-initialize all data from rTorrent
 
 Operations on download at point (or marked downloads):
 
-  `\\[mentor-download-start]' - Start download
-  `\\[mentor-download-stop]' - Stop download
-  `\\[mentor-download-close]' - Close download
-  `\\[mentor-download-hash-check]' - Initiate hash check
-  `\\[mentor-download-move]' - Move download
-  `\\[mentor-download-change-target-directory]' - Change target directory
-  `\\[mentor-download-remove]' - Remove download
-  `\\[mentor-download-remove-including-files]' - Remove download including data
-  `\\[mentor-download-copy-data]' - Copy downloaded data to location
-  `\\[mentor-increase-priority]' - Increase priority of download
-  `\\[mentor-decrease-priority]' - Decrease priority of download
-  `\\[mentor-download-set-create-resized-queued-flags]' - Set the 'create/resize queued' flags on all files in a torrent.
-      This is necessary if the underlying files in a torrent have been deleted
-      or truncated, and thus rtorrent must recreate them.
+  \\[mentor-download-start]	Start download
+  \\[mentor-download-stop]	Stop download
+  \\[mentor-download-close]	Close download
+  \\[mentor-download-hash-check]	Initiate hash check
+  \\[mentor-download-move]	Move download
+  \\[mentor-download-change-target-directory]	Change target directory
+  \\[mentor-download-remove]	Remove download
+  \\[mentor-download-remove-including-files]	Remove download including data
+  \\[mentor-download-copy-data]	Copy downloaded data to location
+  \\[mentor-increase-priority]	Increase priority of download
+  \\[mentor-decrease-priority]	Decrease priority of download
+  \\[mentor-download-set-create-resized-queued-flags]	Set the \"create/resize queued\" flags on all files in a torrent.
+        This is necessary if the underlying files in a torrent have been
+        deleted or truncated, and thus rtorrent must recreate them.
 
 Operations on download at point:
 
-  `\\[mentor-show-download-files]' - Enter files view
-  `\\[mentor-update-item]' - Reload data from rTorrent
-  `\\[mentor-dired-jump]' - Show download in Dired
+  \\[mentor-show-download-files]	Enter files view
+  \\[mentor-update-item]	Reload data from rTorrent
+  \\[mentor-dired-jump]	Show download in Dired
 
 Marking commands:
 
-  `\\[mentor-mark]' - Mark download
-  `\\[mentor-unmark]' - Unmark download
-  `\\[mentor-mark-all]' - Mark all downloads
-  `\\[mentor-unmark-all]' - Unmark all downloads
+  \\[mentor-mark]	Mark download
+  \\[mentor-unmark]	Unmark download
+  \\[mentor-mark-all]	Mark all downloads
+  \\[mentor-unmark-all]	Unmark all downloads
 
 Sorting downloads:
 
-  `\\[mentor-sort-by-directory]' - Sort downloads by directory
-  `\\[mentor-sort-by-name]' - Sort by name
-  `\\[mentor-sort-by-tied-file-name]' - Sort by tied file name
-  `\\[mentor-sort-by-size]' - Sort by size
-  `\\[mentor-sort-by-state]' - Sort by state
-  `\\[mentor-sort-by-download-speed]' - Sort by download speed
-  `\\[mentor-sort-by-upload-speed]' - Sort by upload speed
-  `\\[mentor-sort-by-property-prompt]' - Sort by any property (shows prompt)
+  \\[mentor-sort-by-directory]	Sort downloads by directory
+  \\[mentor-sort-by-name]	Sort by name
+  \\[mentor-sort-by-tied-file-name]	Sort by tied file name
+  \\[mentor-sort-by-size]	Sort by size
+  \\[mentor-sort-by-state]	Sort by state
+  \\[mentor-sort-by-download-speed]	Sort by download speed
+  \\[mentor-sort-by-upload-speed]	Sort by upload speed
 
 Misc commands:
 
-  `0' to `9' - Change currently active view
-  `\\[mentor-switch-to-view]' - Switch to view (prompt)
-  `\\[mentor-add-torrent-to-view]' - Add download to view
-  `\\[mentor-call-command]' - Send XML-RPC command to rTorrent
-  `\\[mentor-shutdown] - Shutdown Mentor
-  `\\[bury-buffer] - Bury Mentor buffer
-
-\\{mentor-mode-map}"
+  \\[mentor-switch-to-view-0] .. \\[mentor-switch-to-view-9]	Change currently active view
+  \\[mentor-switch-to-view]	Switch to view (prompt)
+  \\[mentor-add-torrent-to-view]	Add download to view
+  \\[mentor-call-command]	Send XML-RPC command to rTorrent
+  \\[mentor-shutdown]	Shutdown Mentor
+  \\[bury-buffer]	Bury Mentor buffer"
   :group 'mentor
   (setq truncate-lines t)
   (setq buffer-read-only t)
