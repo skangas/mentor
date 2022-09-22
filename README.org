@@ -1,5 +1,8 @@
 * mentor
 
+[[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
+[[https://melpa.org/#/mentor][https://melpa.org/packages/mentor-badge.svg]]
+
 mentor is a GNU Emacs frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
 
 By default, it will start and run rTorrent from within Emacs but can also be
@@ -220,7 +223,3 @@ https://www.github.com/skangas/mentor
 
 Bug reports, comments, and suggestions are welcome! Send them to Stefan Kangas
 <stefankangas@gmail.com> or report them on GitHub.
-
------
-[[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
-[[https://melpa.org/#/mentor][https://melpa.org/packages/mentor-badge.svg]]
