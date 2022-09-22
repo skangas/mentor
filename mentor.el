@@ -471,7 +471,12 @@ Misc commands:
   (setq mentor-current-view mentor-default-view
         mentor-items (make-hash-table :test 'equal))
   (add-hook 'post-command-hook #'mentor-post-command-hook t t)
-  (when (bound-and-true-p global-linum-mode)
+  ;; No line numbers.
+  (when (and (fboundp 'display-line-numbers-mode)
+             (bound-and-true-p global-display-line-numbers-mode))
+    (display-line-numbers-mode -1))
+  (when (and (fboundp 'linum-mode)
+             (bound-and-true-p global-linum-mode))
     (linum-mode -1))
   (when (and (fboundp 'nlinum-mode)
              (bound-and-true-p global-nlinum-mode))
