@@ -57,8 +57,7 @@ integer index used by rtorrent to identify this file."
   name show marked size completed_chunks
   size_chunks priority files type id)
 
-(defvar mentor-files-selected-download nil)
-(make-variable-buffer-local 'mentor-files-selected-download)
+(defvar-local mentor-files-selected-download nil)
 (put 'mentor-files-selected-download 'permanent-local t)
 
 (defvar mentor-selected-torrent-info '())

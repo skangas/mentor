@@ -37,11 +37,10 @@
 This could be a torrent, file, directory, peer, etc."
   id data marked type)
 
-(defvar mentor-items nil
+(defvar-local mentor-items nil
   "Hash table containing all items for the current buffer.
 This can be torrents, files, peers etc.  All values should be made
 using `make-mentor-item'.")
-(make-variable-buffer-local 'mentor-items)
 
 (defun mentor-get-item (id)
   (gethash id mentor-items))

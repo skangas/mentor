@@ -215,8 +215,7 @@ This will only work with rTorrent 0.9.7 or later."
 (defvar mentor-current-view)
 (defvar mentor-home-dir (expand-file-name (locate-user-emacs-file "mentor/"))
   "Where Mentor should put its files.")
-(defvar mentor--header-line "")
-(make-variable-buffer-local 'mentor--header-line)
+(defvar-local mentor--header-line "")
 
 (defvar mentor-rtorrent-client-version)
 (defvar mentor-rtorrent-library-version)
@@ -227,14 +226,11 @@ This will only work with rTorrent 0.9.7 or later."
 
 (defvar mentor-rtorrent-name)
 
-(defvar mentor-sort-list '(name))
-(make-variable-buffer-local 'mentor-sort-list)
+(defvar-local mentor-sort-list '(name))
 
-(defvar mentor-last-used-view)
-(make-variable-buffer-local 'mentor-last-used-view)
+(defvar-local mentor-last-used-view nil)
 
-(defvar mentor-last-move-target "~")
-(make-variable-buffer-local 'mentor-last-move-target)
+(defvar-local mentor-last-move-target "~")
 
 (defvar mentor-view-torrent-list nil
   "A list of torrents in given views.")
@@ -255,14 +251,11 @@ This will only work with rTorrent 0.9.7 or later."
 
 ;; Variables that should be changed by sub-modes
 
-(defvar mentor-item-update-this-fun)
-(make-variable-buffer-local 'mentor-item-update-this-fun)
+(defvar-local mentor-item-update-this-fun nil)
 
-(defvar mentor-set-priority-fun)
-(make-variable-buffer-local 'mentor-set-priority-fun)
+(defvar-local mentor-set-priority-fun nil)
 
-(defvar mentor--columns-var 'mentor-view-columns)
-(make-variable-buffer-local 'mentor--columns-var)
+(defvar-local mentor--columns-var 'mentor-view-columns)
 
 
 ;;;; Mentor major-mode
@@ -928,11 +921,9 @@ expensive operation."
   (setq mentor--header-line
         (mentor-process-view-header-columns (eval mentor--columns-var))))
 
-(defvar mentor-highlight-overlay nil)
-(make-variable-buffer-local 'mentor-highlight-overlay)
+(defvar-local mentor-highlight-overlay nil)
 
-(defvar mentor-highlighted-torrent nil)
-(make-variable-buffer-local 'mentor-highlighted-torrent)
+(defvar-local mentor-highlighted-torrent nil)
 
 (defun mentor-highlight-torrent ()
   (let ((cur (mentor-item-id-at-point)))
@@ -1711,8 +1702,7 @@ Only use when you are the first and only seeder so far for the download."
 
 ;;;; View functions
 
-(defvar mentor-download-views)
-(make-variable-buffer-local 'mentor-download-views)
+(defvar-local mentor-download-views nil)
 
 (defconst mentor-custom-view-prefix "mentor-"
   "String to add to view name before adding it to rTorrent.")
