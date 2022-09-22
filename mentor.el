@@ -1864,7 +1864,6 @@ torrents to a view unless the filter is updated."
         (t num)))
 
 (defun mentor-get-item-type ()
-  (interactive)
   "Get type of the item at point."
   (get-text-property (point) 'type))
 
