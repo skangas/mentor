@@ -404,7 +404,6 @@ This will only work with rTorrent 0.9.7 or later."
     ["Bury Mentor Buffer" bury-buffer t]
     ["Quit Mentor" mentor-shutdown]))
 
-;;;###autoload
 (define-derived-mode mentor-mode special-mode "mentor"
   "Major mode for controlling rTorrent from GNU Emacs.
 
@@ -466,6 +465,7 @@ Misc commands:
   \\[mentor-shutdown]	Shutdown Mentor
   \\[bury-buffer]	Bury Mentor buffer"
   :group 'mentor
+  :interactive nil
   (setq truncate-lines t)
   (setq buffer-read-only t)
   (setq show-trailing-whitespace nil)
