@@ -73,7 +73,6 @@
          (mb (* 1024.0 kb))
          (gb (* 1024.0 mb))
          (tb (* 1024.0 gb)))
-    (should (equal (mentor-bytes-to-human 0)            "0"))
     (should (equal (mentor-bytes-to-human 1)            "1B"))
     (should (equal (mentor-bytes-to-human 998)          "998B"))
     (should (equal (mentor-bytes-to-human 999)          "1K"))

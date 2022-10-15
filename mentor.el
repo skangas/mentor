@@ -1884,7 +1884,6 @@ torrents to a view unless the filter is updated."
              (mb (* kb 1024.0))
              (gb (* mb 1024.0)))
         (cond ((< bytes 0) "???") ;; workaround for old xmlrpc-c
-              ((= bytes 0.0) (format "%d" bytes))
               ((< bytes 999.0) (format "%dB" bytes))
               ((< bytes (* kb 999.5)) (format "%.0fK" (/ bytes kb)))
               ((< bytes (* mb 999.5))
