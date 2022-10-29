@@ -5,7 +5,7 @@
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Maintainer: Stefan Kangas <stefankangas@gmail.com>
 
-;; Version: 0.4
+;; Version: 0.5
 ;; Keywords: comm, processes, bittorrent
 ;; Package-Requires: ((emacs "25.1") (xml-rpc "1.6.15") (seq "1.11") (async "1.9.3") (url-scgi "0.7"))
 ;; URL: https://github.com/skangas/mentor
@@ -61,7 +61,7 @@
 (require 'mentor-rpc)
 (require 'url-scgi)
 
-(defconst mentor-version "0.4"
+(defconst mentor-version "0.5"
   "The version of Mentor that you're using.")
 
 
