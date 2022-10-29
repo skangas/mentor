@@ -18,9 +18,8 @@ clean:
 	rm -f $(TARGET) TAGS
 
 tags:
-	etags mentor*.el url-scgi.el
+	etags mentor*.el
 
 test:
 	@$(EMACS_LOAD) -l test/mentor-rpc-tests.el -f ert-run-tests-batch-and-exit
 	@$(EMACS_LOAD) -l test/mentor-tests.el -f ert-run-tests-batch-and-exit
-	@$(EMACS_LOAD) -l test/url-scgi-tests.el -f ert-run-tests-batch-and-exit
