@@ -29,7 +29,7 @@
 
 (require 'cl-lib)
 
-(declare-function mentor-view-torrent-list-add "mentor.el")
+(declare-function mentor-view-torrent-list-add "mentor")
 (defconst mentor-rpc-t-multicall-sep "#")
 
 (cl-defstruct mentor-item
