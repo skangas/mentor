@@ -1,5 +1,6 @@
 name: test
 on: [ push, pull_request ]
+permissions: {}
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,8 +20,29 @@ jobs:
         - snapshot
 
     steps:
+    - name: Checkout async
+      uses: actions/checkout@v3
+      with:
+        repository: jwiegley/emacs-async
+        path: async
+
+    - name: Checkout url-scgi
+      uses: actions/checkout@v3
+      with:
+        repository: skangas/url-scgi
+        path: url-scgi
+
+    - name: Checkout xml-rpc
+      uses: actions/checkout@v3
+      with:
+        repository: xml-rpc-el/xml-rpc-el
+        path: xml-rpc
+
     - name: Checkout mentor
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+      with:
+        repository: skangas/mentor
+        path: mentor
 
     - name: Install emacs
       uses: purcell/setup-emacs@master
@@ -28,7 +50,7 @@ jobs:
         version: ${{ matrix.emacs_version }}
 
     - name: Build mentor
-      run: make all
+      run: make -C mentor all
 
     - name: Test mentor
-      run: make test
+      run: make -C mentor test
