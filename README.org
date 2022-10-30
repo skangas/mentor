@@ -51,6 +51,11 @@ Mentor using this command:
 For earlier versions, please see the specific instructions for how to configure
 [[https://elpa.nongnu.org/][NonGNU ELPA]] and [[https://melpa.org/#/getting-started][MELPA]].
 
+Mentor should work on Emacs 25 or later.  For the best performance Emacs 27.1,
+built with ~libxml~ support, is recommended (see [[Known issues]]).  I almost never
+test Mentor using old versions of Emacs, so please report any issues you run
+into.
+
 *** Installing mentor manually
 
 You can also install mentor manually.  First, make sure you have the minimum
@@ -207,12 +212,10 @@ For more information on configuring rTorrent, refer to the [[https://github.com/
 ** Known issues
 - There is no view for trackers/peers/extra information.
 
-- Mentor used to have performance issues when there were several hundreds or
-  thousands of torrents.  So I wrote a patch for xml-rpc.el to add support for
-  Emacs built-in libxml support, which was helpfully merged by the xml-rpc.el
-  maintainer Mark A. Hershberger.  This improved performance by a factor
-  of 100.  Make sure you upgrade to Emacs 27.1, build it with libxml support, and
-  use the latest xml-rpc.el version to benefit from this speed increase.
+- Mentor can be slow if Emacs was not built with ~libxml~ support.  This
+  typically happens only when there are several hundreds, or even thousands, of
+  torrents loaded in rtorrent.  Use an Emacs built with ~libxml~ support to
+  avoid this issue.  (Support for ~libxml~ was added in Emacs 27.1.)
 
 ** Contact
 
