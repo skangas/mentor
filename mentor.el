@@ -46,8 +46,8 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'sort))
+(eval-when-compile (require 'sort))
+(eval-when-compile (require 'subr-x)) ; for `string-join' (on Emacs 26)
 
 (require 'async)
 (require 'cl-lib)
