@@ -25,24 +25,28 @@ jobs:
       with:
         repository: jwiegley/emacs-async
         path: async
+        persist-credentials: false
 
     - name: Checkout url-scgi
       uses: actions/checkout@v3
       with:
         repository: skangas/url-scgi
         path: url-scgi
+        persist-credentials: false
 
     - name: Checkout xml-rpc
       uses: actions/checkout@v3
       with:
         repository: xml-rpc-el/xml-rpc-el
         path: xml-rpc
+        persist-credentials: false
 
     - name: Checkout mentor
       uses: actions/checkout@v3
       with:
         repository: skangas/mentor
         path: mentor
+        persist-credentials: false
 
     - name: Install emacs
       uses: purcell/setup-emacs@master
