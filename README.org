@@ -1,7 +1,6 @@
 * mentor
 
 [[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
-[[https://melpa.org/#/mentor][https://melpa.org/packages/mentor-badge.svg]]
 
 mentor is a [[https://www.gnu.org/software/emacs][GNU Emacs]] frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
 
@@ -41,20 +40,19 @@ Here is a summary of some of the features:
 
 *** Installing through NonGNU ELPA (recommended)
 
-You can install mentor from [[https://elpa.nongnu.org/][NonGNU ELPA]] or [[https://melpa.org/][MELPA]].
-
-NonGNU ELPA is configured by default in Emacs 28.1 or later.  Find and install
-Mentor using this command:
+You can install mentor from [[https://elpa.nongnu.org/][NonGNU ELPA]].  Find and install Mentor using this
+command:
 
 : M-x package-list-packages
 
-For earlier versions, please see the specific instructions for how to configure
-[[https://elpa.nongnu.org/][NonGNU ELPA]] and [[https://melpa.org/#/getting-started][MELPA]].
+NonGNU ELPA is configured by default in Emacs 28.1 or later.  For earlier
+versions of Emacs, please see the specific instructions for how to configure
+[[https://elpa.nongnu.org/][NonGNU ELPA]].
 
-Mentor should work on Emacs 25 or later.  For the best performance Emacs 27.1,
-built with ~libxml~ support, is recommended (see [[Known issues]]).  I almost never
-test Mentor using old versions of Emacs, so please report any issues you run
-into.
+Mentor should work on Emacs 25 or later.  For the best performance I recommend
+using at least Emacs 27.1, built with ~libxml~ support.  (See "Known issues"
+below.)  I almost never test Mentor using old versions of Emacs, so please
+report any issues you run into.
 
 *** Installing mentor manually
 
