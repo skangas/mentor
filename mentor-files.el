@@ -17,7 +17,7 @@
 ;; License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with Mentor.  If not, see <https://www.gnu.org/licenses>.
+;; along with Mentor.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
