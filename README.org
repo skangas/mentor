@@ -68,7 +68,7 @@ Add this to your init.el:
 : (add-to-list 'load-path "~/src/mentor/")
 : (require 'mentor)
 
-Change ~"~/src/mentor"~ to the path where you keep the mentor source code.
+Change "~/src/mentor" to the path where you keep the mentor source code.
 
 To byte-compile mentor, go to the source directory and run:
 
