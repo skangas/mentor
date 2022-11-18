@@ -1,0 +1,11 @@
+# Check for outdated GitHub Actions in workflows.
+
+# See https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#about-the-dependabotyml-file
+version: 2
+
+updates:
+  # See https://docs.github.com/code-security/dependabot/working-with-dependabot/keeping-your-actions-up-to-date-with-dependabot
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: "daily"
