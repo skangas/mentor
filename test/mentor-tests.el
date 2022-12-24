@@ -95,12 +95,12 @@
 
 (ert-deftest mentor-rtorrent-enforce-length ()
   (should (equal (mentor-enforce-length nil 2)    "  "))
-  (should (equal (mentor-enforce-length "foo" 0)  ""))
-  (should (equal (mentor-enforce-length "foo" 2)  "fo"))
-  (should (equal (mentor-enforce-length "foo" -2) "fo"))
-  (should (equal (mentor-enforce-length "foo" 3)  "foo"))
-  (should (equal (mentor-enforce-length "foo" -4) "foo "))
-  (should (equal (mentor-enforce-length "foo" 4)  " foo")))
+  (should (equal (mentor-enforce-length "abc" 0)  ""))
+  (should (equal (mentor-enforce-length "abc" 2)  "ab"))
+  (should (equal (mentor-enforce-length "abc" -2) "ab"))
+  (should (equal (mentor-enforce-length "abc" 3)  "abc"))
+  (should (equal (mentor-enforce-length "abc" -4) "abc "))
+  (should (equal (mentor-enforce-length "abc" 4)  " abc")))
 
 (provide 'mentor-tests)
 
