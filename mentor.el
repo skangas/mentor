@@ -138,7 +138,7 @@ To connect using a local socket file, use
 start the path with `/' or '~' for it to be recognized as a file
 socket.
 
-To connect using http, use `http://HOST[:PORT]/PATH'.  This would
+To connect using HTTPS, use `https://HOST[:PORT]/PATH'.  This would
 be the case when using a web server in front of rTorrent.
 
 For security reasons, we strongly suggest to use one of the
@@ -148,7 +148,7 @@ scgi_port by specifying `scgi://HOST:PORT'.
 Example values:
 
  (1) ~/.rtorrent-rpc.socket
- (2) http://localhost:8080/RPC2
+ (2) https://localhost:8080/RPC2
  (3) scgi://localhost:5000 [not recommended]"
   :package-version '(mentor . "0.2")
   :group 'mentor

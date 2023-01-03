@@ -34,6 +34,7 @@
   (should (equal (mentor-normalize-rpc-url "scgi://~/.rtorrent.rpc")       "scgi://~/.rtorrent.rpc"))
   (should (equal (mentor-normalize-rpc-url "scgi:///path/to/rtorrent.rpc") "scgi:///path/to/rtorrent.rpc"))
   (should (equal (mentor-normalize-rpc-url "http://localhost:8080/RPC")    "http://localhost:8080/RPC"))
+  (should (equal (mentor-normalize-rpc-url "https://localhost:8080/RPC")   "https://localhost:8080/RPC"))
   ;; Add scgi
   (should (equal (mentor-normalize-rpc-url "~/.rtorrent.rpc")       "scgi://~/.rtorrent.rpc"))
   (should (equal (mentor-normalize-rpc-url "/path/to/rtorrent.rpc") "scgi:///path/to/rtorrent.rpc")))
@@ -54,7 +55,9 @@
 
 (ert-deftest mentor-rtorrent-keep-domain-name ()
   (should (equal (mentor-keep-domain-name "http://foo.bar1.com/announce?xxxx")
-                 "foo.bar1.com")))
+                 "foo.bar1.com"))
+  (should (equal (mentor-keep-domain-name "https://baz.bar2.com/announce?xxxx")
+                 "baz.bar2.com")))
 
 (ert-deftest mentor-remove-subdomains ()
   (should (equal (mentor-remove-subdomains "foo.bar.baz.com") "baz.com"))
