@@ -2,7 +2,7 @@
 
 [[https://elpa.nongnu.org/nongnu/mentor.html][https://elpa.nongnu.org/nongnu/mentor.svg]]
 
-mentor is a [[https://www.gnu.org/software/emacs][GNU Emacs]] frontend for the [[http://libtorrent.rakshasa.no/][rTorrent]] bittorrent client.
+mentor is a [[https://www.gnu.org/software/emacs][GNU Emacs]] frontend for the [[https://rakshasa.github.io/rtorrent/][rTorrent]] bittorrent client.
 
 By default, it will start and run rTorrent from within Emacs but can also be
 configured to use an external rTorrent instance over XML-RPC.
@@ -124,7 +124,7 @@ It is also possible to connect to rtorrent over http.  There are instructions on
 configuring this on the [[https://github.com/rakshasa/rtorrent/wiki/RPC-Setup-XMLRPC][rtorrent wiki]].
 
 : ;; Alternative 3: Use a web server
-: (setq mentor-rtorrent-external-rpc "http://127.0.0.1:8080/RPC2")
+: (setq mentor-rtorrent-external-rpc "https://127.0.0.1:8080/RPC2")
 
 Finally, you can connect directly to rtorrent over scgi.  However, anyone that
 can send rtorrent xmlrpc requests can in all likelihood also execute arbitrary
