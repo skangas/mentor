@@ -1,6 +1,6 @@
 ;;; mentor-tests.el --- Test suite for mentor.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016-2022 Stefan Kangas.
+;; Copyright (C) 2016-2023 Stefan Kangas
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 

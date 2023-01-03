@@ -1,6 +1,6 @@
 ;;; mentor-trackers.el --- Mentor trackers view  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020 Jesse Gildersleve.
+;; Copyright (C) 2020-2023 Jesse Gildersleve
 
 ;; Author: Jesse Gildersleve <jessejohngildersleve@protonmail.com>
 

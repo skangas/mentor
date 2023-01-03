@@ -1,6 +1,6 @@
 ;;; mentor-rpc-tests.el --- Test suite for mentor-rpc.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2018-2022 Stefan Kangas.
+;; Copyright (C) 2018-2023 Stefan Kangas
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 

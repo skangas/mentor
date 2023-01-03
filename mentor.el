@@ -1,6 +1,6 @@
 ;;; mentor.el --- Frontend for the rTorrent bittorrent client  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2010-2022 Stefan Kangas.
+;; Copyright (C) 2010-2023 Stefan Kangas
 
 ;; Author: Stefan Kangas <stefankangas@gmail.com>
 ;; Maintainer: Stefan Kangas <stefankangas@gmail.com>
