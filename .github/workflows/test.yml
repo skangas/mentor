@@ -21,28 +21,28 @@ jobs:
 
     steps:
     - name: Checkout async
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: jwiegley/emacs-async
         path: async
         persist-credentials: false
 
     - name: Checkout url-scgi
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: skangas/url-scgi
         path: url-scgi
         persist-credentials: false
 
     - name: Checkout xml-rpc
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: xml-rpc-el/xml-rpc-el
         path: xml-rpc
         persist-credentials: false
 
     - name: Checkout mentor
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: skangas/mentor
         path: mentor
