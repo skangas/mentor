@@ -1290,7 +1290,11 @@ Do not delete any files that are not in the list FILES."
     (setq dirs (sort dirs (lambda (a b) (not (string< a b)))))
     (dolist (dir dirs)
       (condition-case _err
-          (delete-directory dir nil t)
+          ;; Handle trashing separately because `delete-directory' disregards
+          ;; `delete-by-moving-to-trash' when deleting non-recursively.
+          (if delete-by-moving-to-trash
+              (move-file-to-trash dir)
+            (delete-directory dir nil t))
         (file-error nil)))))
 
 (defun mentor--download-remove-helper (remove-files &optional arg)
